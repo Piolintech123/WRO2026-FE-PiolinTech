@@ -55,7 +55,7 @@ The vehicle executes continuous-time closed-loop line tracking using a discrete 
 ---
 
 ### 2. Obstacle Challenge (Round 2 Strategy)
-The vehicle deploys its asynchronous proximity profiling matrix, using ultrasonic sensors and camera detection to bypass red and green pillars dynamically while maintaining lane reference boundaries.
+The vehicle deploys its proximity matrix, using ultrasonic sensors and camera detection to bypass red and green pillars dynamically while maintaining lane reference boundaries.
 
 COMING SOON......................
 
