@@ -1,1 +1,372 @@
+#!/usr/bin/env pybricks-micropython
 
+from pybricks.hubs import EV3Brick
+from pybricks.ev3devices import Motor, UltrasonicSensor, GyroSensor
+from pybricks.parameters import Port, Stop
+from pybricks.tools import wait, StopWatch
+
+EV3 = EV3Brick()
+
+# =========================
+# PUERTOS
+# =========================
+MOTOR_DRIVE = Motor(Port.A)
+MOTOR_STEER = Motor(Port.B)
+
+US_FRONT = UltrasonicSensor(Port.S1)
+US_RIGHT = UltrasonicSensor(Port.S2)
+US_LEFT  = UltrasonicSensor(Port.S3)
+GYRO = GyroSensor(Port.S4)
+
+# =========================
+# CONFIGURACION
+# =========================
+
+DIRECCION = "ANTIHORARIO"      # "HORARIO" o "ANTIHORARIO"
+
+# Prueba primero 4. Luego sube a 12 para 3 vueltas.
+CORNERS_TO_RUN = 12
+
+RUN_TIME_LIMIT_MS = 114000
+
+# Si el gyro corrige al lado contrario, cambia a -1.
+GYRO_SIGN = 1
+
+# En tu robot normalmente:
+# negativo = derecha, positivo = izquierda.
+STEER_RIGHT = -1
+STEER_LEFT = 1
+
+CENTER = 0
+
+# =========================
+# VELOCIDADES
+# =========================
+
+SPEED_STRAIGHT = -430
+SPEED_TURN = -300
+SPEED_SLOW = -230
+
+# =========================
+# CURVAS
+# =========================
+
+TURN_ANGLE = 90
+
+# Más alto = no deja girar tan temprano.
+MIN_STRAIGHT_DEGREES = 1050
+
+# Si no detecta pared frontal, gira por distancia.
+MAX_STRAIGHT_DEGREES = 2350
+
+# Distancia frontal para aceptar curva.
+FRONT_CORNER = 520
+
+# Emergencia frontal.
+FRONT_DANGER = 230
+
+# Después de girar, avanza un poco para salir de la curva.
+EXIT_TURN_DEGREES = 420
+
+# =========================
+# PARED LATERAL
+# =========================
+
+TARGET_WALL = 330
+WALL_LOST = 950
+SIDE_DANGER = 150
+
+# Corrección suave.
+K_WALL = 0.030
+D_WALL = 0.050
+MAX_WALL_TURN = 8
+
+# =========================
+# GYRO / STEERING
+# =========================
+
+K_HEADING = 0.45
+
+KP_STEER_MOTOR = 16
+MAX_STEER_SPEED = 750
+STEER_TOLERANCE = 3
+
+MAX_STEER_ANGLE = 28
+
+DEBUG = True
+
+last_wall_error = 0
+loop_count = 0
+
+
+# =========================
+# FUNCIONES
+# =========================
+
+def clamp(value, minimum, maximum):
+    if value > maximum:
+        return maximum
+    if value < minimum:
+        return minimum
+    return value
+
+
+def read_distance(sensor):
+    try:
+        d = sensor.distance()
+        if d < 20 or d > 2500:
+            return 2500
+        return d
+    except:
+        return 2500
+
+
+def gyro_angle():
+    return GYRO.angle() * GYRO_SIGN
+
+
+def steering_to(target_angle):
+    target_angle = int(clamp(target_angle, -MAX_STEER_ANGLE, MAX_STEER_ANGLE))
+
+    error = target_angle - MOTOR_STEER.angle()
+    speed = int(KP_STEER_MOTOR * error)
+    speed = int(clamp(speed, -MAX_STEER_SPEED, MAX_STEER_SPEED))
+
+    if abs(error) <= STEER_TOLERANCE:
+        MOTOR_STEER.stop(Stop.BRAKE)
+    else:
+        MOTOR_STEER.run(speed)
+
+
+def stop_robot():
+    MOTOR_DRIVE.stop(Stop.BRAKE)
+    MOTOR_STEER.stop(Stop.BRAKE)
+    EV3.speaker.beep(frequency=1000, duration=400)
+
+
+def drive(speed, target_heading, cw, track_wall):
+    global last_wall_error
+    global loop_count
+
+    front = read_distance(US_FRONT)
+    right = read_distance(US_RIGHT)
+    left = read_distance(US_LEFT)
+    gyro = gyro_angle()
+
+    loop_count += 1
+
+    heading_error = target_heading - gyro
+
+    # Corrección por gyro.
+    heading_turn = -K_HEADING * heading_error
+
+    wall_turn = 0
+
+    # HORARIO: sigue pared derecha.
+    # ANTIHORARIO: sigue pared izquierda.
+    if track_wall:
+
+        if cw == 1:
+            # Sentido horario: pared derecha
+            if right < WALL_LOST:
+                wall_error = TARGET_WALL - right
+                derivative = wall_error - last_wall_error
+                wall_turn = (K_WALL * wall_error) + (D_WALL * derivative)
+                last_wall_error = wall_error
+            else:
+                wall_turn = 0
+                last_wall_error = 0
+
+        else:
+            # Sentido antihorario: pared izquierda
+            if left < WALL_LOST:
+                wall_error = left - TARGET_WALL
+                derivative = wall_error - last_wall_error
+                wall_turn = (K_WALL * wall_error) + (D_WALL * derivative)
+                last_wall_error = wall_error
+            else:
+                wall_turn = 0
+                last_wall_error = 0
+
+    else:
+        last_wall_error = 0
+
+    wall_turn = clamp(wall_turn, -MAX_WALL_TURN, MAX_WALL_TURN)
+
+    target_steer = heading_turn + wall_turn
+    run_speed = speed
+
+    # =========================
+    # EMERGENCIAS
+    # =========================
+
+    # Si se pega a la derecha, gira izquierda.
+    if right < SIDE_DANGER:
+        target_steer = STEER_LEFT * MAX_STEER_ANGLE
+        run_speed = SPEED_SLOW
+
+    # Si se pega a la izquierda, gira derecha.
+    elif left < SIDE_DANGER:
+        target_steer = STEER_RIGHT * MAX_STEER_ANGLE
+        run_speed = SPEED_SLOW
+
+    # Si la pared frontal está encima, fuerza curva.
+    elif front < FRONT_DANGER:
+        if cw == 1:
+            target_steer = STEER_RIGHT * MAX_STEER_ANGLE
+        else:
+            target_steer = STEER_LEFT * MAX_STEER_ANGLE
+
+        run_speed = SPEED_SLOW
+
+    steering_to(target_steer)
+    MOTOR_DRIVE.run(run_speed)
+
+    if DEBUG and loop_count % 20 == 0:
+        print("F:", front, "R:", right, "L:", left,
+              "G:", gyro, "T:", target_heading,
+              "HE:", heading_error, "ST:", target_steer)
+
+    return front, right, left, gyro
+
+
+def drive_until_corner(speed, target_heading, cw, timer):
+    MOTOR_DRIVE.reset_angle(0)
+    confirm = 0
+
+    while True:
+        if timer.time() > RUN_TIME_LIMIT_MS:
+            return False
+
+        front, right, left, gyro = drive(speed, target_heading, cw, True)
+        moved = abs(MOTOR_DRIVE.angle())
+
+        # Solo frontal + distancia mínima.
+        if moved > MIN_STRAIGHT_DEGREES and front < FRONT_CORNER:
+            confirm += 1
+        else:
+            confirm = 0
+
+        if confirm >= 3:
+            break
+
+        # Respaldo por distancia para que no se quede eterno.
+        if moved > MAX_STRAIGHT_DEGREES:
+            break
+
+        wait(15)
+
+    return True
+
+
+def turn_to_heading(target_heading, cw, timer):
+    MOTOR_DRIVE.reset_angle(0)
+
+    while True:
+        if timer.time() > RUN_TIME_LIMIT_MS:
+            return False
+
+        gyro = gyro_angle()
+        error = abs(target_heading - gyro)
+        moved = abs(MOTOR_DRIVE.angle())
+
+        if error < 6 and moved > 280:
+            break
+
+        if moved > 1600:
+            break
+
+        drive(SPEED_TURN, target_heading, cw, False)
+        wait(15)
+
+    return True
+
+
+def drive_degrees(speed, degrees, target_heading, cw, track_wall, timer):
+    MOTOR_DRIVE.reset_angle(0)
+
+    while abs(MOTOR_DRIVE.angle()) < degrees:
+        if timer.time() > RUN_TIME_LIMIT_MS:
+            return False
+
+        drive(speed, target_heading, cw, track_wall)
+        wait(15)
+
+    return True
+
+
+# =========================
+# PROGRAMA PRINCIPAL
+# =========================
+
+def main():
+    global last_wall_error
+
+    EV3.screen.clear()
+    EV3.screen.print("CENTER")
+    EV3.screen.print("WHEELS")
+
+    EV3.speaker.beep(frequency=440, duration=200)
+    wait(1000)
+
+    # Las ruedas tienen que estar físicamente rectas antes de iniciar.
+    MOTOR_STEER.reset_angle(0)
+
+    # El gyro debe estar quieto.
+    GYRO.reset_angle(0)
+    wait(700)
+
+    EV3.screen.clear()
+    EV3.screen.print("RUN")
+    EV3.speaker.beep(frequency=800, duration=150)
+
+    timer = StopWatch()
+
+    if DIRECCION == "HORARIO":
+        cw = 1
+    else:
+        cw = -1
+
+    target_heading = 0
+
+    try:
+        for corner in range(CORNERS_TO_RUN):
+
+            EV3.screen.clear()
+            EV3.screen.print("STRAIGHT")
+            EV3.screen.print(corner)
+
+            ok = drive_until_corner(SPEED_STRAIGHT, target_heading, cw, timer)
+            if not ok:
+                break
+
+            EV3.speaker.beep(frequency=500, duration=80)
+
+            # En antihorario esto va restando:
+            # 0, -90, -180, -270...
+            target_heading = target_heading + (TURN_ANGLE * cw)
+            last_wall_error = 0
+
+            EV3.screen.clear()
+            EV3.screen.print("TURN")
+            EV3.screen.print(target_heading)
+
+            ok = turn_to_heading(target_heading, cw, timer)
+            if not ok:
+                break
+
+            EV3.speaker.beep(frequency=900, duration=80)
+
+            ok = drive_degrees(SPEED_STRAIGHT, EXIT_TURN_DEGREES,
+                               target_heading, cw, True, timer)
+            if not ok:
+                break
+
+        stop_robot()
+
+    finally:
+        stop_robot()
+
+
+if __name__ == "__main__":
+    main()
