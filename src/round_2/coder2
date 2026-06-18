@@ -1,1 +1,231 @@
+#!/usr/bin/env pybricks-micropython
+
+from pybricks.hubs import EV3Brick
+from pybricks.ev3devices import Motor, UltrasonicSensor, GyroSensor
+from pybricks.parameters import Port
+from pybricks.tools import wait
+
+# =========================
+# HARDWARE
+# =========================
+
+ev3 = EV3Brick()
+
+drive = Motor(Port.A)
+steering = Motor(Port.B)
+
+front_us = UltrasonicSensor(Port.S1)
+left_us = UltrasonicSensor(Port.S2)
+right_us = UltrasonicSensor(Port.S3)
+
+gyro = GyroSensor(Port.S4)
+
+# =========================
+# CONFIG
+# =========================
+
+BASE_SPEED = 350
+STEERING_LIMIT = 30
+
+corner_count = 0
+
+# =========================
+# PIXY PLACEHOLDER
+# =========================
+
+def pixy_detect():
+
+    """
+    Simulación:
+
+    0 = nada
+    1 = rojo
+    2 = verde
+    """
+
+    return 0
+
+
+# =========================
+# SEGUIR CENTRO
+# =========================
+
+def follow_track():
+
+    left = left_us.distance()
+    right = right_us.distance()
+
+    error = left - right
+
+    steer = error * 0.05
+
+    if steer > STEERING_LIMIT:
+        steer = STEERING_LIMIT
+
+    if steer < -STEERING_LIMIT:
+        steer = -STEERING_LIMIT
+
+    steering.run_target(
+        400,
+        steer,
+        wait=False
+    )
+
+    drive.run(BASE_SPEED)
+
+
+# =========================
+# ESQUIVAR ROJO
+# =========================
+
+def avoid_red():
+
+    print("ROJO")
+
+    steering.run_target(
+        400,
+        25
+    )
+
+    drive.run_time(
+        300,
+        800
+    )
+
+    steering.run_target(
+        400,
+        -25
+    )
+
+    drive.run_time(
+        300,
+        800
+    )
+
+    steering.run_target(
+        400,
+        0
+    )
+
+
+# =========================
+# ESQUIVAR VERDE
+# =========================
+
+def avoid_green():
+
+    print("VERDE")
+
+    steering.run_target(
+        400,
+        -25
+    )
+
+    drive.run_time(
+        300,
+        800
+    )
+
+    steering.run_target(
+        400,
+        25
+    )
+
+    drive.run_time(
+        300,
+        800
+    )
+
+    steering.run_target(
+        400,
+        0
+    )
+
+
+# =========================
+# GIRO 90°
+# =========================
+
+def turn_right():
+
+    global corner_count
+
+    start = gyro.angle()
+
+    target = start + 90
+
+    steering.run_target(
+        400,
+        30
+    )
+
+    drive.run(250)
+
+    while gyro.angle() < target:
+        wait(5)
+
+    drive.stop()
+
+    steering.run_target(
+        400,
+        0
+    )
+
+    corner_count += 1
+
+
+# =========================
+# MAIN
+# =========================
+
+wait(2000)
+gyro.reset_angle(0)
+
+while True:
+
+    if corner_count >= 12:
+
+        drive.stop()
+
+        steering.run_target(
+            300,
+            0
+        )
+
+        break
+
+    # Detectar pared frontal
+
+    if front_us.distance() < 250:
+
+        drive.run(BASE_SPEED)
+
+        wait(250)
+
+        turn_right()
+
+        continue
+
+    # Detectar obstáculo
+
+    color = pixy_detect()
+
+    if color == 1:
+
+        avoid_red()
+
+        continue
+
+    elif color == 2:
+
+        avoid_green()
+
+        continue
+
+    # Navegación normal
+
+    follow_track()
+
+    wait(10)
+
 
