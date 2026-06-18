@@ -24,15 +24,12 @@ GYRO = GyroSensor(Port.S4)
 
 DIRECCION = "ANTIHORARIO"      # "HORARIO" o "ANTIHORARIO"
 
-# Prueba primero 4. Luego sube a 12 para 3 vueltas.
 CORNERS_TO_RUN = 12
 
 RUN_TIME_LIMIT_MS = 114000
 
-# Si el gyro corrige al lado contrario, cambia a -1.
 GYRO_SIGN = 1
 
-# En tu robot normalmente:
 # negativo = derecha, positivo = izquierda.
 STEER_RIGHT = -1
 STEER_LEFT = 1
