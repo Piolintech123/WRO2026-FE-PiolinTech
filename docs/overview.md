@@ -6,9 +6,9 @@ Our engineering framework prioritizes reproducibility, real-time execution, and 
 
 ---
 
-##  Extended Project Overview & System Mission
+##  Deeper into our Project Overview & System Mission
 
-The ultimate objective of the **Piolín** project is to design a fully self-driving, scale vehicle capable of parsing complex spatial environments and executing real-time trajectory adjustments under varying track dynamics. The platform bridges the gap between structured mechanical hardware and reactive, asynchronous code. Rather than relying on rigid, pre-programmed path sequences, Piolín perceives its environment dynamically and recalculates its actuation metrics on the fly.
+The ultimate objective of the **Piolín** project is to design a fully self-driving, scale vehicle capable of parsing complex spatial environments and executing real-time trajectory adjustments under varying track dynamics. The platform bridges the gap between structured mechanical hardware and reactive, asynchronous code. Rather than relying on rigid, pre-programmed path sequences, Piolín perceives its environment dynamically and recalculates its actuation metrics while moving. Our main mission is to win :)
 
 ### Core Competition Objectives
 
