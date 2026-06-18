@@ -54,6 +54,12 @@ Our robot's hardware architecture combines precision actuation, high-quality sen
 - **Features:** Same as front ultrasonic, supports simultaneous readings for improved side-to-side positioning.
 <img width="500" height="500" alt="motor" src="https://github.com/user-attachments/assets/b8872f62-adb5-4fd1-98fb-18491c57de56"/>
 
+### Gyro Sensor (S4)
+- **Quantity:** 1  
+- **Voltage:** 4.5–7V (EV3 powered)  
+- **Description:** This digital sensor measures the vehicle’s rotational motion and changes in its orientation. It allows Piolín to track its current heading and perform precise angular turns.  
+- **Features:** Accurate angle measurement with a resolution of 1 degree; can also measure rotational speed (deg/sec).
+<img width="1000" height="860" alt="image" src="https://github.com/user-attachments/assets/10c68578-7bc5-48a4-ad62-6c52241aa566" />
 
 ---
 
