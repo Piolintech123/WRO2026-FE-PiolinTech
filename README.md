@@ -32,9 +32,7 @@ We are **Piolín Tech**, a Panamanian robotics team competing in the **2026 WRO 
 
 
 ---
-### 3D Model Orthographic Projections
-
-### Physical Vehicle Orthographic Projections
+### Vehicle Pictures
 
 | **Top (Superior)** | **Front (Frontal)** | **Left (Izquierda)** |
 | :---: | :---: | :---: |
