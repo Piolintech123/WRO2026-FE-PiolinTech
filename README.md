@@ -370,14 +370,13 @@ The following links provide official high-definition video demonstrations of **P
 ### 1. Open Challenge (Round 1 Strategy)
 The vehicle executes continuous-time closed-loop line tracking using a discrete PID algorithm, completing the required 3-lap run with optimized corner trajectories.
 
-* **Open Challenge Video — Test Video:** > [Watch the Demonstration on YouTube](https://youtu.be/haeQVoR9_ko)
+* **Open Challenge Video — Test Video:** > [Watch the Demonstration on YouTube](https://www.youtube.com/watch?v=JROB39Az-Ys)
 ---
 
 ### 2. Obstacle Challenge (Round 2 Strategy)
 The vehicle deploys its proximity matrix, using ultrasonic sensors and camera detection to bypass red and green pillars dynamically while maintaining lane reference boundaries.
 
-COMING SOON......................
-
+* **Obstacles Video — Test Video:** > [Watch the Demonstration on YouTube](https://youtu.be/Tlw_LM0b6WE)
 
 ---
 The Piolín platform operates on a high-modularity mechatronic framework, purposefully departing from standard LEGO Technic structural limitations to achieve deterministic mechanical response. The structural design focuses on minimizing the Moment of Inertia ($\mathcal{I}$) and ensuring the distribution of structural loads across the chassis assembly.
