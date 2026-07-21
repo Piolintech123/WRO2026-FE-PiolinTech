@@ -1,4 +1,4 @@
-### Phase 3: The Piolín Optimization and Final WRO 2026 Architecture
+## Phase 1.3: The Piolín Optimization and Final WRO 2026 Architecture
 
 Phase 3 represents the definitive culmination of our engineering efforts for the WRO 2026 Future Engineers competition. This phase marks a complete departure from the fragile experimental prototypes of our early development cycle. The primary objective defining Phase 3 is the establishment of absolute mechanical reliability and deterministic software execution. By centralizing our processing logic onto the LEGO Mindstorms EV3 platform, we have transformed the Piolín robot into a highly optimized, competition ready autonomous vehicle. This comprehensive documentation details every subsystem, architectural decision, and mathematical model that defines this final phase.
 
