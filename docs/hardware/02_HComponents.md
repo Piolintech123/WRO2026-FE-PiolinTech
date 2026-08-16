@@ -64,29 +64,31 @@ The initial prototype utilized a standard LEGO Technic chassis driven by the EV3
 ### Version 2 (Phase 1.5: LEGO SPIKE Stabilization)
 To address the structural flex identified in Phase 1, the frame was rebuilt using cross-braced LEGO SPIKE Prime beams, creating a rigid overhead bridge structure. This successfully eliminated vertical chassis twist and established a stable, fully LEGO ecosystem.
 
-### Version 3 (Current Integrated Configuration)
+### Version 3 (Former Integrated Configuration)
 The current active configuration implements an integrated sensor fusion paradigm. We preserved the rigid SPIKE Prime box-frame structure for compliance and modularity, while leveraging the LEGO Mindstorms EV3 Intelligent Brick to process a sophisticated sensor array. By integrating the PixyCam for real-time computer vision, alongside the precision gyro, ultrasonic, and color sensors, we achieved high-fidelity telemetry, responsive obstacle detection, and accurate lane tracking.
+
+### Version 4 (Last minute lol)
+Version 4 represents a key evolution in the robot by migrating control logic from the Raspberry Pi 5 to the Arduino Mega 2560 to eliminate voltage drop issues and vibration-induced failures. This configuration combines the HuskyLens camera with a hybrid drivetrain uniting LEGO structural components with a high-torque DC motor via custom 3D printed adapters, achieving a stable and efficient average current draw of 1.22 A that fully resolves the power delivery problems of previous versions.
 
 ---
 
 ## 4. Engineering Achievements & Control Logic
 
-*   **Asynchronous Sensor Fusion:** We have optimized the Pybricks environment to run an asynchronous polling loop. This allows the EV3 to read the PixyCam vision data, gyro heading, and ultrasonic distances concurrently, minimizing latency between visual input and motor output.
-*   **PID Control Loop:** Steering is governed by a PID loop that utilizes the gyro and color sensor data as primary feedback. This ensures that the robot maintains a stable heading even when the track geometry changes rapidly.
-*   **Predictive Maneuvering:** By fusing the ultrasonic sensor data with vision inputs, the robot can anticipate upcoming track segments, allowing it to initiate evasive maneuvers or tighten steering arcs before an obstacle is even fully in view.
+* **Asynchronous Sensor Polling:** We have optimized the Arduino architecture to run a non-blocking execution loop. This allows the microcontroller to read the HuskyLens vision data, gyro heading, and ultrasonic distances concurrently, minimizing latency between visual input and motor output without operating system jitter.
+* **PID Control Loop:** Steering is governed by a PID loop that utilizes the gyro and color sensor data as primary feedback. This ensures that the robot maintains a stable heading even when the track geometry changes rapidly.
+* **Predictive Maneuvering:** By fusing the ultrasonic sensor data with vision inputs, the robot can anticipate upcoming track segments, allowing it to initiate evasive maneuvers or tighten steering arcs before an obstacle is even fully in view.
 
 ---
 
 ## 5. Power Consumption Analysis
 
 | Component | Operating Voltage (V) | Avg. Current (A) | Peak Current (A) |
-| :--- | :---: | :---: | :---: |
-| LEGO EV3 Brick | 9.0 | 0.20 | 0.50 |
-| PixyCam (Pixy2) | 5.0 | 0.10 | 0.15 |
-| EV3 L-Motors (x2) | 9.0 | 0.60 | 1.50 |
-| Sensors (Gyro, US, Color) | 5.0 | 0.05 | 0.10 |
-| **Total** | -- | **0.95 A** | **2.25 A** |
-
+| --- | --- | --- | --- |
+| **Arduino Mega 2560** | 5.0 | 0.05 | 0.20 |
+| **HuskyLens** | 5.0 | 0.32 | 0.45 |
+| **DC Gear Motor** | 9.0 | 0.80 | 2.50 |
+| **Sensors (Gyro, US, Color)** | 5.0 | 0.05 | 0.10 |
+| **Total** | -- | **1.22 A** | **3.25 A** |
 ## 6. Technical Analysis of Final System Configuration
 
 The following hardware stack represents the finalized, competition-ready configuration of Piolín. This architecture was selected to maximize processing speed, sensor precision, and electrical stability, ensuring the robot can handle the rigorous demands of the WRO 2026 Future Engineers track. Each component listed below is integrated into our master control loop to enable autonomous navigation, high-speed evasion, and real-time decision-making.
@@ -103,16 +105,34 @@ The following hardware stack represents the finalized, competition-ready configu
 
 ---
 
-*   ### Component: Raspberry Pi 5 - 8GB RAM (Processing Core)
-    *   **Quantity:** 1
-    *   **Voltage:** 5.1V
-    *   **Current Consumption:** Up to 5.0A (Peak workload output)
-    *   **Interface:** GPIO / Native I2C / Hardware PWM / UART
-    *   **Description:** High-performance 64-bit quad-core microcomputer hosting our multi-threaded control architecture. Manages asynchronous sensor data ingestion, executes real-time digital filtering, and computes the master steering PID control outputs. 
+* ### Component: Raspberry Pi 5 - 8GB RAM (Previous Processing Core - Deprecated)
+
+
+* **Quantity:** 0 (Retired in V4)
+* **Voltage:** 5.1V
+* **Current Consumption:** Up to 5.0A (Peak workload output)
+* **Interface:** GPIO / Native I2C / Hardware PWM / UART / PCIe
+* **Description:** High-performance 64-bit quad-core microcomputer previously used to host our multi-threaded control architecture. Removed from the robot due to two critical hardware-level limitations encountered during bench testing:
+* **Power and Vibration Instability:** The Pi 5 power input proved overly sensitive to the physical vibration and connector stress typical of a moving competition robot, causing intermittent brownouts and unexpected reboots mid-run.
+* **Current Overhead & Power Budget Exhaustion:** Running a full Linux operating system alongside active sensor parsing consumed a disproportionate share of our available current, leaving insufficient headroom for the drivetrain under peak load and causing frequent voltage sags.
+   <div align="center">
+      <img src="https://github.com/user-attachments/assets/ef3607a0-079f-4ef4-8be8-aea02fb8b2cd" alt="Component Image" style="max-width: 30%; height: auto; border-radius: 8px; margin: 10px 0;" />
+    </div>
+    
+---
+
+* ### Component: Arduino Mega 2560 (Processing Core)
+
+
+* **Quantity:** 1
+* **Voltage:** 5.0V (TTL / USB) / 7V to 12V (VIN recommended)
+* **Current Consumption:** Up to 0.20A (Peak controller workload)
+* **Interface:** Digital/Analog I/O / Hardware Serial (UART) / I2C / PWM
+* **Description:** Robust 8-bit microcontroller running our low-level control architecture. Manages direct asynchronous sensor polling, executes real-time digital logic, and handles motor and servo control outputs without OS-level jitter.
     <div align="center">
       <img src="https://github.com/user-attachments/assets/9fb3da92-7bec-4a39-8955-44342d2e165f" alt="Component Image" style="max-width: 30%; height: auto; border-radius: 8px; margin: 10px 0;" />
     </div>
-
+    
 ---
 
 *   ### Component: HC-SR04 Ultrasonic Distance Sensor
