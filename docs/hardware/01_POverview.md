@@ -23,12 +23,11 @@ Piolín is an advanced autonomous robotic vehicle designed to navigate a closed 
 ### Key Component Functional Roles
 
 | Subsystem Component | Technical Specifications | Primary Functional Role & Optimization |
-| :--- | :--- | :--- |
-| **Processing Core** | Raspberry Pi 5 (8GB RAM) | Hosts the multi-threaded master Python script, processes real-time sensor fusion parsing, and drives high-frequency I/O communication. |
-| **Primary Vision System** | Huskylens AI Camera Module | Mounted at 9.5 cm height with a 15° downward pitch to shield the lens from overhead venue glare, reducing misdetections below 3%. Transmits tracking coordinates via direct I2C lines to the Pi 5. |
+| --- | --- | --- |
+| **Processing Core** | Arduino Mega 2560 | Executes direct low-level sensor polling, motor and servo control logic, and state machine sequences without OS-level jitter or power overhead. |
+| **Primary Vision System** | Huskylens AI Camera Module | Mounted at 9.5 cm height with a 15° downward pitch to shield the lens from overhead venue glare, reducing misdetections below 3%. Processes color and object recognition internally and transmits tracking coordinates over the wire. |
 | **Spatial Awareness Array** | 3x HC-SR04 Ultrasonic Sensors | Structurally staggered on the front bumper at -30° (Left), 0° (Center), and +30° (Right) to create an unbroken 180° spatial safety boundary box and eliminate blind spots. |
-| **Actuation & Power Control** | TB6612FNG Driver, XL6019E1 Converter, High-Torque Servo, DC Motor | The servo drives front Ackermann steering while the DC motor handles rear traction. The XL6019E1 converter isolates the motor voltage line, preventing high-current spikes from causing Pi 5 brownouts. |
-
+| **Actuation & Power Control** | TB6612FNG Driver, XL6019E1 Converter, High-Torque Servo, DC Gear Motor | The servo drives front Ackermann steering while the high-torque DC gear motor handles rear traction via custom 3D-printed adapters. The XL6019E1 converter and isolated lithium power circuit prevent high-current motor spikes from causing controller brownouts. |
 ---
 
 ## 1.3 Electromechanical Integration Layout
