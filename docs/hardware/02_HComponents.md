@@ -7,15 +7,14 @@
 Our design process has been a journey of overcoming hard technical limitations. We didn't build this current iteration of Piolín overnight; it is the direct result of testing what worked and discarding what failed under actual competition stress. 
 
 
-
 | System | Component | Primary Feature / Technical Specification |
-| :--- | :--- | :--- |
-| **High-Level Processor** | **LEGO Mindstorms EV3** | ARM9-based processor. Handles multi-sensor fusion, PID motor control, and state machines. |
-| **Computer Vision Engine** | **PixyCam (Pixy2)** | Color-based object detection. Communicates via I2C/SPI to the EV3; handles real-time lane and marker parsing. |
+| --- | --- | --- |
+| **High-Level Processor** | **Arduino Mega 2560** | Microcontroller replacing the RPi 5 architecture; handles multi-sensor polling, servo control, and execution logic directly without OS jitter. |
+| **Computer Vision Engine** | **HuskyLens (Pixy2 alternative)** | Dedicated onboard AI vision sensor; performs color and object recognition internally and transmits coordinates over the wire without host processing overhead. |
 | **Distance Telemetry** | **Ultrasonic Sensor (x3)** | Active ultrasonic transducers (1 front, 2 side) to detect walls and track boundaries. |
 | **Heading / Navigation** | **Gyro Sensor** | Provides angular velocity and heading data for steering stabilization and turn precision. |
 | **Lane Tracking** | **Color Sensor** | Detects surface contrast and track markers; provides feedback for lane-keeping error corrections. |
-| **Propulsion Power** | **LEGO Motors** | High-torque output for rapid acceleration and precise steering actuation. |
+| **Propulsion Power** | **Hybrid DC Motor & LEGO Drivetrain** | High-torque DC gear motor coupled with custom 3D printed adapters and gear linkages to deliver sustained RPM under heavy chassis load. |
 
 ---
 
