@@ -32,7 +32,8 @@
 
 ---
 
-Welcome to the official repository for Piolín, our autonomous robotic vehicle designed and built for the World Robot Olympiad (WRO) Future Engineers competition. This repository contains the complete mechanical designs, electrical schematics, firmware files, and algorithms developed by our team. Piolín is an advanced autonomous robotic vehicle engineered to compete in the WRO Future Engineers 2026 category. Built entirely on a LEGO platform, the robot utilizes a Pixy Cam for real-time computer vision to ensure strict lane alignment. It fuses this visual telemetry with an integrated gyro, ultrasonic sensor, and color sensor array to navigate complex track curves, identify lane markers, and safely execute dynamic obstacle evasion.
+Welcome to the official repository for Piolín, our autonomous robotic vehicle designed and built for the World Robot Olympiad Future Engineers competition. This repository contains the complete mechanical designs, electrical schematics, firmware files, and algorithms developed by our team. Piolín is an advanced autonomous robotic vehicle engineered to compete in the WRO Future Engineers 2026 category. Built on a hybrid architecture combining LEGO structural components with a custom DC drivetrain and an Arduino Mega control system, the robot utilizes a HuskyLens vision sensor for real-time computer vision to ensure strict lane alignment. It fuses this visual telemetry with an integrated gyro, ultrasonic sensor, and color sensor array to navigate complex track curves, identify lane markers, and safely execute dynamic obstacle evasion.
+
 ## Meet the Team
 
 We are **PiolínTech**, a robotics team from Colegio Bilingüe de Panamá. We are committed to pushing the boundaries of autonomous navigation through rigorous engineering and continuous iterative development.
@@ -214,12 +215,12 @@ Piolín operates on a high-modularity mechatronic framework, purposefully depart
 
 | System | Component | Primary Feature / Technical Specification |
 | --- | --- | --- |
-| **High-Level Processor** | **LEGO Mindstorms EV3** | ARM9-based processor. Handles multi-sensor fusion, PID motor control, and state machine logic. |
-| **Computer Vision Engine** | **PixyCam (Pixy2)** | Color-based object detection. Communicates via I2C/SPI to the EV3; handles real-time lane and marker parsing. |
+| **High-Level Processor** | **Arduino Mega 2560** | Microcontroller replacing the RPi 5 architecture; handles multi-sensor polling, servo control, and execution logic directly without OS jitter. |
+| **Computer Vision Engine** | **HuskyLens (Pixy2 alternative)** | Dedicated onboard AI vision sensor; performs color and object recognition internally and transmits coordinates over the wire without host processing overhead. |
 | **Navigation Sensors** | **Gyro Sensor** | Provides angular velocity and heading data for steering stabilization and turn precision. |
 | **Distance Telemetry** | **Ultrasonic Sensor** | Measures distance to walls and obstacles; used to maintain lane centering and collision avoidance. |
 | **Lane Tracking** | **Color Sensor** | Detects surface contrast and track markers; provides feedback for lane-keeping error corrections. |
-| **Propulsion & Steering** | **LEGO SPIKE/EV3 Motors** | High-torque output for rapid acceleration and precise steering actuation. |
+| **Propulsion & Steering** | **Hybrid DC Motor & LEGO Drivetrain** | High-torque DC gear motor coupled with custom 3D printed adapters and gear linkages to deliver sustained RPM under heavy chassis load. |
 
 ---
 
@@ -244,9 +245,25 @@ The initial prototype utilized a standard LEGO Technic chassis driven by the LEG
 
 To address the structural flex identified in Phase 1, the frame was rebuilt using cross-braced white and grey LEGO SPIKE Prime beams, creating a rigid overhead bridge structure. This successfully eliminated vertical chassis twist and established a stable, fully LEGO ecosystem. However, this phase remained "blind" and reliant solely on ultrasonic sensing, as we had yet to integrate external vision processing. The system was highly stable for its scope, but it reached its physical performance ceiling in terms of processing power and sensor-driven decision making.
 
-### 3. Version 3 (Current Hybrid Configuration)
+### 3. Version 3 (Will be retaken...)
 
-The current active configuration implements an integrated sensor fusion paradigm. We preserved the rigid SPIKE Prime box-frame structure for compliance and modularity, while leveraging the LEGO Mindstorms EV3 Intelligent Brick to process a sophisticated sensor array. By integrating a Pixy Cam for real-time computer vision, alongside precision gyro, ultrasonic, and color sensors, we achieved high-fidelity telemetry, responsive obstacle detection, and accurate lane tracking. This architecture maximizes the potential of the LEGO ecosystem, delivering high-performance autonomous navigation within the constraints of the WRO competition.
+The former active configuration implements an integrated sensor fusion paradigm. We preserved the rigid SPIKE Prime box-frame structure for compliance and modularity, while leveraging the LEGO Mindstorms EV3 Intelligent Brick to process a sophisticated sensor array. By integrating a Pixy Cam for real-time computer vision, alongside precision gyro, ultrasonic, and color sensors, we achieved high-fidelity telemetry, responsive obstacle detection, and accurate lane tracking. This architecture maximizes the potential of the LEGO ecosystem, delivering high-performance autonomous navigation within the constraints of the WRO competition.
+
+### 4. Version 4 (Current Configuration: Arduino Migration & Hybrid Drivetrain)
+
+Version 4 marks a deliberate departure from both the LEGO EV3 brick and our short-lived Raspberry Pi 5 prototype, driven by problems we encountered directly on the bench rather than by a desire to upgrade for the sake of upgrading.
+
+**Why we moved away from the Raspberry Pi 5:** during our Phase 3-to-4 testing, the Raspberry Pi 5 repeatedly caused two categories of failure. First, we experienced unreliable battery connections. The Pi power input proved sensitive to the vibration and connector stress typical of a moving competition robot, causing intermittent brownouts and unexpected reboots mid-run. Second, once we built out our full power budget, including the Pi 5, camera, motors, and sensors, the Pi own power draw consumed a disproportionate share of our available current, leaving insufficient headroom for the drivetrain under peak load. Rather than continuing to fight the power budget, we made the engineering decision to move our control logic to an Arduino-based architecture, which draws a small fraction of the current the Pi 5 required and eliminates the single-board-computer boot-time and OS-level instability entirely.
+
+**Processing:** the Arduino now handles sensor polling and motor or servo control directly, removing the OS-level jitter and the power overhead that came with running a full Linux stack on the Pi. Specifically, we selected the Arduino Mega 2560 because its abundant hardware serial ports, expanded digital pins, and robust I/O capacity easily accommodate our multi-sensor array and vision module without requiring multiplexers.
+
+**Vision:** we kept the HuskyLens as our vision sensor across this transition, since it processes color and object recognition on its own onboard chip and only sends the resulting coordinates over the wire. This made it a natural fit for a lower-powered Arduino controller, as it doesn't require the host processor to do any image processing itself.
+
+**Drivetrain:** Version 4 also introduces a hybrid mechanical approach. We combine LEGO structural and motion components with a dedicated DC motor for propulsion, rather than relying solely on stock LEGO or SPIKE motors. We utilize a high-torque DC gear motor to overcome the heavy chassis load, choosing it over standard LEGO motors because it delivers significantly higher stall torque and sustained RPM under friction, coupled directly to the LEGO Technic drivetrain via custom 3D-printed adapters and custom gear couplings.
+
+**Power budget outcome:** transitioning to the Arduino architecture drastically reduced our system draw. While the old RPi 5 configuration drew upwards of 2.5A to 3.5A under full sensor and processing load, frequently triggering brownouts, our new V4 baseline comprising the Arduino Mega, HuskyLens, DC motor, and ultrasonic sensors operates safely within a much tighter, highly stable current envelope, eliminating voltage sags entirely.
+
+This version resolves the structural questions settled in Phase 1.5 and the sensing questions settled in Phase 3, while finally addressing the power-delivery reliability that neither the EV3 nor the Raspberry Pi 5 could sustain under our actual competition load.
 
 ---
 
@@ -256,7 +273,8 @@ The current active configuration implements an integrated sensor fusion paradigm
 | --- | --- | --- | --- |
 | **V1** | Technic / EV3 | EV3 Brick | Initial proof of concept |
 | **V2** | SPIKE / EV3 | EV3 Brick | Structural rigidity via SPIKE box-bracing |
-| **V3** | SPIKE / Hybrid | EV3 Brick| High-speed sensor fusion and metal drivetrain |
+| **V3** | SPIKE / Hybrid | RPi5 | High-speed sensor fusion and metal drivetrain |
+| **V4** | SPIKE / Hybrid | Arduino GAR | Fast alternative |
 
 
 ---
@@ -451,11 +469,11 @@ The following table details the estimated current consumption across the primary
 
 | Component | Operating Voltage (V) | Avg. Current (A) | Peak Current (A) |
 | --- | --- | --- | --- |
-| LEGO EV3 Brick | 9.0 | 0.20 | 0.50 |
-| PixyCam (Pixy2) | 5.0 | 0.10 | 0.15 |
-| EV3 L-Motors (x2) | 9.0 | 0.60 | 1.50 |
-| Sensors (Gyro, US, Color) | 5.0 | 0.05 | 0.10 |
-| **Total** | -- | **0.95 A** | **2.25 A** |
+| **Arduino Mega 2560** | 5.0 | 0.05 | 0.20 |
+| **HuskyLens** | 5.0 | 0.32 | 0.45 |
+| **DC Gear Motor** | 9.0 | 0.80 | 2.50 |
+| **Sensors (Gyro, US, Color)** | 5.0 | 0.05 | 0.10 |
+| **Total** | -- | **1.22 A** | **3.25 A** |
 
 ---
 
