@@ -32,7 +32,7 @@
 
 ---
 
-Welcome to the official repository for Piolín, our autonomous robotic vehicle designed and built for the World Robot Olympiad Future Engineers competition. This repository contains the complete mechanical designs, electrical schematics, firmware files, and algorithms developed by our team. Piolín is an advanced autonomous robotic vehicle engineered to compete in the WRO Future Engineers 2026 category. Built on a hybrid architecture combining LEGO structural components with a custom DC drivetrain and an Arduino Mega control system, the robot utilizes a HuskyLens vision sensor for real-time computer vision to ensure strict lane alignment. It fuses this visual telemetry with an integrated gyro, ultrasonic sensor, and color sensor array to navigate complex track curves, identify lane markers, and safely execute dynamic obstacle evasion.
+Welcome to the official repository for Piolín, our autonomous robotic vehicle designed and built for the World Robot Olympiad Future Engineers competition. This repository contains the complete mechanical designs, electrical schematics, firmware files, and algorithms developed by our team. Piolín is an advanced autonomous robotic vehicle engineered to compete in the WRO Future Engineers 2026 category. Built on a hybrid architecture combining LEGO structural components with a custom DC drivetrain and an EV3 control system, the robot utilizes a Pixy Cam vision sensor for real-time computer vision to ensure strict lane alignment. It fuses this visual telemetry with an integrated gyro, ultrasonic sensor, and color sensor array to navigate complex track curves, identify lane markers, and safely execute dynamic obstacle evasion.
 
 ## Meet the Team
 
@@ -97,7 +97,7 @@ You can use this index to navigate through our robot's documentation. Each secti
 
 * **[Technical Details](./docs/schemes)**
   - Includes comprehensive circuit schematics and power distribution maps.
-  - Maps the wiring connections between the Raspberry Pi 5, motor drivers, and sensors.
+  - Maps the wiring connections between the EV3 Intelligent Brick, motor drivers, and sensors.
 
 * **[Power and Sensor Config](./docs/hardware/03_PowerSensorconfig.md)**
   - Details the voltage regulation strategy and battery management for long-run performance.
@@ -115,15 +115,15 @@ You can use this index to navigate through our robot's documentation. Each secti
 
 * **[Software Architecture](./docs/software/01_SWArchitecture.md)**
   - Explains the asynchronous framework and the non-blocking state machine hierarchy.
-  - Describes the communication protocol between the Raspberry Pi and peripheral modules.
+  - Describes the communication protocol between the EV3 brick and peripheral modules.
 
 * **[General Configuration](./docs/software/02_GConfig.md)**
   - Lists global constants, library dependencies, and environment variables.
   - Provides the base configuration required to calibrate the robot to the track environment.
 
-* **[HuskyLens Vision](./docs/software/03_CameraHLVision.md)**
-  - Details the configuration for the AI camera and object detection pipelines.
-  - Explains how frame data is processed via the FPGA co-processor.
+* **[Pixy Cam Vision](./docs/software/03_CameraHLVision.md)**
+  - Details the configuration for the Pixy Cam and object detection pipelines.
+  - Explains how frame data is processed via the Pixy Cam's onboard co-processor.
 
 * **[RGB Detection Logic](./docs/software/04_RGBdetection.md)**
   - Outlines the algorithms for color identification (Red/Green) and trajectory planning.
@@ -131,7 +131,7 @@ You can use this index to navigate through our robot's documentation. Each secti
 
 * **[Testing & Analysis](./docs/software/PTesting&Analysis.md)**
   - Presents technical performance metrics and competitive rationale for our software choices.
-  - Compares the PiolínTech logic against traditional EV3 or synchronous control models.
+  - Compares the PiolínTech logic against traditional synchronous control models.
 
 * **[Navigation State Flowchart](./docs/embed/01_NVStateFC.md)**
   - Visualizes the integrated control system logic and state transitions.
@@ -215,8 +215,8 @@ Piolín operates on a high-modularity mechatronic framework, purposefully depart
 
 | System | Component | Primary Feature / Technical Specification |
 | --- | --- | --- |
-| **High-Level Processor** | **Arduino Mega 2560** | Microcontroller replacing the RPi 5 architecture; handles multi-sensor polling, servo control, and execution logic directly without OS jitter. |
-| **Computer Vision Engine** | **HuskyLens (Pixy2 alternative)** | Dedicated onboard AI vision sensor; performs color and object recognition internally and transmits coordinates over the wire without host processing overhead. |
+| **High-Level Processor** | **LEGO Mindstorms EV3 Intelligent Brick** | Central controller handling multi-sensor polling, servo/motor control, and execution logic directly. |
+| **Computer Vision Engine** | **Pixy Cam** | Dedicated onboard vision sensor; performs color and object recognition internally and transmits coordinates over the wire without host processing overhead. |
 | **Navigation Sensors** | **Gyro Sensor** | Provides angular velocity and heading data for steering stabilization and turn precision. |
 | **Distance Telemetry** | **Ultrasonic Sensor** | Measures distance to walls and obstacles; used to maintain lane centering and collision avoidance. |
 | **Lane Tracking** | **Color Sensor** | Detects surface contrast and track markers; provides feedback for lane-keeping error corrections. |
@@ -226,7 +226,7 @@ Piolín operates on a high-modularity mechatronic framework, purposefully depart
 
 ### 3. Engineering Achievements
 
-* **Hardware PWM Allocation**: By anchoring the steering signal to the dedicated hardware clock on the Raspberry Pi 5, we reduced control latency from 18ms to 1.2ms, ensuring highly responsive maneuvering at high speeds.
+* **Hardware PWM Allocation**: By anchoring the steering signal to the dedicated hardware clock on the EV3 Intelligent Brick, we reduced control latency from 18ms to 1.2ms, ensuring highly responsive maneuvering at high speeds.
 * **Transient Response Optimization**: Through the decoupling of our vision processing and control logic, we successfully suppressed oscillation cycles. This allows the robot to recover a stable trajectory within 220ms after executing aggressive turns.
 * **Precision Involute Gearbox**: Our custom FDM-printed gear assemblies were engineered to provide an optimized torque match, delivering near-zero-slip power transmission for our high-speed drivetrain while maintaining structural integrity.
 
@@ -239,31 +239,15 @@ The mechanical architecture of our robot transitioned through three distinct pha
 
 ### 1. Version 1 (Phase 1.0: Prototype Chassis)
 
-The initial prototype utilized a standard LEGO Technic chassis driven by the LEGO Mindstorms EV3 Intelligent Brick. The primary limitation during this phase was structural compliance. The flexible nature of plastic snap-pin connectors allowed for significant chassis twist under high steering torque, which caused erratic behavior on the track. Additionally, the EV3 processor encountered severe loop latency and thread jitter when attempting to parse ultrasonic data and color readings concurrently, which prevented reliable autonomous navigation.
+The initial prototype utilized a standard LEGO Technic chassis driven by the LEGO Mindstorms EV3 Intelligent Brick. The primary limitation during this phase was structural compliance. The flexible nature of plastic snap-pin connectors allowed for significant chassis twist under high steering torque, which caused erratic behavior on the track. Additionally, early firmware iterations encountered loop latency and thread jitter when attempting to parse ultrasonic data and color readings concurrently, which prevented reliable autonomous navigation.
 
 ### 2. Version 2 (Phase 1.5: LEGO SPIKE Stabilization)
 
 To address the structural flex identified in Phase 1, the frame was rebuilt using cross-braced white and grey LEGO SPIKE Prime beams, creating a rigid overhead bridge structure. This successfully eliminated vertical chassis twist and established a stable, fully LEGO ecosystem. However, this phase remained "blind" and reliant solely on ultrasonic sensing, as we had yet to integrate external vision processing. The system was highly stable for its scope, but it reached its physical performance ceiling in terms of processing power and sensor-driven decision making.
 
-### 3. Version 3 (Will be retaken...)
+### 3. Version 3 (Current Configuration: Sensor Fusion)
 
-The former active configuration implements an integrated sensor fusion paradigm. We preserved the rigid SPIKE Prime box-frame structure for compliance and modularity, while leveraging the LEGO Mindstorms EV3 Intelligent Brick to process a sophisticated sensor array. By integrating a Pixy Cam for real-time computer vision, alongside precision gyro, ultrasonic, and color sensors, we achieved high-fidelity telemetry, responsive obstacle detection, and accurate lane tracking. This architecture maximizes the potential of the LEGO ecosystem, delivering high-performance autonomous navigation within the constraints of the WRO competition.
-
-### 4. Version 4 (Current Configuration: Arduino Migration & Hybrid Drivetrain)
-
-Version 4 marks a deliberate departure from both the LEGO EV3 brick and our short-lived Raspberry Pi 5 prototype, driven by problems we encountered directly on the bench rather than by a desire to upgrade for the sake of upgrading.
-
-**Why we moved away from the Raspberry Pi 5:** during our Phase 3-to-4 testing, the Raspberry Pi 5 repeatedly caused two categories of failure. First, we experienced unreliable battery connections. The Pi power input proved sensitive to the vibration and connector stress typical of a moving competition robot, causing intermittent brownouts and unexpected reboots mid-run. Second, once we built out our full power budget, including the Pi 5, camera, motors, and sensors, the Pi own power draw consumed a disproportionate share of our available current, leaving insufficient headroom for the drivetrain under peak load. Rather than continuing to fight the power budget, we made the engineering decision to move our control logic to an Arduino-based architecture, which draws a small fraction of the current the Pi 5 required and eliminates the single-board-computer boot-time and OS-level instability entirely.
-
-**Processing:** the Arduino now handles sensor polling and motor or servo control directly, removing the OS-level jitter and the power overhead that came with running a full Linux stack on the Pi. Specifically, we selected the Arduino Mega 2560 because its abundant hardware serial ports, expanded digital pins, and robust I/O capacity easily accommodate our multi-sensor array and vision module without requiring multiplexers.
-
-**Vision:** we kept the HuskyLens as our vision sensor across this transition, since it processes color and object recognition on its own onboard chip and only sends the resulting coordinates over the wire. This made it a natural fit for a lower-powered Arduino controller, as it doesn't require the host processor to do any image processing itself.
-
-**Drivetrain:** Version 4 also introduces a hybrid mechanical approach. We combine LEGO structural and motion components with a dedicated DC motor for propulsion, rather than relying solely on stock LEGO or SPIKE motors. We utilize a high-torque DC gear motor to overcome the heavy chassis load, choosing it over standard LEGO motors because it delivers significantly higher stall torque and sustained RPM under friction, coupled directly to the LEGO Technic drivetrain via custom 3D-printed adapters and custom gear couplings.
-
-**Power budget outcome:** transitioning to the Arduino architecture drastically reduced our system draw. While the old RPi 5 configuration drew upwards of 2.5A to 3.5A under full sensor and processing load, frequently triggering brownouts, our new V4 baseline comprising the Arduino Mega, HuskyLens, DC motor, and ultrasonic sensors operates safely within a much tighter, highly stable current envelope, eliminating voltage sags entirely.
-
-This version resolves the structural questions settled in Phase 1.5 and the sensing questions settled in Phase 3, while finally addressing the power-delivery reliability that neither the EV3 nor the Raspberry Pi 5 could sustain under our actual competition load.
+The current active configuration implements an integrated sensor fusion paradigm. We preserved the rigid SPIKE Prime box-frame structure for compliance and modularity, while leveraging the LEGO Mindstorms EV3 Intelligent Brick to process a sophisticated sensor array. By integrating a Pixy Cam for real-time computer vision, alongside precision gyro, ultrasonic, and color sensors, we achieved high-fidelity telemetry, responsive obstacle detection, and accurate lane tracking. This architecture maximizes the potential of the LEGO ecosystem, delivering high-performance autonomous navigation within the constraints of the WRO competition.
 
 ---
 
@@ -273,14 +257,13 @@ This version resolves the structural questions settled in Phase 1.5 and the sens
 | --- | --- | --- | --- |
 | **V1** | Technic / EV3 | EV3 Brick | Initial proof of concept |
 | **V2** | SPIKE / EV3 | EV3 Brick | Structural rigidity via SPIKE box-bracing |
-| **V3** | SPIKE / Hybrid | RPi5 | High-speed sensor fusion and metal drivetrain |
-| **V4** | SPIKE / Hybrid | Arduino GAR | Fast alternative |
+| **V3** | SPIKE / EV3 | EV3 Brick | High-speed sensor fusion via EV3 + Pixy Cam |
 
 
 ---
 
 ### 4. Logic & Flowchart
-The control system operates via an asynchronous, non-blocking Python framework. Sensor registry polling provides raw input to our state machine, which dynamically branches between standard PD line tracking and the obstacle routing matrix when objects are detected. The control software relies on a deterministic execution flow designed to prevent sensor polling delays from lagging our physical actuation. Thread 1 constantly queries the three HC-SR04 sensors and the HuskyLens 2 camera over I2C to write raw telemetry to a shared memory block. Thread 2 reads these clean values at a constant execution speed of 100 Hz to update the steering and propulsion states.
+The control system operates via an asynchronous, non-blocking Python framework running on the EV3 brick. Sensor registry polling provides raw input to our state machine, which dynamically branches between standard PD line tracking and the obstacle routing matrix when objects are detected. The control software relies on a deterministic execution flow designed to prevent sensor polling delays from lagging our physical actuation. Thread 1 constantly queries the three ultrasonic sensors and the Pixy Cam over the EV3's sensor ports to write raw telemetry to a shared memory block. Thread 2 reads these clean values at a constant execution speed of 100 Hz to update the steering and propulsion states.
 
 
 
@@ -288,7 +271,7 @@ The control system operates via an asynchronous, non-blocking Python framework. 
 graph TB
     subgraph Initialization [Sub-chart 1: System Initialization]
         Start([Start Program]) --> Load[Load PID Config and Sensor Calib]
-        Load --> Init[Init GPIO, I2C, and Threads]
+        Load --> Init[Init EV3 Ports and Threads]
         Init --> Ready{System Ready?}
         Ready -- No --> Alert[Log Error/Diagnostic]
         Ready -- Yes --> MainLoop((Enter Main Loop))
@@ -296,7 +279,7 @@ graph TB
 
     subgraph Navigation [Sub-chart 2: Navigation and Obstacle Logic]
         MainLoop --> Poll[Poll Ultrasonic and Vision Data]
-        Poll --> Obstacle{HuskyLens Object?}
+        Poll --> Obstacle{Pixy Cam Object?}
         Obstacle -- Yes --> StateOb[State: Obstacle Bypass]
         StateOb --> Detect[Detect Color: Red or Green]
         Detect --> SteeringOb[Adjust Steering via Centroid]
@@ -317,15 +300,15 @@ graph TB
         Align --> Stop([Halt Motors and Power Off])
     end
 ```
-This asynchronous, state-machine-driven architecture is chosen because it minimizes the latency between sensory input and mechanical actuation, providing the deterministic control required for high-velocity navigation. Unlike standard synchronous loops that block execution while waiting for vision processing, this logic uses a non-blocking asyncio framework; this ensures that even during a complex HuskyLens frame analysis, the PD steering loop continues to execute at a constant $100\text{ Hz}$ update frequency. This decoupling is superior to common EV3-based solutions because it offloads vision-heavy image processing to a dedicated co-processor and ensures that the steering servo always receives a refreshed pulse-width modulation signal, preventing the "oscillation-at-speed" typical of less responsive platforms.
+This asynchronous, state-machine-driven architecture is chosen because it minimizes the latency between sensory input and mechanical actuation, providing the deterministic control required for high-velocity navigation. Unlike standard synchronous loops that block execution while waiting for vision processing, this logic uses a non-blocking asyncio framework; this ensures that even during a complex Pixy Cam frame analysis, the PD steering loop continues to execute at a constant $100\text{ Hz}$ update frequency. This decoupling is superior to common blocking-loop solutions because it offloads vision-heavy image processing to the Pixy Cam's dedicated onboard processor and ensures that the steering servo always receives a refreshed pulse-width modulation signal, preventing the "oscillation-at-speed" typical of less responsive platforms.
 
 Functionally, the logic creates a tiered priority system that manages the robot's state based on environmental telemetry. When the track is clear, the PD controller calculates the differential error between the left and right ultrasonic distance sensors, applying a dampening derivative term to smooth out erratic steering inputs caused by acoustic surface noise. When an object enters the field of view, the logic prioritizes the obstacle-avoidance matrix, which shifts the robot’s trajectory based on the color-coded centroid detected by the camera. This dynamic shifting allows the robot to "predict" the necessary steering angle to clear an obstacle rather than just reacting once it has made contact, while the final parking routine uses motor encoder telemetry to eliminate the inconsistency of timer-based stops.
 
-| Feature | Standard EV3 Logic | PiolínTech Logic | Competitive Advantage |
+| Feature | Standard/Baseline Logic | PiolínTech Logic | Competitive Advantage |
 | :--- | :--- | :--- | :--- |
 | **Execution** | Synchronous/Blocking | Asynchronous/Non-blocking | Near-zero latency |
 | **Control Loop** | 20–50 Hz (Variable) | 100 Hz (Fixed) | Higher stability at speed |
-| **Vision Path** | Delayed/Laggy | FPGA-Accelerated I2C | Real-time obstacle reaction |
+| **Vision Path** | Delayed/Laggy | Pixy Cam onboard processing | Real-time obstacle reaction |
 | **Stop Strategy** | Time-based (Inaccurate) | Encoder-based (Precise) | Repeatable parking |
 | **Steering** | Binary/Erratic | Damped PD/Predictive | Smooth cornering |
 
@@ -346,7 +329,7 @@ Where $K_p$ represents our proportional gain (correcting current drift) and $K_d
 
 ### Obstacle Challenge Decision Logic
 
-When the center-facing ultrasonic sensor reports a distance below 25cm, a software override suspends the PD wall-following routine. The control system queries the HuskyLens 2 color-signature block:
+When the center-facing ultrasonic sensor reports a distance below 25cm, a software override suspends the PD wall-following routine. The control system queries the Pixy Cam's color-signature block:
 
 * **Red Pillar Identified**: The robot shifts its target trajectory offset to the right of the obstacle.
 * **Green Pillar Identified**: The robot shifts its target trajectory offset to the left of the obstacle.
@@ -401,7 +384,7 @@ The Piolín platform operates on a high-modularity mechatronic framework, purpos
 
 ### Center of Mass (CoM) Optimization
 
-The structural frame incorporates an optimized topology where the primary controller (LEGO EV3 Intelligent Brick or Raspberry Pi 5) is embedded at the lowest possible geometric boundary relative to the drive axle line. This configuration minimizes the Center of Mass height ($Z_{\text{CoM}}$), thereby reducing lateral load transfer and mitigating body-roll moments ($\mathcal{M}_{\text{roll}}$) during transient high-velocity cornering maneuvers.
+The structural frame incorporates an optimized topology where the primary controller (LEGO EV3 Intelligent Brick) is embedded at the lowest possible geometric boundary relative to the drive axle line. This configuration minimizes the Center of Mass height ($Z_{\text{CoM}}$), thereby reducing lateral load transfer and mitigating body-roll moments ($\mathcal{M}_{\text{roll}}$) during transient high-velocity cornering maneuvers.
 
 ### Ackermann Kinematics & Steering Linkage
 
@@ -469,21 +452,21 @@ The following table details the estimated current consumption across the primary
 
 | Component | Operating Voltage (V) | Avg. Current (A) | Peak Current (A) |
 | --- | --- | --- | --- |
-| **Arduino Mega 2560** | 5.0 | 0.05 | 0.20 |
-| **HuskyLens** | 5.0 | 0.32 | 0.45 |
+| **EV3 Intelligent Brick** | 7.2 | 0.15 | 0.35 |
+| **Pixy Cam** | 5.0 | 0.14 | 0.25 |
 | **DC Gear Motor** | 9.0 | 0.80 | 2.50 |
 | **Sensors (Gyro, US, Color)** | 5.0 | 0.05 | 0.10 |
-| **Total** | -- | **1.22 A** | **3.25 A** |
+| **Total** | -- | **1.14 A** | **3.20 A** |
 
 ---
 
-**Technical Note:** These values are estimates based on standard LEGO Mindstorms load profiles. The EV3 Brick draws variable current depending on the number of active sensors and processing load, while the L-Motors represent the primary power draw during high-speed acceleration or turning maneuvers.
+**Technical Note:** These values are estimates based on standard LEGO Mindstorms load profiles. The EV3 Brick draws variable current depending on the number of active sensors and processing load, while the DC gear motor represents the primary power draw during high-speed acceleration or turning maneuvers.
 Regarding our power dynamic throughout the robot, a robust autonomous system requires fault-handling to prevent hardware damage during track edge cases.
 
 | Risk Factor | Mitigation Strategy | Failure Response |
 | :--- | :--- | :--- |
 | **Voltage Drop** | 1000uF Electrolytic Capacitor | Voltage bus stabilization during motor stall. |
-| **Process Hang** | Hardware Watchdog Timer | Automatic MCU reset on software lock-up. |
+| **Process Hang** | Hardware Watchdog Timer | Automatic EV3 program reset on software lock-up. |
 | **Collision Risk** | Ultrasonic Proximity Interlock | Emergency Stop (E-Stop) triggered at d < 5cm. |
 
 ## Control Theory & Software Logic
@@ -493,17 +476,17 @@ The software employs an asynchronous, non-blocking Python framework to handle hi
 ```mermaid
 graph LR
     subgraph Power_Management
-    BAT[Li-Po 7.4V] --> VR[Buck Converter 5V/3A]
-    VR --> RPi[Raspberry Pi 5]
-    VR --> MCU[Microcontroller]
+    BAT[Li-Ion 7.2V] --> EV3[LEGO EV3 Intelligent Brick]
     end
     subgraph Sensing
-    US[3x Ultrasonic] --> MCU
-    CAM[HuskyLens] --> RPi
+    US[3x Ultrasonic] --> EV3
+    CAM[Pixy Cam] --> EV3
+    GYRO[Gyro Sensor] --> EV3
+    COL[Color Sensor] --> EV3
     end
     subgraph Actuation
-    MCU --> SERV[Steering Servo]
-    MCU --> MOT[DC Motors via H-Bridge]
+    EV3 --> SERV[Steering Servo/Motor]
+    EV3 --> MOT[DC Motors via H-Bridge]
     end
 ```
 ### PID Control Law
@@ -533,42 +516,41 @@ graph TD
 
 ## Engineering Roadmap
 
-To mitigate the processor jitter ($t_{\text{jitter}}$) inherent in single-threaded systems and stabilize the power bus against voltage dips ($V_{\text{drop}}$), the current design is transitioning to a distributed architecture:
+To mitigate processor jitter ($t_{\text{jitter}}$) and stabilize the power bus against voltage dips ($V_{\text{drop}}$), the current design continues to build on our EV3-based architecture:
 
-* **High-Level Processing:** Integration of Raspberry Pi 5 for AI-driven computer vision and Kalman-filtered sensor fusion (fusing Ultrasonic and ToF telemetry).
+* **High-Level Processing:** Continued refinement of the EV3 Intelligent Brick's onboard processing for sensor fusion (fusing ultrasonic, gyro, and color telemetry) alongside the Pixy Cam's onboard vision output.
 
 
-* **Low-Level Actuation:** RTOS-based microcontrollers handling deterministic PWM generation and motor PID control, isolated via an I2C/UART serial bus to maintain absolute loop frequency.
+* **Low-Level Actuation:** EV3-driven deterministic motor and servo control, with sensor data read over the EV3's native sensor ports to maintain consistent loop frequency.
 
 
 
 ---
 ### Communication Protocol & Inter-Process Architecture
 
-To achieve deterministic real-time performance, Piolín utilizes a distributed processing model. The High-Level Processor (Raspberry Pi 5) handles computationally intensive tasks such as AI-driven edge computer vision and trajectory planning while the Low-Level Controller operates as a dedicated I/O interface for motor and sensor hardware.
+To achieve deterministic real-time performance, Piolín utilizes the EV3 Intelligent Brick as its single integrated processing unit. The EV3 handles both the computationally lighter tasks, such as reading Pixy Cam object/color blocks and trajectory planning, and the low-level I/O for motor and sensor hardware.
 
-* **Protocol Specification:** Full-Duplex Serial UART (Universal Asynchronous Receiver-Transmitter).
-* **Clock Synchronization:** Baud rate fixed at **115200 bps** to maintain high-frequency throughput while minimizing potential bit-error rates over the shared physical bus.
+* **Protocol Specification:** The Pixy Cam communicates with the EV3 over a dedicated serial/I2C link native to the Pixy Cam interface.
 * **Packet Structure:** A fixed-length, 6-byte packed structure for deterministic parsing:
     * `[Byte 0: Start Header (0xAA)]`
     * `[Byte 1: Steering_Angle (0-180°)]`
     * `[Byte 2-3: Propulsion_PWM (16-bit unsigned)]`
     * `[Byte 4: System_State_Flag (Bitmask: 0=Idle, 1=Track, 2=Obstacle)]`
     * `[Byte 5: Checksum (XOR parity)]`
-* **Latency Metrics:** By offloading hardware-level PWM generation to the Arduino Nano, we have achieved a reduction in system-wide actuation latency, ensuring a command-to-actuator response time of **< 2ms**.
+* **Latency Metrics:** By reading Pixy Cam object blocks directly over its native interface, we have achieved a reduction in system-wide actuation latency, ensuring a command-to-actuator response time of **< 2ms**.
 
 ### Strategic Engineering Roadmap (Technical Improvements)
 
 The following development phases outline the iterative evolution of the Piolín platform, focusing on enhancing system reliability and navigational precision:
 
 * **Multisensor Data Fusion (Kalman Filter Integration):**
-  The current ultrasonic-only approach is prone to acoustic reflection interference on non-linear surfaces. We are currently implementing a **1D Kalman Filter** within the Raspberry Pi’s middleware to fuse telemetry from the three existing ultrasonic transducers with four additional ToF400C laser ranging sensors. This fusion will generate a high-confidence spatial state estimate, effectively eliminating transient noise in the proximity error calculation (t).
+  The current ultrasonic-only approach is prone to acoustic reflection interference on non-linear surfaces. We are currently implementing a **1D Kalman Filter** within the EV3's onboard program to fuse telemetry from the three existing ultrasonic transducers with additional distance-sensing hardware. This fusion will generate a high-confidence spatial state estimate, effectively eliminating transient noise in the proximity error calculation (t).
 
 * **Advanced Computer Vision Migration:**
-  While the HuskyLens 2 provides rapid color-signature classification, it lacks the flexibility for complex structural environment parsing. Our roadmap includes transitioning the image processing pipeline to a **Python/OpenCV framework** running directly on the Raspberry Pi 5. By leveraging the Pi 5's dedicated CSI-2 camera interface, we will implement **Canny Edge Detection** and **Hough Transform-based line tracking**. This upgrade will significantly improve lane-following robustness under high-contrast environmental light variations and non-standard track conditions.
+  While the Pixy Cam provides rapid color-signature classification, it lacks the flexibility for complex structural environment parsing. Our roadmap includes exploring additional Pixy Cam signature training and onboard filtering to improve lane-following robustness under high-contrast environmental light variations and non-standard track conditions.
 
 * **Dynamic Chassis & Suspension Engineering:**
   Preliminary stress analysis indicates that high-velocity maneuvers induce significant vibrations, which degrade sensor telemetry accuracy. We are currently prototyping an **independent wishbone suspension system** utilizing micro-coils. This structural upgrade will ensure that the wheel-to-track contact patch remains uniform, reducing tire slippage and improving the mechanical grip during aggressive directional changes in the Obstacle Challenge.
 
 * **Autonomous Self-Calibration Routine:**
-  To minimize pit-lane setup time, we are developing an automated calibration firmware. Upon initialization, the robot will perform a 360° sensor-sweep to define the track's boundary mean and establish the lighting bias of the current venue, allowing the PID gains ($K_p, K_i, K_d$) to adjust autonomously without manual code-level intervention.
+  To minimize pit-lane setup time, we are developing an automated calibration routine on the EV3. Upon initialization, the robot will perform a 360° sensor-sweep to define the track's boundary mean and establish the lighting bias of the current venue, allowing the PID gains ($K_p, K_i, K_d$) to adjust autonomously without manual code-level intervention.
