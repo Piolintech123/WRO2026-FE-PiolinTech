@@ -59,7 +59,7 @@ The following measurements correspond to the final 2026 Piolín configuration.
 | **Color Sensor** | EV3 Port S4 | Detects the blue and orange floor markings used for direction determination and lap progression. |
 | **HuskyLens** | Connected to Arduino Nano | Detects colored obstacles during the Obstacle Challenge. |
 | **Arduino Nano** | USB connection to EV3 | Acts as the communication interface between the HuskyLens and EV3. |
-| **EV3 Port S1** | Unused | Reserved / available in the final configuration. |
+| **Front Ultrasonic sensor** | **EV3 Port S1** | Measures distance to the wall on front so that it can park. |
 
 The two ultrasonic sensors are mounted **laterally**, with one facing the left wall and the other facing the right wall.
 
