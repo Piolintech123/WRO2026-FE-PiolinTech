@@ -33,13 +33,14 @@ The final robot combines the EV3's native motor and sensor ecosystem with an ind
 | **Floor Detection** | LEGO Color Sensor | Port S4 | Detects blue and orange floor markings for direction and lap tracking. |
 | **Vision Sensor** | HuskyLens | Arduino Nano | Detects colored obstacles during the Obstacle Challenge. |
 | **Vision Interface** | Arduino Nano | USB → EV3 | Transfers processed HuskyLens information to the EV3. |
-| **Sensor Port S1** | Not used | — | Remains available in the final configuration. |
+| **Front Distance Sensor**| LEGO Ultrasonic Sensor | Port S1 | Measures the distance between Piolín and the front-side track |
 
 This architecture deliberately keeps the **Open Challenge navigation system independent from the vision system**.
 
 The Open Challenge can operate using:
 
 - two lateral ultrasonic sensors,
+- a front ultrasonic sensor,
 - one color sensor,
 - drive motor,
 - steering motor,
