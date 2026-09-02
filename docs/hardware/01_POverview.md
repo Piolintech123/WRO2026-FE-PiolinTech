@@ -1,77 +1,313 @@
 # 1. General Project Overview
 
 ## 1.1 Project Introduction & Objectives
-Piolín is an advanced autonomous robotic vehicle designed to navigate a closed track layout while  adhering to real-time track boundary shifts and variable obstacle layouts. The objective of the engineering design is to maximize lane-holding accuracy at peak velocity while isolating processing operations from mechanical stress factors to ensure continuous, uninterrupted runtime loops.
+
+**Piolín** is an autonomous robotic vehicle developed by **PiolínTech** for the **WRO Future Engineers 2026** competition.
+
+The robot was designed to complete both competition challenges using a compact LEGO EV3-based control architecture, lateral ultrasonic sensing, floor-color detection, and an independent vision system based on a HuskyLens camera and Arduino Nano.
+
+The main engineering objective is not simply to achieve the highest possible speed, but to obtain a reliable balance between:
+
+- stable autonomous navigation,
+- accurate corner handling,
+- collision prevention,
+- consistent lap counting,
+- obstacle recognition,
+- mechanical steering stability,
+- and repeatable performance under competition conditions.
+
+Piolín uses **Ackermann-style front steering**, allowing the front wheels to change the vehicle's direction while the rear wheels provide traction. This architecture was selected to produce smoother vehicle-like turns than differential or skid steering.
+
+For the **Open Challenge**, navigation is primarily based on two lateral ultrasonic sensors and a floor-facing color sensor. The ultrasonic sensors identify the robot's position relative to the inner and outer track walls, while the color sensor detects the colored floor markings used to determine direction and track progress.
+
+For the **Obstacle Challenge**, the same navigation platform is combined with a **HuskyLens vision sensor**. The HuskyLens is connected to an **Arduino Nano**, which acts as the communication interface between the camera and the EV3 through USB.
+
+The final system was developed through several mechanical and software iterations. Earlier sensor arrangements and navigation strategies were tested and later replaced when they proved less reliable. These iterations are documented separately in the engineering development and testing sections.
 
 ---
 
 ## 1.2 Main Components and Dimensions
 
-### Physical Dimensions & Weight Constraints
+### 1.2.1 Final Physical Dimensions
 
-| Parameter | Specification | Design/Competition Relevance |
+The following measurements correspond to the final 2026 Piolín configuration.
+
+| Parameter | Final Measurement | Engineering Relevance |
+| :--- | :---: | :--- |
+| **Total Length** | **210 mm** | Compact longitudinal footprint improves maneuverability inside the track. |
+| **Total Width** | **150 mm** | Provides sufficient mechanical stability while leaving clearance from track boundaries. |
+| **Total Height** | **230 mm** | Includes the upper electronic and sensing structure of the final robot. |
+| **Total Mass** | **0.80476 kg** | Total measured mass of the assembled robot. |
+| **Rear Wheel Diameter** | **2.4 in / ~61 mm** | Rear wheels provide the main traction for vehicle movement. |
+| **Front Wheel Diameter** | **1.5 in / ~38 mm** | Smaller front wheels form part of the Ackermann steering assembly. |
+| **Ultrasonic Sensor Height** | **1.7 in / ~43 mm** | Positions the lateral sensors to observe the track walls during navigation. |
+
+> [!NOTE]
+> Only measurements verified on the final robot are presented here. Additional steering geometry dimensions are documented separately when required for mechanical analysis.
+
+---
+
+### 1.2.2 Final Electronic Architecture
+
+| Component | Connection | Primary Role |
 | :--- | :--- | :--- |
-| **Total Length** | 295 mm | Maximizes straight-line stability within WRO limits. |
-| **Total Width** | 190 mm | Fits safely within competition track lane constraints. |
-| **Total Height** | 145 mm | Measured to the apex of the Pixy Cam protective frame; balances sensor visibility with a low profile. |
-| **Total Weight** | 1.28 kg | Inclusive of the 22.5W onboard power bank; distributed backward to optimize rear axle grip. |
-| **Ground Clearance** | 15 mm | Prevents bottoming out while keeping the center of gravity as low as possible. |
-| **Wheelbase** | 185 mm | Engineered specifically for tight cornering radius adjustments via Ackermann steering geometry. |
-> [!IMPORTANT]
-> These absolute dimensions guarantee  adherence to the official WRO size constraints while maximizing track footprint stability and maintaining a low center of gravity to combat body roll during high-speed cornering arcs.
+| **LEGO Mindstorms EV3 Intelligent Brick** | Main controller | Executes navigation logic, reads sensors, processes line detections, and controls the drive and steering motors. |
+| **Drive Motor** | EV3 Port A | Provides rear-wheel propulsion. |
+| **Steering Motor** | EV3 Port B | Controls the Ackermann steering mechanism. |
+| **Right Ultrasonic Sensor** | EV3 Port S2 | Measures distance to the wall on the right side of the robot. |
+| **Left Ultrasonic Sensor** | EV3 Port S3 | Measures distance to the wall on the left side of the robot. |
+| **Color Sensor** | EV3 Port S4 | Detects the blue and orange floor markings used for direction determination and lap progression. |
+| **HuskyLens** | Connected to Arduino Nano | Detects colored obstacles during the Obstacle Challenge. |
+| **Arduino Nano** | USB connection to EV3 | Acts as the communication interface between the HuskyLens and EV3. |
+| **EV3 Port S1** | Unused | Reserved / available in the final configuration. |
 
-### Key Component Functional Roles
+The two ultrasonic sensors are mounted **laterally**, with one facing the left wall and the other facing the right wall.
 
-| Subsystem Component | Technical Specifications | Primary Functional Role & Optimization |
-| --- | --- | --- |
-| **Processing Core** | LEGO Mindstorms EV3 Intelligent Brick | Executes direct low-level sensor polling, motor and servo control logic, and state machine sequences directly on the brick. |
-| **Primary Vision System** | Pixy Cam | Mounted at 9.5 cm height with a 15° downward pitch to shield the lens from overhead venue glare, reducing misdetections below 3%. Processes color and object recognition internally and transmits tracking coordinates over the wire. |
-| **Spatial Awareness Array** | 3x Ultrasonic Sensors | Structurally staggered on the front bumper at -30° (Left), 0° (Center), and +30° (Right) to create an unbroken 180° spatial safety boundary box and eliminate blind spots. |
-| **Actuation & Power Control** | TB6612FNG Driver, XL6019E1 Converter, High-Torque Servo, DC Gear Motor | The servo drives front Ackermann steering while the high-torque DC gear motor handles rear traction via custom 3D-printed adapters. The XL6019E1 converter and isolated lithium power circuit prevent high-current motor spikes from causing controller brownouts. |
+This arrangement allows Piolín to evaluate both sides of the track instead of depending on a front-facing ultrasonic sensor.
+
 ---
 
 ## 1.3 Electromechanical Integration Layout
-The mechanical sub-assemblies are explicitly paired with their electrical routing nodes to reduce signal interference. Digital tracking signals from the Pixy Cam run via direct, isolated twisted wiring pairs straight to the EV3 Intelligent Brick's native sensor port, bypassing standard prototyping breadboards to completely protect the data bus from vibration-induced loose connections.
+
+Piolín uses the LEGO EV3 as the central control unit for movement and navigation.
+
+The final hardware architecture is intentionally divided into two functional sensing groups:
+
+### Navigation Sensors
+
+The two lateral ultrasonic sensors and the color sensor connect directly to the EV3.
+
+```text
+Left Ultrasonic  ── S3 ──┐
+                          │
+Right Ultrasonic ── S2 ──┤
+                          ├── LEGO EV3
+Color Sensor ───── S4 ───┤
+                          │
+Drive Motor ────── A ─────┤
+Steering Motor ─── B ─────┘
+````
+
+These components are sufficient for the Open Challenge.
+
+### Vision System
+
+Obstacle recognition is handled separately:
+
+```text
+HuskyLens
+    │
+    │ I²C
+    ▼
+Arduino Nano
+    │
+    │ USB
+    ▼
+LEGO EV3
+```
+
+The Arduino Nano allows the HuskyLens to operate without occupying one of the EV3 sensor ports used by the navigation sensors.
+
+This separation is particularly useful because the Open Challenge can operate independently from the camera system, while the Obstacle Challenge can add vision information without changing the basic driving hardware.
 
 ---
 
 ## 1.4 Main Operational Workflow
 
-Piolín's structural logic behaves as a deterministic, high-frequency **Finite State Machine (FSM)** running within a multi-threaded Python core on the EV3 brick. The central loop operates at a target update frequency of 40Hz, guaranteeing split-second steering corrections. The software logic applies a strict safety priority tier: **Obstacle evasion tasks unconditionally override lane-tracking tasks.**
+Piolín does not use one identical navigation strategy for every section of the track.
 
-1. **Initialization Phase (`INIT`):** Upon power-on, the master thread maps system I/O buses, computes the baseline bias vectors for the gyro sensor, tests handshake responses with the Pixy Cam, and locks the steering servo to an absolute neutral ($0^{\circ}$ deviation).
-2. **Lane Following Phase (`LANE_FOLLOW`):** The default vehicle state. The processing core continuously reads the dynamic horizontal bounding box error offset ($e$) from the camera stream. A proportional-integral-derivative (PID) algorithm evaluates the tracking error data real-time to compute the exact steering servo angle modification needed to keep the vehicle locked onto the lane center.
-3. **Obstacle Sensing Trigger:** Concurrent with the vision loop, a secondary hardware-timed polling thread monitors telemetry from the central ultrasonic sensor. If an obstruction crosses closer than a critical **30 cm boundary**, the runtime controller triggers an emergency interrupt, halting the camera tracking loop and forcing an immediate state transition.
-4. **Active Evasion Phase (`OBSTACLE_AVOID`):** The FSM reads the spatial clearance values from the left and right ultrasonic lines. The machine selects the direction with the highest clear distance value and shifts the front steering geometry to a maximum safe lock angle, forcing the vehicle to pivot smoothly away from the tracking obstacle.
-5. **Recovery and Realignment Phase (`WALL_ALIGN` / `RETURN_TO_LANE`):** As the front-facing sensor suite registers obstacle clearance (all distance vectors recovering to $>45\text{ cm}$), the system monitors side sensor telemetry to parallel-align the chassis along the closest track boundary wall. Once structural symmetry is verified, the FSM passes steering control back to the camera thread, re-entering the `LANE_FOLLOW` state.
+Instead, the robot interprets its sensors according to the geometry currently observed.
+
+For the Open Challenge, the navigation sequence is:
+
+1. **Detect Initial Floor Color**
+2. **Determine Driving Direction**
+3. **Identify the Inner and Outer Walls**
+4. **Follow the Inner Wall During Straight Sections**
+5. **Detect the Disappearance of the Inner Wall**
+6. **Begin the Corner Maneuver**
+7. **Use the Outer Wall as the Main Temporary Reference**
+8. **Detect the Reappearance of the Inner Wall**
+9. **Complete the Corner**
+10. **Re-center and Stabilize the Robot**
+11. **Return to Inner-Wall Following**
+
+This cycle repeats throughout the three laps.
+
+### Direction Selection
+
+The first valid colored floor marking determines the driving direction.
+
+* **Blue first → counterclockwise**
+* **Orange first → clockwise**
+
+Once the direction is known, Piolín can determine which ultrasonic sensor corresponds to the inner wall and which corresponds to the outer wall.
+
+### Straight-Line Navigation
+
+During normal straight sections:
+
+* the **inner ultrasonic sensor** provides the main wall-distance reference;
+* the **outer ultrasonic sensor** provides additional geometric information and collision protection.
+
+The objective is to maintain a stable trajectory without continuously producing large steering corrections.
+
+### Corner Detection
+
+A large increase in the inner ultrasonic distance does not automatically mean that the robot has moved too far from the wall.
+
+At a corner, the inner wall physically ends from the sensor's point of view.
+
+The controller therefore interprets the disappearance of the inner wall as a possible corner transition rather than immediately attempting to steer back toward it.
+
+Additional sensor confirmation is used to reduce the possibility of false corner detections caused by isolated ultrasonic readings.
+
+### Corner Navigation
+
+Once a corner is confirmed, Piolín begins steering toward the corner.
+
+During this phase, the inner sensor may temporarily observe open space and becomes less useful as a wall-following reference.
+
+The **outer ultrasonic sensor therefore becomes the primary temporary reference** during the turn.
+
+### Corner Exit and Re-centering
+
+As Piolín progresses through the turn, the inner wall eventually becomes visible again.
+
+Its reappearance indicates that the robot is reaching the next straight section.
+
+The controller then:
+
+1. reduces the corner steering command,
+2. transitions back toward the inner-wall reference,
+3. re-centers the vehicle,
+4. and resumes normal straight-line navigation.
+
+This transition is designed to avoid an abrupt steering change at the end of a corner.
 
 ---
 
-## 1.5 General Workflow Diagram
+## 1.5 Floor-Line Detection and Lap Tracking
 
-The dynamic operational workflow and automated state transitions described above are visualized in the tracking map below:
+The color sensor serves two different purposes.
+
+### Initial Direction Detection
+
+The first valid colored line determines whether the robot will navigate clockwise or counterclockwise.
+
+### Track Progress
+
+After the driving direction has been established, the colored lines are used to track Piolín's progress around the course.
+
+Each of the four corners contains:
+
+* one blue line,
+* one orange line.
+
+Therefore, during three complete laps:
+
+$$
+4\ corners/lap \times 3\ laps = 12\ corners
+$$
+
+Piolín consequently expects to encounter:
+
+$$
+12\ blue\ detections
+$$
+
+and
+
+$$
+12\ orange\ detections
+$$
+
+before the three-lap sequence has been completed.
+
+The software includes line-validation logic so that a single physical strip is not repeatedly counted while the sensor remains above it.
+
+---
+
+## 1.6 Challenge-Specific Sensor Usage
+
+Piolín uses the same mechanical platform for both Future Engineers challenges, but the importance of each sensor changes depending on the round.
+
+| System             |        Open Challenge       | Obstacle Challenge |
+| :----------------- | :-------------------------: | :----------------: |
+| EV3                |              ✅              |          ✅         |
+| Ackermann Steering |              ✅              |          ✅         |
+| Drive Motor        |              ✅              |          ✅         |
+| Left Ultrasonic    |              ✅              |          ✅         |
+| Right Ultrasonic   |              ✅              |          ✅         |
+| Color Sensor       |              ✅              |          ✅         |
+| Arduino Nano       | Not required for navigation |          ✅         |
+| HuskyLens          | Not required for navigation |          ✅         |
+
+This modular architecture allows the basic wall-navigation system to remain functional independently of the vision subsystem.
+
+---
+
+## 1.7 General Open Challenge Workflow
 
 ```mermaid
-graph TD
-    A([Start / Power On]) --> B[INIT: Check Hardware Buses & Gyro Calibration]
-    B --> C[State: LANE_FOLLOW]
-    C --> D{Central Ultrasonic < 30cm?}
-    
-    D -- No --> E[Read Pixy Cam Tracking Data]
-    E --> F[Compute Steering PID Loop]
-    F --> G[Adjust Servo & Maintain DC Traction]
-    G --> C
-    
-    D -- Yes --> H[State: OBSTACLE_AVOID]
-    H --> I{Compare Side Sensors: Left vs Right}
-    I -- Right Clearer --> J[Execute Sharp Right Steering Maneuver]
-    I -- Left Clearer --> K[Execute Sharp Left Steering Maneuver]
-    
-    J --> L{All Sensors Clear > 45cm?}
-    K --> L
-    
-    L -- No --> H
-    L -- Yes --> M[State: WALL_ALIGN / Recovery]
-    M --> N[Re-engage Pixy Cam Target Locking]
-    N --> C
+flowchart TD
+
+    A([Start]) --> B[Read Color Sensor]
+
+    B --> C{Direction Known?}
+
+    C -- No --> D{First Valid Color}
+    D -- Blue --> E[Set Counterclockwise]
+    D -- Orange --> F[Set Clockwise]
+
+    E --> G[Assign Inner and Outer Ultrasonic Sensors]
+    F --> G
+
+    C -- Yes --> G
+
+    G --> H[STRAIGHT NAVIGATION]
+
+    H --> I[Follow Inner Wall]
+    I --> J[Monitor Outer Wall]
+
+    J --> K{Inner Wall Disappears?}
+
+    K -- No --> H
+
+    K -- Yes --> L[Confirm Corner Transition]
+
+    L --> M[Begin Corner Steering]
+
+    M --> N[Use Outer Wall as Main Reference]
+
+    N --> O{Inner Wall Reappears?}
+
+    O -- No --> N
+
+    O -- Yes --> P[Reduce Corner Steering]
+
+    P --> Q[Re-center and Stabilize]
+
+    Q --> R[Return to Inner-Wall Following]
+
+    R --> H
 ```
+
+---
+
+## 1.8 Design Philosophy
+
+The final Piolín architecture prioritizes **repeatability and sensor interpretation over unnecessary algorithmic complexity**.
+
+Rather than assuming that the same ultrasonic reading always has the same meaning, the controller considers the geometry of the track:
+
+* an inner-wall distance is useful during a straight;
+* a suddenly open inner side may indicate a corner;
+* the outer wall becomes more useful while turning;
+* and the return of the inner wall indicates the transition back into a straight section.
+
+This approach allows the robot to use a relatively small sensor set while assigning each sensor a clear role depending on the current navigation situation.
+
+The objective is a navigation system that is understandable, testable, and reproducible rather than one that depends on undocumented behavior or unverified assumptions.
+
+
