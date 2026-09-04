@@ -183,6 +183,7 @@ The encoder value is primarily used as a repeatable software reference for the s
 ---
 
 ## 4.5 Steering Encoder Feedback
+<img width="4032" height="3024" alt="image" src="https://github.com/user-attachments/assets/73cc16d7-1ece-4e53-9edd-aedadc7a6d52" />
 
 The steering motor includes an encoder that allows the EV3 to track its rotational position.
 
