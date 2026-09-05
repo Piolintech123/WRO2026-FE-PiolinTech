@@ -1,969 +1,3007 @@
-# 4. Ultrasonic Sensor Array Design and Placement
+# 2. Ultrasonic Sensor Data and Geometry
 
-Piolín's final WRO Future Engineers 2026 ultrasonic architecture uses **three LEGO ultrasonic sensors with two clearly separated responsibilities**.
+Piolín uses **three LEGO ultrasonic sensors** to obtain spatial information about the WRO Future Engineers track.
 
-Two ultrasonic sensors are mounted laterally, one on each side of the chassis. These sensors form the main geometric navigation system and allow Piolín to understand its position relative to the inner and outer track walls.
+The current configuration is:
 
-A third ultrasonic sensor is mounted at the front of the robot and connected to the previously available EV3 Sensor Port S1. Unlike the lateral sensors, the front sensor does not participate in normal wall-following calculations. Its responsibility is to provide an independent frontal safety layer capable of stopping the robot when an object or wall becomes dangerously close.
+```text
+S1 → Front Ultrasonic Sensor
 
-This separation allows Piolín to increase sensor coverage without complicating the mathematical model used for track navigation.
+S2 → Right Ultrasonic Sensor
 
-> [!IMPORTANT]
-> The final ultrasonic architecture uses:
->
-> **Left + Right Ultrasonic Sensors → track geometry and lateral navigation**
->
-> **Front Ultrasonic Sensor → emergency frontal collision protection**
+S3 → Left Ultrasonic Sensor
+```
+
+These sensors do not all perform the same task.
+
+The two lateral sensors form the main geometric navigation pair:
+
+```text
+S2 + S3
+   ↓
+Lateral track geometry
+```
+
+while the front sensor is kept logically separate:
+
+```text
+S1
+ ↓
+Frontal safety
+```
+
+This distinction is fundamental to the current Piolín architecture.
+
+The lateral sensors are used to understand where the vehicle is relative to the track boundaries and how that geometry changes when entering or leaving a corner.
+
+The front sensor is used to identify limited clearance directly ahead and is not part of the normal inner-wall / outer-wall calculations.
+
+The complete ultrasonic relationship is:
+
+```text
+                         FRONT
+                           ↑
+
+                     S1 FRONT US
+                           │
+
+
+             S3 LEFT       │       S2 RIGHT
+                ←      [ PIOLÍN ]      →
+```
+
+For the complete sensor configuration, see:
+
+[Power and Sensor Configuration](01_PowerSensorconfig.md)
+
+[Ultrasonic Sensor Hardware](../components/05_UltrasonicSensors.md)
 
 ---
 
-## 4.1 Final Ultrasonic Sensor Configuration
+## 2.1 Current Ultrasonic Roles
 
-The three ultrasonic sensors are connected directly to the LEGO EV3.
+| Sensor | Physical Position | Logical Responsibility |
+| :--- | :--- | :--- |
+| **S1** | Front | Frontal safety |
+| **S2** | Right side | Right-wall geometry |
+| **S3** | Left side | Left-wall geometry |
 
-| Parameter | Front Ultrasonic | Left Ultrasonic | Right Ultrasonic |
-| :--- | :---: | :---: | :---: |
-| **Sensor Type** | LEGO Ultrasonic Sensor | LEGO Ultrasonic Sensor | LEGO Ultrasonic Sensor |
-| **EV3 Port** | **S1** | **S3** | **S2** |
-| **Position** | Front of chassis | Left side | Right side |
-| **Orientation** | Forward-facing | Lateral, facing left | Lateral, facing right |
-| **Primary Measurement** | Distance directly ahead | Distance to left wall | Distance to right wall |
-| **Primary Software Role** | Emergency stop | Wall geometry/navigation | Wall geometry/navigation |
-| **Normal Steering Authority** | None | Dynamic | Dynamic |
-
-The two lateral sensors are approximately perpendicular to Piolín's longitudinal direction. They are not intentionally angled forward.
-
-This direct lateral orientation makes the measured distance easier to relate to Piolín's actual position between the track boundaries.
-
-The physical arrangement can be represented as:
+The current system deliberately separates:
 
 ```text
-                        FRONT
-                          ↑
-                    [ FRONT US ]
-                          │
-                          │
-
-          LEFT US ←  [ PIOLÍN ]  → RIGHT US
-
-                          │
-                          ↓
-                         REAR
+NAVIGATION GEOMETRY
 ```
 
-The front sensor observes the area directly ahead, while the lateral sensors observe opposite track boundaries.
-
----
-
-## 4.2 Relevant Robot Geometry
-
-Piolín's final chassis measures approximately **210 mm long, 150 mm wide, and 230 mm high**, with a measured mass of approximately **0.80476 kg**.
-
-The lateral ultrasonic sensors are mounted approximately **43 mm above the competition surface**. Their position was selected so that they can observe the track walls while remaining mechanically integrated into the chassis.
-
-| Physical Parameter | Final Piolín Value |
-| :--- | :---: |
-| **Robot Length** | **210 mm** |
-| **Robot Width** | **150 mm** |
-| **Robot Height** | **230 mm** |
-| **Robot Mass** | **0.80476 kg** |
-| **Lateral US Height Above Floor** | **~43 mm / 1.7 in** |
-| **Number of Ultrasonic Sensors** | **3** |
-| **Lateral Sensor Orientation** | **Direct lateral** |
-| **Front Sensor Orientation** | **Forward-facing** |
-
-The height of the front ultrasonic sensor is not included as a final measured value because it has not yet been independently measured.
-
----
-
-## 4.3 Separation Between Navigation and Safety Sensors
-
-Although Piolín now uses three ultrasonic sensors, only the **left and right sensors participate in normal wall-navigation geometry**.
-
-The lateral sensors answer the question:
-
-> **Where is Piolín relative to the track walls?**
-
-The front sensor answers a different question:
-
-> **Is something dangerously close directly ahead?**
-
-Keeping these responsibilities separate prevents the front sensor from continuously competing with the lateral navigation controller.
-
-For example, a front wall visible during a corner should not automatically modify Piolín's lateral wall-following equation. Instead, the front sensor only takes control when the measured distance indicates an immediate collision risk.
-
-This creates a clear division between **navigation information** and **emergency safety information**.
-
----
-
-## 4.4 Dynamic Inner and Outer Sensor Assignment
-
-The lateral ultrasonic sensors remain physically identified as left and right, but their navigation role changes depending on the driving direction.
-
-When Piolín travels counterclockwise, the left side corresponds to the inner wall. When Piolín travels clockwise, the right side becomes the inner wall.
-
-| Driving Direction | Inner Wall | Inner Ultrasonic | Outer Wall | Outer Ultrasonic |
-| :--- | :--- | :---: | :--- | :---: |
-| **Counterclockwise** | Left | **S3 / Left US** | Right | **S2 / Right US** |
-| **Clockwise** | Right | **S2 / Right US** | Left | **S3 / Left US** |
-
-For counterclockwise navigation:
+from:
 
 ```text
-LEFT US  = INNER
-RIGHT US = OUTER
-```
-
-For clockwise navigation:
-
-```text
-RIGHT US = INNER
-LEFT US  = OUTER
-```
-
-The front ultrasonic sensor on S1 is never classified as inner or outer. Its role remains identical regardless of direction.
-
----
-
-## 4.5 Straight-Track Geometric Model
-
-During a normal straight section, the two lateral ultrasonic sensors observe approximately parallel track walls.
-
-The nominal track corridor width used during Piolín's mathematical development is:
-
-```text
-W = 1000 mm
-```
-
-The main inner-wall navigation reference used during development is:
-
-```text
-TARGETINNER = 270 mm
-```
-
-An approximate development-model distance from the center of Piolín to each lateral sensor was:
-
-```text
-OFFSET = 75 mm
-```
-
-Using this simplified model, the expected sum of the two lateral sensor measurements is:
-
-```text
-CREF = W - (2 × OFFSET)
-
-CREF = 1000 - (2 × 75)
-
-CREF = 850 mm
+FRONTAL SAFETY
 ```
 
 Therefore:
 
 ```text
-CREF ≈ 850 mm
+S1
 ```
 
-This value is used as a geometric reference rather than an exact requirement. Real ultrasonic measurements can vary because of robot heading, sensor alignment, reflection angle, track geometry, and normal measurement noise.
+must not be inserted into formulas intended for:
 
-| Geometric Parameter | Development Value | Purpose |
-| :--- | :---: | :--- |
-| **Corridor Width W** | **1000 mm** | Straight-track reference |
-| **Inner-Wall Target TARGETINNER** | **270 mm** | Main straight-navigation reference |
-| **Approximate Sensor Offset OFFSET** | **~75 mm** | Development geometric model |
-| **Expected Distance Sum CREF** | **~850 mm** | Straight-geometry consistency |
-| **Lateral Sensor Height** | **~43 mm** | Final mounting measurement |
+```text
+D_INNER
 
-> [!NOTE]
-> The approximately 75 mm sensor offset is retained as a development-model value and is not presented as a newly re-measured final mechanical dimension.
+D_OUTER
+```
+
+The two systems answer different questions.
 
 ---
 
-## 4.6 Straight-Section Sensor Geometry
+# 2.2 Physical and Logical Sensor Names
 
-During a straight section, the geometry can be represented as:
+Two naming systems are useful in software.
+
+The physical names are fixed:
 
 ```text
-OUTER WALL
-────────────────────────────────────────
+D_LEFT
+=
+S3 reading
 
-             ↑ DOUTER
 
-           [ PIOLÍN ]
+D_RIGHT
+=
+S2 reading
 
-             ↓ DINNER
 
-────────────────────────────────────────
-INNER WALL
+D_FRONT
+=
+S1 reading
 ```
 
-`DINNER` represents the distance measured by whichever lateral sensor is currently assigned to the inner wall.
+These describe where each sensor is physically mounted.
 
-`DOUTER` represents the measurement from the opposite lateral sensor.
+The navigation names are dynamic:
 
-The inner sensor provides the primary trajectory reference while the outer sensor supplies additional geometric information and wall-safety protection.
+```text
+D_INNER
+
+D_OUTER
+```
+
+These describe the sensor's role relative to the course direction.
+
+This distinction allows the same navigation equations to be used in clockwise and counterclockwise operation.
 
 ---
 
-## 4.7 Estimating Lateral Position
+# 2.3 Dynamic Inner and Outer Assignment
 
-When both lateral sensors observe valid parallel walls, their measurements can be combined to estimate Piolín's lateral position.
-
-The model uses:
+Piolín uses the first valid floor-color event to determine the course direction.
 
 ```text
-W      = corridor width
-DINNER = inner ultrasonic distance
-DOUTER = outer ultrasonic distance
-X      = estimated robot-center position
+BLUE FIRST
+    ↓
+COUNTERCLOCKWISE
 ```
 
-The position estimate is:
+For counterclockwise travel:
 
 ```text
-X = (W + DINNER - DOUTER) / 2
+D_INNER = D_LEFT
+
+D_OUTER = D_RIGHT
 ```
 
-For Piolín's development corridor:
+because:
 
 ```text
-X = (1000 + DINNER - DOUTER) / 2
+S3 LEFT  = INNER
+
+S2 RIGHT = OUTER
 ```
 
-One recorded measurement produced:
+For clockwise travel:
 
 ```text
-DINNER = 429.8 mm
-DOUTER = 433.0 mm
-```
-
-Substituting these values:
-
-```text
-X = (1000 + 429.8 - 433.0) / 2
-
-X = 498.4 mm
-```
-
-The geometric center of a 1000 mm corridor is:
-
-```text
-500 mm
-```
-
-The difference between the ultrasonic position estimate and the theoretical center was therefore:
-
-```text
-500 - 498.4 = 1.6 mm
-```
-
-This experiment showed that the two lateral sensors can provide useful information about Piolín's lateral position when both walls are visible and approximately parallel.
-
----
-
-## 4.8 Recorded Ultrasonic Measurements
-
-Several measurements were collected with Piolín positioned at different lateral locations between the track walls.
-
-| Test Position | DINNER | DOUTER | DINNER + DOUTER | Estimated X | Interpretation |
-| :--- | ---: | ---: | ---: | ---: | :--- |
-| **Near Inner-Wall Trajectory** | **229 mm** | **595 mm** | **824 mm** | **317 mm** | Piolín is relatively close to the inner side |
-| **Middle of Corridor** | **429.8 mm** | **433.0 mm** | **862.8 mm** | **498.4 mm** | Piolín is almost exactly at the geometric center |
-| **Toward Outer Wall** | **699.5 mm** | **227 mm** | **926.5 mm** | **736.3 mm** | Piolín is strongly displaced toward the outer side |
-
-The middle-position test is particularly useful because the left and right measurements were nearly equal and the mathematical estimate placed Piolín extremely close to the theoretical center of the track.
-
-These measurements demonstrated that the difference between the two lateral ultrasonic readings contains useful information about the robot's position.
-
----
-
-## 4.9 Geometric Consistency
-
-The two-sensor position equation is most reliable when Piolín is approximately parallel to two valid track walls.
-
-A geometric consistency value can therefore be calculated using:
-
-```text
-G = ABS((DINNER + DOUTER) - CREF)
-```
-
-Using:
-
-```text
-CREF = 850 mm
-```
-
-the equation becomes:
-
-```text
-G = ABS((DINNER + DOUTER) - 850)
-```
-
-A relatively small value of `G` means that the observed geometry resembles the expected straight corridor.
-
-A larger value may indicate that Piolín has rotated, that one wall is disappearing, that the robot is approaching a corner, or that one ultrasonic measurement is abnormal.
-
-| Test Condition | DINNER + DOUTER | G | Interpretation |
-| :--- | ---: | ---: | :--- |
-| **Near Inner-Wall Trajectory** | **824 mm** | **26 mm** | Strong straight-geometry agreement |
-| **Middle of Corridor** | **862.8 mm** | **12.8 mm** | Very strong straight-geometry agreement |
-| **Toward Outer Wall** | **926.5 mm** | **76.5 mm** | Larger geometric difference |
-| **Corner / Inner Wall Open** | Large deviation expected | Large | Straight model becomes unreliable |
-
-The purpose of `G` is not to create one perfect threshold. Its main purpose is to show when the assumptions behind the straight-track model are becoming less reliable.
-
----
-
-## 4.10 Why Corners Require Different Sensor Interpretation
-
-One of the most important findings during Piolín's development was that a large ultrasonic distance does not always mean the robot moved away from a wall.
-
-During a straight section, an increasing `DINNER` value can indicate lateral displacement.
-
-At a corner, however, the inner wall physically ends. The inner sensor begins looking toward open space and its measurement can increase dramatically even if Piolín's lateral position has not suddenly changed.
-
-During a straight:
-
-```text
-──────────────────────────── INNER WALL
-
-              ↑
-           DINNER
-              │
-          [ PIOLÍN ]
-```
-
-At corner entry:
-
-```text
-INNER WALL
-──────────────────────┐
-                      │
-                      │
-              [PIOLÍN]│
-                   ↗  │
-```
-
-In the second situation, the increase in `DINNER` represents a **change in track geometry**, not simply a wall-following error.
-
-For this reason, the final navigation concept does not blindly apply the straight-wall target throughout the entire corner.
-
----
-
-## 4.11 Final Ultrasonic Navigation Strategy
-
-The final Open Challenge concept combines the useful two-sensor geometry from Piolín's earlier mathematical tests with the wall-transition behavior learned from later corner experiments.
-
-```text
-                    STRAIGHT
-                       ↓
-          Inner US = Primary Reference
-          Outer US = Secondary Reference
-                       ↓
-              Monitor Geometry
-                       ↓
-          Inner Wall Disappears?
-                       ↓
-                   Confirm
-                       ↓
-                    CORNER
-                       ↓
-      Outer US = Temporary Main Reference
-                       ↓
-          Inner Wall Reappears?
-                       ↓
-                   Confirm
-                       ↓
-           Reduce Corner Steering
-                       ↓
-            Stabilize / Re-center
-                       ↓
-            Follow Inner Wall Again
-```
-
-During a straight section, the inner sensor controls the normal trajectory while the outer sensor provides additional geometric and safety information.
-
-When the inner wall disappears, the software interprets the change as a possible corner rather than immediately producing a large steering correction.
-
-During the corner, the outer wall becomes the more useful physical reference. Once the next inner wall becomes visible again, the controller can progressively restore normal inner-wall navigation.
-
----
-
-## 4.12 Straight Navigation
-
-During normal straight navigation, Piolín attempts to maintain approximately:
-
-```text
-TARGETINNER = 270 mm
-```
-
-from the inner wall.
-
-The navigation logic uses a progressive steering response. Small wall-distance errors should result in small corrections, while larger errors can produce stronger steering commands.
-
-The outer sensor remains active but does not continuously fight the inner-wall controller. Instead, it provides secondary geometric information and protection against excessive movement toward the opposite boundary.
-
-This separation of responsibilities reduces unnecessary steering oscillation.
-
----
-
-## 4.13 Corner Entry Confirmation
-
-A complete corner maneuver should not be triggered from one abnormal ultrasonic reading.
-
-Ultrasonic sensors can occasionally return unexpected values because of reflection angle, track geometry, partial loss of the reflecting surface, or acoustic behavior.
-
-Piolín therefore uses the principle:
-
-```text
-Normal straight geometry
-          ↓
-Inner wall appears open
-          ↓
-Condition remains present
-          ↓
-Multiple consistent readings
-          ↓
-Corner confirmed
-```
-
-One experimental controller used **three consecutive readings** to confirm both corner entry and corner exit.
-
-This is different from filtering. Filtering attempts to reject a single abnormal measurement. Confirmation determines whether a new condition has remained present long enough to represent a real change in track geometry.
-
----
-
-## 4.14 Corner Navigation
-
-During the turn, the normal relationship between `DINNER`, `DOUTER`, and the straight corridor model becomes less reliable.
-
-The inner sensor may temporarily observe open space, part of a rounded corner, or the beginning of the next wall.
-
-The outer wall normally remains visible for a larger portion of the turn.
-
-```text
-             OUTER WALL
-              ╭────────────
-             ╱
-            ╱  ← OUTER US
-           ╱
-      [ PIOLÍN ]
-            ↗
-
-Inner US → changing/open geometry
-```
-
-For this reason, the final concept gives the outer sensor greater navigation authority during the corner.
-
-The robot therefore transitions from:
-
-```text
-INNER WALL CONTROL
-```
-
-to:
-
-```text
-OUTER WALL CONTROL
-```
-
-and later returns to:
-
-```text
-INNER WALL CONTROL
-```
-
-when the next straight section becomes visible.
-
----
-
-## 4.15 Inner-Wall Reacquisition
-
-As Piolín approaches the end of a corner, the next inner wall enters the lateral sensor's field of view.
-
-A stable return of the inner-wall measurement indicates that the robot is transitioning toward the next straight section.
-
-The steering should not immediately return to zero as soon as one inner-wall measurement appears. A sudden steering change can create overshoot or cause Piolín to leave the corner pointing toward the opposite wall.
-
-Instead, the controller progressively reduces the corner steering, restores the inner sensor as the main reference, stabilizes the vehicle, and then resumes normal wall following.
-
----
-
-## 4.16 Re-centering After the Corner
-
-One experimental strategy compared the two lateral distances using:
-
-```text
-CENTERDIFF = LEFTDISTANCE - RIGHTDISTANCE
-```
-
-A development version accepted Piolín as sufficiently balanced when the difference remained within approximately:
-
-```text
-±150 mm
-```
-
-for multiple consecutive control cycles.
-
-| Centering Parameter | Development-Test Value |
-| :--- | :---: |
-| **Comparison** | **LEFTDISTANCE - RIGHTDISTANCE** |
-| **Accepted Difference** | **±150 mm** |
-| **Confirmation Requirement** | **8 consecutive loops** |
-| **Corrective Steering Target** | **8 motor-target degrees** |
-
-These values are retained as development evidence rather than being treated as permanent final parameters.
-
-The important concept is that Piolín should demonstrate a stable position for several consecutive cycles before leaving the centering phase.
-
----
-
-## 4.17 Front Ultrasonic Emergency Safety Layer
-
-The front-facing ultrasonic sensor is connected to **EV3 Port S1**.
-
-This sensor has a completely different responsibility from the two lateral sensors. It does not calculate track position and does not participate in normal corner geometry.
-
-Instead, it continuously monitors the area directly ahead of Piolín.
-
-If an object or wall becomes dangerously close, the front sensor can interrupt normal navigation and stop the propulsion motor.
-
-The safety hierarchy is:
-
-```text
-FRONT COLLISION SAFETY
-          ↓
-LATERAL WALL SAFETY
-          ↓
-CORNER NAVIGATION
-          ↓
-NORMAL WALL FOLLOWING
-```
-
-The front sensor therefore has higher safety priority than normal steering behavior.
-
-If Piolín is following a wall or navigating a corner but the front sensor detects an immediate collision risk, propulsion can be stopped regardless of the current navigation state.
-
-The front sensor does **not** continuously modify the steering target. This prevents it from competing with the lateral navigation controller.
-
----
-
-## 4.18 Initial Front Safety Parameters
-
-The initial safety implementation uses a short stopping distance combined with confirmation from more than one measurement.
-
-| Front Safety Parameter | Initial Value |
-| :--- | :---: |
-| **Emergency Stop Distance** | **100 mm / 10 cm** |
-| **Required Close Readings** | **2 consecutive readings** |
-| **Reaction** | **Stop drive motor using brake** |
-| **Steering Control** | **No normal steering authority** |
-| **Software Priority** | **Highest safety priority** |
-
-The initial logic can be represented as:
-
-```text
-Front distance > 100 mm
-          ↓
-Continue normal navigation
+ORANGE FIRST
+     ↓
+CLOCKWISE
 ```
 
 and:
 
 ```text
-Front distance <= 100 mm
-          ↓
-Confirm second close reading
-          ↓
-Emergency stop
+D_INNER = D_RIGHT
+
+D_OUTER = D_LEFT
 ```
 
-The 100 mm value is an initial tuning value and should be verified experimentally on the final robot.
-
-A higher threshold may be required if braking tests show that Piolín needs additional stopping distance at competition speed.
-
-> [!NOTE]
-> The front sensor is designed to **reduce the probability of a frontal collision**. It should not be documented as guaranteeing that a collision can never occur.
-
----
-
-## 4.19 Lateral Ultrasonic Filtering
-
-The left and right ultrasonic sensors use a short **median-of-three filter**.
-
-Three consecutive measurements are stored:
+because:
 
 ```text
-READING1
-READING2
-READING3
+S2 RIGHT = INNER
+
+S3 LEFT  = OUTER
 ```
 
-The filtered value is:
+The physical sensors do not move.
 
-```text
-FILTERED = MEDIAN(READING1, READING2, READING3)
+Only their **logical interpretation** changes.
+
+---
+
+# 2.4 Direction Mapping
+
+The mapping can be represented as:
+
+```python
+if direction == COUNTERCLOCKWISE:
+    D_INNER = D_LEFT
+    D_OUTER = D_RIGHT
+
+elif direction == CLOCKWISE:
+    D_INNER = D_RIGHT
+    D_OUTER = D_LEFT
 ```
 
-This allows an isolated abnormal reading to be rejected without producing the long delay associated with a large moving-average filter.
-
-| Filtering Parameter | Tested Value | Purpose |
-| :--- | :---: | :--- |
-| **Filter Type** | **Median** | Reject isolated spikes |
-| **Samples per Filter** | **3** | Maintain fast response |
-| **Left Buffer** | **3 readings** | Left sensor filtering |
-| **Right Buffer** | **3 readings** | Right sensor filtering |
-| **Minimum Software Clamp** | **20 mm** | Prevent unrealistically small values |
-| **Maximum Experimental Clamp** | **2550 mm** | Limit extremely large/open readings |
-| **Corner Entry Confirmation** | **3 readings** | Reduce false corner entry |
-| **Corner Exit Confirmation** | **3 readings** | Reduce premature exit |
-
-The 2550 mm value represents a software limit used during development. It is not presented as the measured physical maximum range of the LEGO ultrasonic sensor.
-
----
-
-## 4.20 Median Filter Example
-
-Consider the following three measurements:
-
-| Sample | Reading |
-| :--- | ---: |
-| **READING1** | **269 mm** |
-| **READING2** | **271 mm** |
-| **READING3** | **1120 mm** |
-
-A normal arithmetic average would produce:
+This abstraction is useful because later navigation code can operate using:
 
 ```text
-(269 + 271 + 1120) / 3 = 553.3 mm
+D_INNER
 ```
 
-This would incorrectly suggest that the robot had moved much farther from the wall.
-
-The median filter produces:
+and:
 
 ```text
-MEDIAN(269, 271, 1120) = 271 mm
+D_OUTER
 ```
 
-The isolated 1120 mm measurement therefore does not create a large steering correction.
-
-A much larger averaging window could produce even smoother measurements, but it would also create additional delay.
-
-Because Piolín needs to react quickly when the inner wall disappears at a corner, a short median filter provides a useful compromise between stability and response speed.
+without needing a completely different steering algorithm for each travel direction.
 
 ---
 
-## 4.21 Front Sensor Validation
+# 2.5 Current Lateral Sensor Mounting
 
-The front sensor uses a different validation strategy because its responsibility is emergency stopping.
+The two lateral ultrasonic sensors are mounted directly toward their respective sides.
 
-Applying a large smoothing filter to the front sensor could delay an important stop.
-
-For that reason, the initial design uses a small number of consecutive close readings rather than a long average.
-
-| Sensor Group | Validation Strategy | Reason |
-| :--- | :--- | :--- |
-| **Left + Right US** | Median of 3 | Stable geometric navigation |
-| **Front US** | 2 consecutive close readings | Fast emergency response |
-
-This means the three sensors use different processing methods because they solve different problems.
-
----
-
-## 4.22 Experimental Corner Parameters
-
-One experimental navigation version used large inner-wall distances to determine when the wall had disappeared and when it had become visible again.
-
-| Parameter | Experimental Value | Purpose |
-| :--- | :---: | :--- |
-| **Inner-Wall Open Threshold** | **2400 mm** | Experimental corner-entry detection |
-| **Inner-Wall Return Threshold** | **2300 mm** | Experimental corner-exit detection |
-| **Entry Confirmation** | **3 readings** | Avoid false corner entry |
-| **Exit Confirmation** | **3 readings** | Avoid premature corner exit |
-
-> [!CAUTION]
-> These values belong to an experimental development controller and are preserved as engineering evidence.
->
-> They are not necessarily the final thresholds used by the final gyro-free navigation program.
-
-The important engineering result was not the exact numerical value. The important result was that the disappearance and reappearance of the inner wall could be used to identify different phases of a corner.
-
----
-
-## 4.23 Ultrasonic Calibration Process
-
-The ultrasonic sensors are calibrated using the actual Piolín chassis and track geometry rather than relying only on theoretical sensor specifications.
-
-For the lateral sensors, the first calibration stage places Piolín next to a flat wall at known physical distances and compares the ultrasonic measurements against the real distance. This identifies normal measurement variation and isolated spikes.
-
-The second stage places Piolín at different lateral positions between two track boundaries. Both ultrasonic measurements are recorded and compared with the mathematical position model.
-
-The third stage focuses on corner entry. Piolín approaches a corner slowly while the inner and outer sensor measurements are observed. This allows the characteristic increase in inner-wall distance to be identified.
-
-The fourth stage studies corner exit and determines when the new inner wall becomes sufficiently stable to restore normal navigation.
-
-The front sensor requires a separate calibration procedure. Piolín should be driven toward a safe test obstacle at normal competition speed while the actual braking distance is measured. The emergency threshold can then be adjusted so that the robot stops with a useful safety margin.
-
----
-
-## 4.24 Navigation Responsibility by Track Phase
-
-The three ultrasonic sensors do not have equal authority during every navigation phase.
-
-| Navigation Phase | Inner US | Outer US | Front US |
-| :--- | :--- | :--- | :--- |
-| **Straight** | **Primary** | Secondary | Emergency monitoring |
-| **Straight Safety** | Primary | Outer-wall safety | **Frontal safety** |
-| **Corner Detection** | **Primary indicator** | Geometry confirmation | Emergency monitoring |
-| **Corner Entry** | Reduced authority | Increasing authority | Emergency monitoring |
-| **Corner** | Reacquisition monitoring | **Temporary primary** | Emergency monitoring |
-| **Corner Exit** | Increasing authority | Secondary | Emergency monitoring |
-| **Stabilization** | **Primary** | Secondary | Emergency monitoring |
-| **Re-centering** | Used | Used | Emergency monitoring |
-| **Next Straight** | **Primary** | Secondary / safety | Emergency monitoring |
-
-The front sensor never becomes an inner or outer reference.
-
-Its safety authority remains independent from the current navigation phase.
-
----
-
-## 4.25 Layered Collision Protection
-
-Piolín now uses two different forms of ultrasonic collision protection.
-
-The lateral sensors protect the robot from excessive movement toward the track boundaries. Even when one lateral sensor is not the primary navigation reference, it can still provide information indicating that Piolín is approaching a side wall dangerously closely.
-
-The front sensor provides an independent second layer. Instead of correcting lateral position, it monitors for a direct frontal collision and can stop propulsion.
+Their confirmed approximate mounting height is:
 
 ```text
-             ULTRASONIC SAFETY
+43.2 mm
+```
+
+above the track surface.
+
+Conceptually:
+
+```text
+LEFT WALL                               RIGHT WALL
+    │                                       │
+    │                                       │
+    ▼                                       ▼
+   S3  ←──────────── [ PIOLÍN ] ─────────→ S2
+```
+
+The sensor height matters because the ultrasonic beam must intersect the intended vertical wall surfaces rather than floor-level geometry.
+
+Their lateral orientation is also important because the software interprets their values as side-wall measurements.
+
+---
+
+# 2.6 What an Ultrasonic Reading Represents
+
+An ultrasonic sensor reports distance from the sensor toward the reflecting surface detected within its acoustic field.
+
+Therefore:
+
+```text
+ULTRASONIC READING
+        =
+Distance from sensor
+to detected surface
+```
+
+It does **not** directly represent:
+
+```text
+Robot center position
+
+Vehicle heading
+
+Distance from wheel to wall
+
+Distance from chassis edge to wall
+```
+
+unless the physical offsets between those reference points are also included.
+
+This distinction is essential when building a geometric navigation model.
+
+---
+
+# 2.7 Ultrasonic Time-of-Flight Principle
+
+Ultrasonic ranging is based on the travel time of an acoustic pulse.
+
+The physical sequence is:
+
+```text
+Sensor emits pulse
+        ↓
+Pulse travels to wall
+        ↓
+Wall reflects pulse
+        ↓
+Echo returns to sensor
+        ↓
+Travel time measured
+```
+
+The ideal physical relationship is:
+
+```text
+d =
+(v × t) / 2
+```
+
+where:
+
+```text
+d = distance to reflecting surface
+
+v = speed of sound
+
+t = round-trip acoustic travel time
+```
+
+The division by two is required because the sound travels:
+
+```text
+Sensor → Surface
+```
+
+and then:
+
+```text
+Surface → Sensor
+```
+
+The LEGO sensor interface provides usable distance data to the EV3, so Piolín's navigation code works with the resulting distance measurement rather than manually timing the acoustic pulse.
+
+---
+
+# 2.8 Unit Consistency
+
+All ultrasonic calculations should use one consistent unit system.
+
+For example:
+
+```text
+millimeters
+```
+
+or:
+
+```text
+centimeters
+```
+
+but different units should not be mixed inside the same geometric expression.
+
+A conversion between the two is:
+
+```text
+1 cm = 10 mm
+```
+
+and:
+
+```text
+D_CM =
+D_MM / 10
+```
+
+For example:
+
+```text
+245 mm
+=
+24.5 cm
+```
+
+A consistent unit convention prevents calibration constants from being interpreted incorrectly.
+
+---
+
+# 2.9 Raw Distance Variables
+
+A clear software representation is:
+
+```text
+D_FRONT
+=
+Current S1 measurement
+
+
+D_RIGHT
+=
+Current S2 measurement
+
+
+D_LEFT
+=
+Current S3 measurement
+```
+
+After travel direction is known:
+
+```text
+D_INNER
+=
+Selected lateral inner-wall value
+
+
+D_OUTER
+=
+Selected lateral outer-wall value
+```
+
+The resulting information path is:
+
+```text
+S2 + S3
+   ↓
+Physical readings
+   ↓
+Direction mapping
+   ↓
+D_INNER + D_OUTER
+   ↓
+Navigation geometry
+```
+
+---
+
+# 2.10 Why the Front Sensor Is Excluded From Lateral Geometry
+
+S1 observes a different spatial direction.
+
+```text
+                    S1
+                    ↑
                     │
-          ┌─────────┴─────────┐
-          │                   │
-    LATERAL SAFETY        FRONT SAFETY
-          │                   │
-   Avoid side-wall       Emergency stop
-      collision          before frontal impact
+
+         S3 ← [ PIOLÍN ] → S2
 ```
 
-This separation prevents one sensor from being responsible for every possible type of collision.
-
----
-
-## 4.26 Acoustic Reflection and Cross-Talk
-
-Ultrasonic sensors determine distance by emitting acoustic pulses and measuring the returning echo.
-
-Measurements can occasionally be affected by wall angle, rounded corners, nearby structures, track seams, or other reflecting surfaces.
-
-Because Piolín's lateral sensors face opposite directions and the front sensor faces forward, the sensors observe substantially different regions. This reduces the likelihood of direct acoustic interference compared with placing several sensors toward the same area.
-
-However, the design does not assume that cross-talk is impossible.
-
-Filtering, short confirmation windows, and separate sensor responsibilities are used to reduce the effect of isolated abnormal measurements.
-
-> [!IMPORTANT]
-> Piolín's documentation does not claim that ultrasonic noise or cross-talk is completely eliminated. The architecture is designed to reduce its probability and limit its effect on navigation.
-
----
-
-## 4.27 Failure Mode Analysis
-
-| Failure Mode | Sensor Behavior | Navigation Risk | Mitigation |
-| :--- | :--- | :--- | :--- |
-| **Single lateral spike** | Sudden large or small reading | False steering correction | Median-of-three filtering |
-| **Inner wall disappears at corner** | Inner distance increases greatly | Robot may steer toward missing wall | Interpret as geometry change |
-| **False corner opening** | Temporary large reading | Unnecessary corner maneuver | Multiple-reading confirmation |
-| **Premature wall reacquisition** | Short inner reading during turn | Corner ends too early | Exit confirmation |
-| **Outer wall too close** | Outer distance decreases | Side collision | Lateral safety correction |
-| **Unexpected frontal obstacle** | Front distance becomes very small | Frontal collision | Emergency motor stop |
-| **Single false front reading** | One unexpectedly short value | Unnecessary stop | Two-reading confirmation |
-| **Robot rotated relative to walls** | Two-US geometry becomes inconsistent | Incorrect position estimate | Reduce trust in straight model |
-| **Rounded-corner reflection** | Reading fluctuates | Steering instability | Filtering and sensor-role transition |
-| **Sensor mounting changes** | Persistent measurement bias | Incorrect wall reference | Mechanical inspection and recalibration |
-| **Acoustic interference** | Isolated abnormal measurement | Incorrect correction or stop | Orientation separation and confirmation |
-
-This analysis treats incorrect sensor readings as an engineering possibility instead of assuming that every measurement is always valid.
-
----
-
-## 4.28 Why the Diagonal Arrangement Was Replaced
-
-Earlier Piolín prototypes experimented with angled ultrasonic sensors because a forward inclination could observe parts of the track before the chassis physically reached them.
-
-However, diagonal sensing also changed the mathematical meaning of the measured distance.
-
-When a sensor is angled relative to a wall, the measured acoustic path is no longer equivalent to the perpendicular lateral distance.
-
-The reading becomes more dependent on robot heading, wall orientation, sensor angle, and corner geometry.
-
-Because the final navigation strategy relies heavily on understanding Piolín's lateral distance from each track boundary, direct lateral sensing provided a simpler and more useful relationship between measurement and physical position.
-
-The diagonal arrangement was therefore replaced by direct lateral mounting.
-
----
-
-## 4.29 Why the Front Ultrasonic Sensor Was Added
-
-Earlier versions of the final architecture relied primarily on the two lateral ultrasonic sensors for navigation and wall protection.
-
-These sensors provide strong information about the left and right sides of the robot, but they cannot reliably observe every object located directly ahead.
-
-This created a specific unprotected situation. If the navigation controller produced an incorrect trajectory toward a frontal wall or obstacle, the lateral sensors might not detect the problem soon enough.
-
-The previously available EV3 Sensor Port S1 was therefore assigned to a third ultrasonic sensor facing forward.
-
-Importantly, the new sensor does not replace the two-sensor mathematical navigation model. It adds a separate layer of redundancy.
-
-The engineering principle is:
-
-> **The lateral sensors attempt to prevent Piolín from entering a dangerous trajectory, while the front sensor provides a final emergency response if a frontal collision is still developing.**
-
-This increases sensor coverage without requiring the normal wall-following equations to be redesigned.
-
----
-
-## 4.30 Evolution of the Ultrasonic Architecture
-
-Piolín's final three-sensor system is the result of several navigation experiments.
-
-| Development Stage | Main Idea | Engineering Result |
-| :--- | :--- | :--- |
-| **Continuous Two-US Geometry** | Combine both lateral wall distances | Demonstrated useful lateral-position estimation in straights |
-| **Geometric Consistency Model** | Detect when straight equations become less reliable | Improved interpretation near corners |
-| **Gyro-Assisted Experiment** | Inner wall in straights, outer wall in corners | Demonstrated the value of changing wall reference |
-| **Gyro-Free Hybrid Concept** | Inner → outer → inner wall transition | Removed dependency on gyro heading |
-| **Front Safety Addition** | Add forward S1 ultrasonic independent from navigation | Added frontal emergency protection |
-| **Final Architecture** | 2 lateral navigation sensors + 1 front safety sensor | Geometry-aware navigation with independent collision safety |
-
-The two-ultrasonic mathematical tests demonstrated that the robot could estimate its position well during straight geometry.
-
-The largest limitation appeared at corners, where the inner wall disappeared and the mathematical assumptions changed.
-
-Later tests demonstrated that the outer wall could become the more useful temporary reference during the turn.
-
-The final concept retains this transition while removing the gyro dependency.
-
-The front ultrasonic sensor was then added as a separate safety improvement rather than as another navigation variable.
-
----
-
-## 4.31 Final Navigation and Safety Flow
-
-```mermaid
-flowchart TD
-
-    FRONT[Front US - S1] --> DANGER{Frontal Danger?}
-
-    DANGER -- Yes --> STOP[Emergency Brake / Stop]
-    DANGER -- No --> NAV[Continue Navigation]
-
-    LEFT[Left US - S3] --> FILTER[Median-of-3 Filtering]
-    RIGHT[Right US - S2] --> FILTER
-
-    FILTER --> SIDES[Determine Inner and Outer Sensor]
-
-    NAV --> SIDES
-
-    SIDES --> GEOMETRY{Track Geometry}
-
-    GEOMETRY -- Straight --> INNER[Inner Wall Primary]
-
-    INNER --> OUTER[Outer Wall Secondary / Safety]
-
-    OUTER --> OPEN{Inner Wall Opens?}
-
-    OPEN -- No --> INNER
-    OPEN -- Yes --> CONFIRM[Confirm Corner]
-
-    CONFIRM --> CORNER[Begin Corner]
-
-    CORNER --> OUTREF[Outer Wall Temporary Primary]
-
-    OUTREF --> RETURN{Inner Wall Reappears?}
-
-    RETURN -- No --> OUTREF
-    RETURN -- Yes --> REACQUIRE[Restore Inner-Wall Control]
-
-    REACQUIRE --> CENTER[Stabilize / Re-center]
-
-    CENTER --> INNER
-```
-
-The important feature of this architecture is that frontal safety is evaluated independently from the lateral navigation process.
-
----
-
-## 4.32 Final Reproducibility Summary
-
-Another team should be able to reproduce the ultrasonic architecture from the following information.
-
-| Parameter | Final Configuration |
-| :--- | :--- |
-| **Number of Ultrasonic Sensors** | **3** |
-| **Front Sensor Port** | **S1** |
-| **Right Sensor Port** | **S2** |
-| **Left Sensor Port** | **S3** |
-| **Front Orientation** | **Forward-facing** |
-| **Lateral Orientation** | **Direct lateral** |
-| **Lateral Sensor Height** | **~43 mm** |
-| **Primary Straight Reference** | **Inner lateral US** |
-| **Primary Corner Reference** | **Outer lateral US** |
-| **Front Sensor Role** | **Emergency stop** |
-| **Lateral Filtering** | **Median of 3** |
-| **Initial Front Confirmation** | **2 close readings** |
-| **Initial Front Stop Distance** | **100 mm** |
-| **Direction Assignment** | Dynamic from initial floor color |
-
-The final EV3 sensor-port map is:
+Therefore:
 
 ```text
+D_FRONT
+```
+
+cannot be combined directly with:
+
+```text
+D_INNER + D_OUTER
+```
+
+to estimate the lateral corridor geometry.
+
+The lateral pair answers:
+
+> Where is Piolín relative to the side boundaries?
+
+The front sensor answers:
+
+> Is the available space directly ahead becoming unsafe?
+
+These are independent spatial questions.
+
+---
+
+# 2.11 Side-Wall Navigation
+
+During a normal straight section, Piolín primarily follows the inner wall.
+
+Conceptually:
+
+```text
+Desired inner-wall relationship
+              ↓
+          Compare with
+              ↓
+           D_INNER
+              ↓
+        Navigation error
+              ↓
+       Steering correction
+```
+
+The basic wall error can be represented as:
+
+```text
+E_WALL =
+D_TARGET - D_INNER
+```
+
+where:
+
+```text
+D_TARGET
+=
+Calibrated inner-wall reference
+```
+
+and:
+
+```text
+D_INNER
+=
+Current inner-wall measurement
+```
+
+The exact final value of `D_TARGET` belongs to current calibration and competition software and is not assigned an unconfirmed number in this document.
+
+---
+
+# 2.12 Wall Error Sign
+
+Suppose:
+
+```text
+E_WALL =
+D_TARGET - D_INNER
+```
+
+If:
+
+```text
+D_INNER < D_TARGET
+```
+
+then Piolín is closer to the inner wall than the target relationship.
+
+If:
+
+```text
+D_INNER > D_TARGET
+```
+
+then Piolín is farther from the inner wall.
+
+The steering controller converts the magnitude and sign of this error into the appropriate physical correction according to the current direction of travel.
+
+The exact steering sign depends on the software coordinate convention.
+
+---
+
+# 2.13 Deadband
+
+Very small sensor variations should not necessarily produce constant steering movement.
+
+A deadband can conceptually be defined as:
+
+```text
+if ABS(E_WALL) <= DEADBAND:
+    correction = 0
+```
+
+This creates a small acceptable region around the target:
+
+```text
+Too close      Acceptable       Too far
+    │              │               │
+────┼──────────────┼───────────────┼────
+```
+
+The purpose is to prevent the steering motor from reacting continuously to insignificant distance variation.
+
+The current numerical deadband should be taken from the active code or calibration documentation rather than assumed here.
+
+---
+
+# 2.14 Why One Lateral Sensor Is Not Enough for Every State
+
+During ordinary straight navigation, the inner sensor can provide a strong primary reference.
+
+However, at a corner:
+
+```text
+Inner wall ends
+        ↓
+D_INNER changes sharply
+```
+
+If the robot continued treating that new value as an ordinary wall-following error:
+
+```text
+Large apparent error
+        ↓
+Incorrect steering response
+```
+
+Therefore the software must distinguish:
+
+```text
+WALL DISTANCE ERROR
+```
+
+from:
+
+```text
+WALL NO LONGER PRESENT
+```
+
+This is why Piolín also uses the outer sensor and navigation state.
+
+---
+
+# 2.15 Inner-Wall Disappearance
+
+The WRO track geometry creates a characteristic transition at a corner.
+
+Before the corner:
+
+```text
+INNER WALL
+    │
+    │
+    │
+    │
+```
+
+The inner sensor observes a nearby continuous surface.
+
+At the corner:
+
+```text
+INNER WALL
+    │
+    │
+    └──────── opening
+```
+
+the previous wall surface ends.
+
+The sensor can therefore report a much larger distance or a different geometry.
+
+Conceptually:
+
+```text
+D_INNER
+stable
+   ↓
+D_INNER increases
+   ↓
+Potential corner entry
+```
+
+This transition is not interpreted simply as "Piolín is too far from the wall."
+
+It can indicate that the wall itself has ended.
+
+---
+
+# 2.16 Corner Confirmation
+
+A single unusual ultrasonic reading should not automatically be treated as a confirmed corner.
+
+The navigation architecture can combine:
+
+```text
+Inner distance behavior
+
+Outer distance behavior
+
+Previous navigation state
+
+Vehicle motion
+
+Color/course information where relevant
+```
+
+to determine whether the geometry corresponds to a real corner.
+
+Conceptually:
+
+```text
+Unusual D_INNER
+      ↓
+Is geometry consistent with corner?
+      ↓
+YES → Corner state
+NO  → Continue / reject abnormal reading
+```
+
+This reduces sensitivity to isolated ultrasonic anomalies.
+
+---
+
+# 2.17 Outer Sensor During a Corner
+
+During normal straight driving:
+
+```text
+D_INNER
+```
+
+is often the strongest navigation reference.
+
+During a corner:
+
+```text
+D_INNER
+```
+
+may lose its normal wall.
+
+At this point:
+
+```text
+D_OUTER
+```
+
+can become more useful.
+
+The conceptual transition is:
+
+```text
+STRAIGHT
+   ↓
+Inner-wall reference
+
+
+CORNER
+   ↓
+Outer geometry becomes temporarily important
+
+
+EXIT
+   ↓
+Inner wall reacquired
+```
+
+This allows Piolín to navigate corners without relying on a gyroscope.
+
+---
+
+# 2.18 Inner-Wall Reacquisition
+
+As Piolín finishes the turn, the next inner wall enters the lateral sensor's useful region.
+
+Conceptually:
+
+```text
+Corner turning
+      ↓
+New straight approaches
+      ↓
+Inner wall becomes visible
+      ↓
+D_INNER returns to expected range
+      ↓
+Corner exit can be confirmed
+```
+
+The software can then reduce the corner steering command and transition back toward normal wall following.
+
+This relationship is central to the current no-gyro Open Challenge architecture.
+
+---
+
+# 2.19 Geometry State Sequence
+
+The complete lateral geometry sequence can be summarized as:
+
+```text
+INNER WALL PRESENT
+        ↓
+NORMAL WALL FOLLOWING
+        ↓
+INNER WALL DISAPPEARS
+        ↓
+CORNER ENTRY
+        ↓
+OUTER GEOMETRY USED
+        ↓
+VEHICLE ROTATES
+        ↓
+INNER WALL REAPPEARS
+        ↓
+CORNER EXIT
+        ↓
+STABILIZATION
+        ↓
+NORMAL WALL FOLLOWING
+```
+
+This makes the ultrasonic pair part of both:
+
+```text
+Continuous control
+```
+
+and:
+
+```text
+Discrete state detection
+```
+
+---
+
+# 2.20 Corridor Geometry Model
+
+When both side walls are visible and the readings have been converted to a common geometric reference, Piolín can reason about its lateral position inside the corridor.
+
+Let:
+
+```text
+W
+=
+Distance between the two reference walls
+
+
+D_INNER_C
+=
+Inner-wall distance corrected to a common
+robot reference point
+
+
+D_OUTER_C
+=
+Outer-wall distance corrected to the same
+reference point
+```
+
+Then:
+
+```text
+D_INNER_C + D_OUTER_C ≈ W
+```
+
+during a suitable straight-wall condition.
+
+This provides a useful consistency relationship.
+
+---
+
+# 2.21 Estimating Lateral Position
+
+If:
+
+```text
+X
+```
+
+represents the vehicle reference position measured from the inner wall, then:
+
+```text
+D_INNER_C ≈ X
+```
+
+and:
+
+```text
+D_OUTER_C ≈ W - X
+```
+
+Subtracting:
+
+```text
+D_INNER_C - D_OUTER_C
+=
+2X - W
+```
+
+therefore:
+
+```text
+X =
+(W + D_INNER_C - D_OUTER_C) / 2
+```
+
+This is the general lateral-position relationship:
+
+```text
+X_EST =
+(W + D_INNER_C - D_OUTER_C) / 2
+```
+
+It can be useful when both walls are available and the sensor measurements are expressed relative to a consistent geometric reference.
+
+---
+
+# 2.22 Why Raw Sensor Values Need Offset Awareness
+
+The actual ultrasonic sensors are not located at the exact geometric center of Piolín.
+
+Therefore raw measurements represent:
+
+```text
+Sensor face → wall
+```
+
+rather than:
+
+```text
+Robot center → wall
+```
+
+To obtain a center-referenced model, lateral sensor offsets would need to be considered.
+
+Conceptually:
+
+```text
+D_LEFT_CENTER
+=
+D_LEFT_RAW + O_LEFT
+```
+
+and:
+
+```text
+D_RIGHT_CENTER
+=
+D_RIGHT_RAW + O_RIGHT
+```
+
+where:
+
+```text
+O_LEFT
+
+O_RIGHT
+```
+
+represent the relevant physical sensor offsets.
+
+No final numerical offset values are claimed in this document because the current final offsets have not been established as confirmed measurements.
+
+This prevents development-stage dimensions from being presented as final geometry.
+
+---
+
+# 2.23 Raw-Sum Consistency
+
+Even without converting every reading into an exact robot-center position, the lateral pair can provide a useful geometric consistency check.
+
+Let:
+
+```text
+C_REF
+```
+
+represent the expected sum of the two lateral readings for a valid straight-wall condition under the chosen sensor geometry.
+
+Then:
+
+```text
+C_CURRENT =
+D_INNER + D_OUTER
+```
+
+and a geometric consistency error can be defined as:
+
+```text
+G =
+ABS(C_CURRENT - C_REF)
+```
+
+or:
+
+```text
+G =
+ABS(
+(D_INNER + D_OUTER)
+-
+C_REF
+)
+```
+
+A small `G` suggests that both readings are reasonably compatible with the expected corridor geometry.
+
+A large `G` can indicate that the usual straight-wall model is no longer valid.
+
+---
+
+# 2.24 Meaning of the Geometry Error `G`
+
+The consistency variable:
+
+```text
+G
+```
+
+does not directly tell Piolín which way to steer.
+
+Instead, it answers a different question:
+
+> Do the two lateral readings still resemble the expected straight-corridor geometry?
+
+Conceptually:
+
+```text
+Small G
+   ↓
+Both walls likely consistent
+with normal corridor geometry
+```
+
+while:
+
+```text
+Large G
+   ↓
+Possible corner
+Possible opening
+Possible unusual reflection
+Possible invalid reading
+```
+
+This makes `G` useful as a **state-quality indicator**.
+
+---
+
+# 2.25 Geometry Gating
+
+A geometry gate can conceptually be implemented as:
+
+```python
+geometry_error = abs(
+    (D_INNER + D_OUTER) - C_REF
+)
+
+if geometry_error <= GEOMETRY_TOLERANCE:
+    corridor_valid = True
+else:
+    corridor_valid = False
+```
+
+No numerical `C_REF` or `GEOMETRY_TOLERANCE` is assigned here because those values depend on the final physical robot and course calibration.
+
+The architecture is more important than an old experimental constant.
+
+---
+
+# 2.26 Why `D_INNER + D_OUTER` Changes at Corners
+
+During a straight section:
+
+```text
+LEFT WALL                RIGHT WALL
+    │                        │
+    │       PIOLÍN           │
+    │                        │
+```
+
+both sensors observe surfaces belonging to the same corridor.
+
+Therefore the total lateral geometry is relatively constrained.
+
+At a corner:
+
+```text
+one expected wall ends
+```
+
+and one sensor may observe:
+
+```text
+A distant surface
+
+An opening
+
+A different wall orientation
+```
+
+Therefore:
+
+```text
+D_INNER + D_OUTER
+```
+
+can differ significantly from its normal straight-section reference.
+
+This is why the sum can help distinguish:
+
+```text
+Ordinary lateral position error
+```
+
+from:
+
+```text
+Track geometry transition
+```
+
+---
+
+# 2.27 Position Error vs. Geometry Error
+
+Two different errors can therefore exist.
+
+### Position error
+
+```text
+E_WALL =
+D_TARGET - D_INNER
+```
+
+This answers:
+
+> Am I at the desired distance from the inner wall?
+
+### Geometry error
+
+```text
+G =
+ABS(
+(D_INNER + D_OUTER)
+-
+C_REF
+)
+```
+
+This answers:
+
+> Does the current lateral scene still look like the expected corridor?
+
+These values have different responsibilities.
+
+```text
+E_WALL
+      ↓
+Steering correction
+
+
+G
+      ↓
+Geometry / state confidence
+```
+
+This separation improves the interpretation of the ultrasonic data.
+
+---
+
+# 2.28 Example Straight Geometry
+
+Consider a generic example where both side walls are visible.
+
+```text
+INNER WALL                   OUTER WALL
+    │                            │
+    │     ← D_INNER →            │
+    │          [PIOLÍN]          │
+    │                ←D_OUTER→   │
+    │                            │
+```
+
+If the robot moves slightly toward the inner wall:
+
+```text
+D_INNER decreases
+```
+
+while:
+
+```text
+D_OUTER increases
+```
+
+The two values therefore change in opposite directions.
+
+This is characteristic of lateral displacement inside a fixed corridor.
+
+---
+
+# 2.29 Example Heading Change
+
+Now suppose Piolín rotates while remaining near approximately the same lateral region.
+
+Because the ultrasonic sensors are attached to the chassis:
+
+```text
+Robot heading changes
+        ↓
+Sensor beam angles relative to walls change
+        ↓
+Measured distances can change
+```
+
+Therefore:
+
+```text
+D_INNER changed
+```
+
+does not automatically mean:
+
+```text
+Piolín translated laterally
+```
+
+The vehicle state and previous sensor history must also be considered.
+
+---
+
+# 2.30 Sensor Beam Geometry
+
+An ultrasonic sensor does not measure along an infinitely thin mathematical line.
+
+It emits sound over a finite acoustic region.
+
+Conceptually:
+
+```text
+              WALL
+               │
+               │
+
+          \    │    /
+           \   │   /
+            \  │  /
+             \ │ /
+            SENSOR
+```
+
+The returned measurement depends on which surface produces a usable reflection within that region.
+
+This is one reason measurements can change when:
+
+```text
+Wall orientation changes
+
+Robot rotates
+
+A corner opens
+
+Another object enters the acoustic region
+```
+
+The software should therefore avoid treating every reading as perfect point geometry.
+
+---
+
+# 2.31 Perpendicular vs. Angled Observation
+
+When a lateral sensor approximately faces a wall perpendicularly:
+
+```text
+SENSOR → │ WALL
+```
+
+the reading corresponds closely to the lateral separation between the sensor and the wall.
+
+If the chassis rotates:
+
+```text
+SENSOR ↗ │ WALL
+```
+
+the acoustic path and reflected surface geometry change.
+
+The resulting reading can increase even if the vehicle has not translated the same amount.
+
+This explains why ultrasonic measurements and steering angle are physically coupled.
+
+---
+
+# 2.32 Short-Window Filtering
+
+Autonomous steering should not react excessively to one isolated abnormal ultrasonic reading.
+
+A short-window filter can reduce the influence of outliers.
+
+A useful robust approach is a median calculation:
+
+```text
+D1
+D2
+D3
+ ↓
+MEDIAN
+ ↓
+Filtered distance
+```
+
+For example:
+
+```text
+245 mm
+247 mm
+710 mm
+```
+
+produces:
+
+```text
+MEDIAN = 247 mm
+```
+
+The isolated large reading does not dominate the resulting navigation value.
+
+---
+
+# 2.33 Median-of-Three Concept
+
+For three readings:
+
+```text
+A, B, C
+```
+
+the median is the middle value after sorting:
+
+```text
+SORT(A, B, C)
+        ↓
+MIDDLE VALUE
+```
+
+A conceptual implementation is:
+
+```python
+def median3(a, b, c):
+    return sorted([a, b, c])[1]
+```
+
+The advantage is that one isolated extreme sample can be rejected naturally.
+
+This is particularly useful for distance sensors operating in a geometry containing:
+
+```text
+Edges
+
+Openings
+
+Angled walls
+
+Nearby obstacles
+```
+
+---
+
+# 2.34 Filtering Trade-Off
+
+Filtering improves stability but also introduces a trade-off.
+
+A larger sample window can provide:
+
+```text
+More noise rejection
+```
+
+but also:
+
+```text
+More delay
+```
+
+The relationship is:
+
+```text
+More filtering
+      ↓
+Smoother measurement
+      ↓
+Potentially slower response
+```
+
+For a moving vehicle, excessive delay can cause the software to respond to geometry that Piolín has already passed.
+
+Therefore, short filtering windows are generally more appropriate for fast navigation than very long averaging windows.
+
+---
+
+# 2.35 Median vs. Mean
+
+Consider:
+
+```text
+240
+242
+900
+```
+
+The arithmetic mean is:
+
+```text
+(240 + 242 + 900) / 3
+=
+460.7
+```
+
+which does not resemble the two consistent measurements.
+
+The median is:
+
+```text
+242
+```
+
+For isolated extreme readings, the median can therefore better preserve the dominant local measurement.
+
+This does not mean median filtering solves every ultrasonic problem.
+
+Persistent incorrect readings can still pass through the filter.
+
+---
+
+# 2.36 Temporal Confirmation
+
+Some important state transitions can also require confirmation over more than one sensor cycle.
+
+Conceptually:
+
+```text
+Possible corner reading
+        ↓
+Read again
+        ↓
+Geometry still indicates corner?
+        ↓
+YES
+        ↓
+Confirm transition
+```
+
+This prevents one unusual sample from immediately changing the complete navigation state.
+
+The number of confirmations belongs to the current software implementation and should not be inferred from older experiments.
+
+---
+
+# 2.37 Invalid and Extreme Readings
+
+An ultrasonic sensor may occasionally return a reading that is:
+
+```text
+Unexpectedly large
+
+Unexpectedly small
+
+Inconsistent with recent geometry
+```
+
+Such a value should be interpreted in context.
+
+An unusually large reading may represent:
+
+```text
+A real opening
+```
+
+rather than:
+
+```text
+Sensor failure
+```
+
+This is particularly important at corners.
+
+Therefore, simple rules such as:
+
+```text
+Large reading = invalid
+```
+
+would be unsafe.
+
+The navigation state must determine whether the value is physically plausible.
+
+---
+
+# 2.38 State-Dependent Interpretation
+
+The same distance value can mean different things depending on the current state.
+
+For example:
+
+```text
+Large D_INNER
+```
+
+during normal straight navigation may indicate:
+
+```text
+Robot too far from wall
+```
+
+but immediately at a corner it may indicate:
+
+```text
+Inner wall has ended
+```
+
+Therefore:
+
+```text
+SENSOR VALUE
+      +
+NAVIGATION STATE
+      ↓
+MEANING
+```
+
+rather than:
+
+```text
+SENSOR VALUE
+      ↓
+FIXED MEANING
+```
+
+This is one of the central principles of Piolín's ultrasonic architecture.
+
+---
+
+# 2.39 Front Safety Data
+
+The front sensor produces:
+
+```text
+D_FRONT
+```
+
+which represents forward clearance.
+
+A conceptual frontal safety condition can be written as:
+
+```python
+if D_FRONT < FRONT_SAFETY_LIMIT:
+    frontal_risk = True
+```
+
+The exact value of:
+
+```text
+FRONT_SAFETY_LIMIT
+```
+
+must come from the current final code or calibration.
+
+No unconfirmed threshold is assigned in this document.
+
+The important architecture is:
+
+```text
+D_FRONT
+   ↓
+Safety evaluation
+   ↓
+Possible interruption of ordinary forward motion
+```
+
+---
+
+# 2.40 Front Sensor Priority
+
+Suppose the lateral controller indicates:
+
+```text
+Continue forward with small correction
+```
+
+while S1 indicates:
+
+```text
+Insufficient frontal clearance
+```
+
+The normal wall-following request should not blindly continue.
+
+The system-level hierarchy is:
+
+```text
+FRONTAL SAFETY
+      ↓
+LATERAL SAFETY
+      ↓
+CORNER / OBSTACLE LOGIC
+      ↓
+NORMAL WALL FOLLOWING
+```
+
+The front sensor therefore provides an independent safety layer above ordinary track-following behavior.
+
+---
+
+# 2.41 Why Front Distance Is Not Used for Centering
+
+Centering is a lateral geometry problem.
+
+```text
+LEFT WALL
+     ↔
+PIOLÍN
+     ↔
+RIGHT WALL
+```
+
+The front ultrasonic measures:
+
+```text
+PIOLÍN
+   ↕
+FORWARD SURFACE
+```
+
+Therefore:
+
+```text
+D_FRONT
+```
+
+does not provide the same information as:
+
+```text
+D_LEFT - D_RIGHT
+```
+
+or:
+
+```text
+D_INNER / D_OUTER
+```
+
+Using the front value inside lateral centering equations would mix independent spatial directions.
+
+---
+
+# 2.42 Lateral Balance Indicator
+
+When both side walls form a suitable corridor, a simple lateral-balance indicator can be defined as:
+
+```text
+B =
+D_LEFT - D_RIGHT
+```
+
+or in direction-independent form:
+
+```text
+B_IO =
+D_INNER - D_OUTER
+```
+
+The sign indicates which side currently has the larger measured clearance.
+
+However:
+
+```text
+B = 0
+```
+
+does not automatically mean the chassis center is geometrically centered because the sensor positions relative to the chassis center may differ.
+
+Sensor offsets must be considered for exact geometric centering.
+
+---
+
+# 2.43 Corrected Centering Model
+
+If final sensor offsets are available, corrected distances can be defined.
+
+For example:
+
+```text
+D_LEFT_C =
+D_LEFT + O_LEFT
+```
+
+and:
+
+```text
+D_RIGHT_C =
+D_RIGHT + O_RIGHT
+```
+
+where the offsets transform sensor-face measurements toward a common reference point.
+
+Then a corrected balance can be written as:
+
+```text
+B_C =
+D_LEFT_C - D_RIGHT_C
+```
+
+and:
+
+```text
+B_C ≈ 0
+```
+
+would represent equal distance from the chosen reference point to both walls in a symmetric corridor.
+
+Because the final offsets are not currently confirmed here, this remains a symbolic geometric model.
+
+---
+
+# 2.44 Center Position Estimate
+
+Using corrected inner and outer distances:
+
+```text
+X_EST =
+(W + D_INNER_C - D_OUTER_C) / 2
+```
+
+This can be derived from:
+
+```text
+D_INNER_C ≈ X
+```
+
+and:
+
+```text
+D_OUTER_C ≈ W - X
+```
+
+The estimate is most meaningful when:
+
+```text
+Both side walls are visible
+
+Walls are approximately suitable references
+
+Sensor geometry is known
+
+Robot is not in an open corner transition
+```
+
+It should not be applied blindly to every navigation state.
+
+---
+
+# 2.45 Why Geometry Validity Matters
+
+Suppose one wall disappears at a corner.
+
+The equations may still produce a numerical `X_EST`.
+
+However, that does not mean the result describes the actual vehicle position.
+
+```text
+Bad geometric assumptions
+        +
+Valid arithmetic
+        =
+Misleading result
+```
+
+Therefore, geometry-based position estimation should first ask:
+
+```text
+Is the corridor model currently valid?
+```
+
+This is one purpose of the consistency variable:
+
+```text
+G
+```
+
+---
+
+# 2.46 Geometry Confidence
+
+A conceptual decision structure is:
+
+```text
+Read D_INNER + D_OUTER
+        ↓
+Calculate G
+        ↓
+G compatible with corridor?
+    ┌─────────┴─────────┐
+   YES                  NO
+    │                    │
+    ▼                    ▼
+Use normal          Treat as
+wall geometry       transition /
+                    corner /
+                    special state
+```
+
+This prevents a straight-wall equation from being used after the physical geometry has changed.
+
+---
+
+# 2.47 Ultrasonic Data During the Open Challenge
+
+The Open Challenge uses the ultrasonic system primarily as:
+
+```text
+S2 + S3
+    ↓
+Wall-following geometry
+
+
+S1
+    ↓
+Frontal safety
+```
+
+The basic flow is:
+
+```text
+Read lateral sensors
+        ↓
+Assign D_INNER / D_OUTER
+        ↓
+Interpret current geometry
+        ↓
+Normal straight?
+Corner entry?
+Corner exit?
+        ↓
+Calculate steering behavior
+```
+
+while independently:
+
+```text
+Read D_FRONT
+        ↓
+Check frontal safety
+```
+
+---
+
+# 2.48 Open Challenge Corner Sequence
+
+The ultrasonic sequence can be summarized as:
+
+```text
+D_INNER valid
+      ↓
+Follow inner wall
+      ↓
+D_INNER changes as wall ends
+      ↓
+Corner confirmed
+      ↓
+Turn begins
+      ↓
+D_OUTER becomes useful
+      ↓
+Vehicle rotates
+      ↓
+D_INNER reacquired
+      ↓
+Turn ends
+      ↓
+Normal wall following resumes
+```
+
+This is the core reason the current Open strategy does not require a gyroscope.
+
+---
+
+# 2.49 Ultrasonic Data During the Obstacle Challenge
+
+The same three ultrasonic sensors remain relevant during the Obstacle Challenge.
+
+The HuskyLens adds:
+
+```text
+Obstacle identity
+```
+
+but does not replace:
+
+```text
+Wall geometry
+```
+
+The architecture becomes:
+
+```text
+HuskyLens
+    ↓
+Which side should the pillar be passed?
+
+
+S2 + S3
+    ↓
+How much lateral clearance is available?
+
+
+S1
+    ↓
+Is forward clearance becoming unsafe?
+```
+
+The EV3 combines these constraints into one movement decision.
+
+---
+
+# 2.50 Pillar Avoidance and Side Distance
+
+Suppose the camera determines:
+
+```text
+GREEN
+   ↓
+Pass on LEFT
+```
+
+The requested avoidance direction still has to respect:
+
+```text
+D_LEFT
+```
+
+because steering toward the left side of the track changes wall clearance.
+
+Similarly:
+
+```text
+RED
+  ↓
+Pass on RIGHT
+```
+
+must coexist with:
+
+```text
+D_RIGHT
+```
+
+This creates the relationship:
+
+```text
+PILLAR REQUIREMENT
+       +
+SIDE-WALL GEOMETRY
+       ↓
+FEASIBLE STEERING RESPONSE
+```
+
+---
+
+# 2.51 Post-Pillar Recovery
+
+After an obstacle is passed, the lateral ultrasonic pair becomes particularly important.
+
+The robot may be:
+
+```text
+Laterally displaced
+
+Angled relative to walls
+
+Closer to one boundary
+```
+
+The recovery process can use:
+
+```text
+D_LEFT
+
+D_RIGHT
+```
+
+to re-establish a useful normal trajectory.
+
+Conceptually:
+
+```text
+Pillar cleared
+      ↓
+Vision steering reduced
+      ↓
+Lateral geometry evaluated
+      ↓
+Recovery steering
+      ↓
+Normal wall following restored
+```
+
+---
+
+# 2.52 Position vs. Heading After an Obstacle
+
+After an obstacle, equal side distances alone do not prove that Piolín is correctly oriented.
+
+For example:
+
+```text
+LEFT distance ≈ RIGHT distance
+```
+
+can occur momentarily while the chassis is still angled.
+
+The next measurements may then diverge quickly.
+
+Therefore, recovery should consider:
+
+```text
+Current distances
+
+Change in distances over time
+
+Vehicle movement
+
+Navigation state
+```
+
+rather than relying on one static equality condition.
+
+---
+
+# 2.53 Distance Derivative Concept
+
+The change in a distance measurement over time can provide additional information.
+
+For one sensor:
+
+```text
+DELTA_D =
+D_CURRENT - D_PREVIOUS
+```
+
+and approximately:
+
+```text
+RATE_D =
+DELTA_D / DELTA_T
+```
+
+If:
+
+```text
+D_LEFT
+```
+
+is decreasing rapidly, Piolín may be approaching the left wall.
+
+If it changes only slightly, the geometry may be relatively stable.
+
+This derivative concept can support diagnostics or advanced control, although the active implementation should be verified from current software before claiming a specific derivative controller.
+
+---
+
+# 2.54 Two-Sensor Trend Interpretation
+
+The two lateral distances can also be compared over time.
+
+For example:
+
+```text
+D_LEFT decreases
+
+D_RIGHT increases
+```
+
+is consistent with movement toward the left side in a stable corridor.
+
+If both:
+
+```text
+D_LEFT increases
+
+D_RIGHT increases
+```
+
+significantly, the vehicle may be entering:
+
+```text
+An opening
+
+A corner
+
+A geometry transition
+```
+
+depending on track orientation.
+
+This illustrates why using both lateral sensors provides richer information than a single distance reading.
+
+---
+
+# 2.55 Ultrasonic Data and Vehicle Rotation
+
+If Piolín rotates inside a corridor:
+
+```text
+Front of robot changes orientation
+        ↓
+Left and right acoustic paths change
+```
+
+The readings can therefore show a pattern different from simple lateral translation.
+
+The software does not attempt to turn the ultrasonic pair into a perfect gyroscope.
+
+Instead, the readings are interpreted relative to:
+
+```text
+Known track state
+
+Previous readings
+
+Steering state
+
+Expected geometry
+```
+
+This maintains the current environment-relative navigation philosophy.
+
+---
+
+# 2.56 No Gyroscope in Current Geometry
+
+The current Piolín ultrasonic strategy does not use:
+
+```text
+GYRO HEADING
+```
+
+to validate every corner.
+
+Instead:
+
+```text
+Physical track geometry
+        ↓
+Ultrasonic transitions
+        ↓
+Navigation state
+```
+
+provides the primary spatial reference.
+
+The previous gyroscope architecture is documented only as historical development:
+
+[Legacy Gyroscope Navigation](../legacy/01_GConfig.md)
+
+---
+
+# 2.57 Sensor Height and Geometry
+
+The confirmed lateral mounting height is approximately:
+
+```text
+43.2 mm
+```
+
+This height defines the horizontal region of the wall observed by the lateral sensors.
+
+If the sensors were mounted significantly lower or higher, they could interact differently with:
+
+```text
+Track structures
+
+Wall edges
+
+Nearby objects
+```
+
+The mounting dimension is therefore part of the sensing geometry, not merely a mechanical detail.
+
+---
+
+# 2.58 Sensor Orientation Stability
+
+A physically loose ultrasonic sensor can create an apparent data problem.
+
+For example:
+
+```text
+Sensor rotates slightly
+        ↓
+Acoustic beam observes
+different region of wall
+        ↓
+Distance changes
+        ↓
+Controller reacts
+```
+
+even though the vehicle center has not changed significantly.
+
+This produces the failure chain:
+
+```text
+MECHANICAL MOUNT ERROR
+        ↓
+SENSOR DATA ERROR
+        ↓
+CONTROL ERROR
+```
+
+For this reason, sensor-mount integrity is checked as part of mechanical testing.
+
+[Mechanical Testing](../mobility_mechanical/06_testing.md)
+
+---
+
+# 2.59 Data Plausibility
+
+A useful sensor-processing architecture distinguishes between:
+
+```text
+Possible measurement
+```
+
+and:
+
+```text
+Plausible measurement for the current state
+```
+
+For example, a large inner reading may be physically valid at a corner but unexpected in the middle of a long straight.
+
+A plausibility layer can therefore consider:
+
+```text
+Current state
+
+Previous value
+
+Opposite sensor
+
+Vehicle motion
+```
+
+before treating a reading as a steering error.
+
+---
+
+# 2.60 Avoiding Hard Rejection of Real Geometry
+
+An important design risk is rejecting unusual values too aggressively.
+
+Suppose the code assumes:
+
+```text
+Any large distance = sensor error
+```
+
+At a real corner:
+
+```text
+Wall disappears
+        ↓
+Large distance is physically correct
+```
+
+Rejecting it could prevent the robot from recognizing the corner.
+
+Therefore, filtering should primarily reject:
+
+```text
+Isolated inconsistent samples
+```
+
+rather than suppressing every measurement outside the normal straight-wall range.
+
+---
+
+# 2.61 Filter Then Interpret
+
+The intended processing order is conceptually:
+
+```text
+RAW SENSOR DATA
+       ↓
+SHORT FILTERING
+       ↓
+PHYSICAL SENSOR VALUES
+       ↓
+DIRECTION MAPPING
+       ↓
+D_INNER / D_OUTER
+       ↓
+GEOMETRY INTERPRETATION
+       ↓
+NAVIGATION STATE
+       ↓
+STEERING DECISION
+```
+
+Frontal safety remains parallel:
+
+```text
+D_FRONT
+   ↓
+Safety interpretation
+```
+
+This keeps filtering separate from high-level navigation meaning.
+
+---
+
+# 2.62 Recommended Variable Structure
+
+A clear internal data model can use:
+
+```python
+D_FRONT = ...
+D_LEFT = ...
+D_RIGHT = ...
+
+if direction == COUNTERCLOCKWISE:
+    D_INNER = D_LEFT
+    D_OUTER = D_RIGHT
+
+elif direction == CLOCKWISE:
+    D_INNER = D_RIGHT
+    D_OUTER = D_LEFT
+```
+
+Then:
+
+```python
+wall_error = D_TARGET - D_INNER
+
+geometry_error = abs(
+    (D_INNER + D_OUTER) - C_REF
+)
+```
+
+This structure separates:
+
+```text
+Physical sensor acquisition
+
+Direction assignment
+
+Navigation calculations
+```
+
+which improves readability and debugging.
+
+The actual competition code may use different variable names, but the engineering architecture remains the same.
+
+---
+
+# 2.63 Data Logging
+
+During development, ultrasonic data is most useful when recorded together with context.
+
+A meaningful diagnostic line might conceptually contain:
+
+```text
+STATE
+D_FRONT
+D_LEFT
+D_RIGHT
+D_INNER
+D_OUTER
+STEERING
+DIRECTION
+```
+
+For example:
+
+```text
+STRAIGHT  F:420  L:250  R:600  IN:250  OUT:600
+```
+
+The numerical example above is illustrative only.
+
+The important principle is that one distance value without context is much harder to interpret than a complete navigation snapshot.
+
+---
+
+# 2.64 Why Both Raw and Logical Values Are Useful
+
+During debugging:
+
+```text
+D_LEFT
+
+D_RIGHT
+```
+
+show whether the physical sensors are functioning as expected.
+
+Meanwhile:
+
+```text
+D_INNER
+
+D_OUTER
+```
+
+show whether the direction mapping is correct.
+
+If:
+
+```text
+Physical readings correct
+```
+
+but:
+
+```text
+Inner / outer interpretation incorrect
+```
+
+the problem is likely software mapping rather than sensor hardware.
+
+This makes the dual naming structure valuable for diagnostics.
+
+---
+
+# 2.65 Direction-Mapping Failure Example
+
+Suppose Piolín is moving clockwise.
+
+Correct mapping:
+
+```text
+RIGHT = INNER
+
+LEFT = OUTER
+```
+
+If the program accidentally assigns:
+
+```text
+LEFT = INNER
+```
+
+then a perfectly correct left ultrasonic measurement could generate the wrong steering behavior.
+
+The failure chain becomes:
+
+```text
+Sensor works correctly
+        ↓
+Software labels it incorrectly
+        ↓
+Wrong wall error
+        ↓
+Wrong steering
+```
+
+This is why direction mapping should be explicit and easy to inspect.
+
+---
+
+# 2.66 Sensor Data and Steering
+
+The lateral ultrasonic sensors do not physically steer Piolín.
+
+The complete chain is:
+
+```text
+WALL
+ ↓
+ULTRASONIC SENSOR
+ ↓
+DISTANCE DATA
+ ↓
 LEGO EV3
-│
-├── S1 → Front Ultrasonic Sensor
-├── S2 → Right Ultrasonic Sensor
-├── S3 → Left Ultrasonic Sensor
-└── S4 → Color Sensor
+ ↓
+CONTROL CALCULATION
+ ↓
+Motor B
+ ↓
+ACKERMANN STEERING
 ```
 
-The physical ultrasonic arrangement is:
+This distinction separates:
 
 ```text
-                        FRONT
-                          ↑
-                    [ FRONT US ]
-                          │
+PERCEPTION
+```
 
-          LEFT US ←  [ PIOLÍN ]  → RIGHT US
+from:
 
-                          │
-                          ↓
-                         REAR
+```text
+ACTUATION
+```
+
+The same sensor data could theoretically support different steering strategies without modifying the physical sensor hardware.
+
+---
+
+# 2.67 Sensor Data and Drive Speed
+
+Drive speed changes how quickly the sensor geometry evolves.
+
+At higher speed:
+
+```text
+Piolín travels farther
+between equivalent processing intervals
+```
+
+therefore:
+
+```text
+Wall changes arrive faster
+
+Corners approach faster
+
+Safety distance closes faster
+```
+
+The sensing system and drivetrain are therefore dynamically linked.
+
+```text
+HIGHER SPEED
+      ↓
+LESS AVAILABLE RESPONSE TIME
+```
+
+This is one reason sensor tuning cannot be evaluated independently from vehicle speed.
+
+---
+
+# 2.68 Sensor Data During Reverse Motion
+
+When Piolín reverses, the lateral sensors remain physically directed left and right.
+
+Therefore:
+
+```text
+D_LEFT
+
+D_RIGHT
+```
+
+remain valid side measurements.
+
+However, the relationship between:
+
+```text
+steering direction
+```
+
+and:
+
+```text
+future vehicle trajectory
+```
+
+changes because velocity is reversed.
+
+The sensor hardware does not change.
+
+The navigation interpretation must account for the current movement state.
+
+---
+
+# 2.69 Failure Modes
+
+Common ultrasonic data problems can be grouped into several categories.
+
+| Failure Type | Possible Effect |
+| :--- | :--- |
+| **Isolated outlier** | Sudden false steering correction |
+| **Wall opening** | Large reading that is actually valid |
+| **Angled observation** | Distance differs from simple lateral separation |
+| **Loose mount** | Persistent geometry error |
+| **Direction mapping error** | Inner and outer roles reversed |
+| **Excessive filtering** | Delayed corner response |
+| **No filtering** | Sensitivity to isolated noise |
+| **Incorrect units** | Wrong thresholds and control values |
+| **Using S1 in lateral equations** | Invalid geometry model |
+
+The correct response depends on the cause.
+
+---
+
+# 2.70 Diagnostic Hierarchy
+
+If ultrasonic-based navigation behaves incorrectly, the investigation should proceed in order:
+
+```text
+1. Verify physical ports
+        ↓
+2. Verify sensor orientation
+        ↓
+3. Read raw S1/S2/S3 values
+        ↓
+4. Verify units
+        ↓
+5. Verify LEFT / RIGHT assignment
+        ↓
+6. Verify INNER / OUTER mapping
+        ↓
+7. Verify filtering
+        ↓
+8. Verify geometry state
+        ↓
+9. Verify steering calculation
+```
+
+This prevents immediately changing steering gains when the real issue is a sensor or mapping problem.
+
+---
+
+# 2.71 Current vs. Legacy Ultrasonic Data
+
+Previous Piolín versions used different ultrasonic layouts and development geometry.
+
+Historical documentation may contain:
+
+```text
+Different sensor orientations
+
+Only two ultrasonic sensors
+
+Gyroscope on S1
+
+Development wall references
+
+Previous sensor offsets
+
+Alternative geometry constants
+```
+
+Those values should not be transferred automatically into the final system.
+
+The current configuration is:
+
+```text
+S1 → Front Ultrasonic
+
+S2 → Right Ultrasonic
+
+S3 → Left Ultrasonic
+```
+
+with:
+
+```text
+S2 + S3
+=
+Lateral navigation
+```
+
+and:
+
+```text
+S1
+=
+Independent frontal safety
+```
+
+Historical systems are preserved in:
+
+[Legacy Documentation](../legacy/00_LEGACY_NOTICE.md)
+
+---
+
+# 2.72 Confirmed Current Ultrasonic Information
+
+The following information is confirmed for the current Piolín architecture:
+
+| Parameter | Current Value |
+| :--- | :--- |
+| **Number of ultrasonic sensors** | 3 |
+| **S1** | Front Ultrasonic |
+| **S2** | Right Ultrasonic |
+| **S3** | Left Ultrasonic |
+| **Lateral sensor orientation** | Direct lateral |
+| **Lateral sensor mounting height** | ~43.2 mm |
+| **Primary wall-navigation sensors** | S2 + S3 |
+| **Frontal safety sensor** | S1 |
+| **Gyroscope** | Not installed |
+
+The following values are intentionally not assigned as final numerical specifications here:
+
+```text
+Current D_TARGET
+
+Current C_REF
+
+Geometry tolerance
+
+Front safety threshold
+
+Final lateral sensor offsets
+
+Final corridor width model
+
+Final confirmation count
+
+Final filter window implementation
+```
+
+These values should come from the current software or calibration process when confirmed.
+
+---
+
+# 2.73 Data Responsibility Matrix
+
+| Variable / Information | Source | Primary Use |
+| :--- | :--- | :--- |
+| **D_FRONT** | S1 | Frontal safety |
+| **D_RIGHT** | S2 | Physical right-wall distance |
+| **D_LEFT** | S3 | Physical left-wall distance |
+| **D_INNER** | S2 or S3 | Primary wall-following reference |
+| **D_OUTER** | S2 or S3 | Secondary geometry / corner reference |
+| **E_WALL** | Derived | Normal steering error |
+| **G** | Derived | Corridor-geometry consistency |
+| **X_EST** | Derived from corrected geometry | Lateral-position estimate when geometry is valid |
+
+This hierarchy shows the transformation from:
+
+```text
+RAW MEASUREMENT
+```
+
+to:
+
+```text
+NAVIGATION INFORMATION
 ```
 
 ---
 
-## 4.33 Engineering Conclusion
+# 2.74 Complete Ultrasonic Data Pipeline
 
-Piolín's final ultrasonic architecture combines **two navigation sensors with one independent safety sensor**.
+The current design can be summarized as:
 
-The lateral sensors are responsible for understanding the geometry of the track. During straight navigation, the inner wall provides the primary trajectory reference while the outer wall provides secondary geometric information and collision protection.
+```text
+                         TRACK
+                           │
+            ┌──────────────┼──────────────┐
+            ▼              ▼              ▼
+         FRONT           LEFT           RIGHT
+            │              │              │
+            ▼              ▼              ▼
+           S1             S3             S2
+            │              │              │
+            ▼              ▼              ▼
+        D_FRONT         D_LEFT         D_RIGHT
+            │              │              │
+            │              └──────┬───────┘
+            │                     ▼
+            │              DIRECTION MAPPING
+            │                     ↓
+            │            D_INNER + D_OUTER
+            │                     ↓
+            │         FILTER / GEOMETRY CHECK
+            │                     ↓
+            │       ┌─────────────┴─────────────┐
+            │       ▼                           ▼
+            │   WALL ERROR                 STATE CHANGE
+            │       │                           │
+            │       └─────────────┬─────────────┘
+            │                     ▼
+            │                  LEGO EV3
+            │                     ▲
+            └──── SAFETY ─────────┘
+                                  │
+                                  ▼
+                           FINAL CONTROL
+                                  │
+                          ┌───────┴───────┐
+                          ▼               ▼
+                       Motor A         Motor B
+```
 
-As Piolín approaches a corner, the disappearance of the inner wall changes the meaning of the ultrasonic measurement. Instead of treating the increased distance as a normal wall-following error, the controller interprets it as a possible change in track geometry.
+This pipeline preserves the separation between:
 
-During the corner, the outer wall becomes the more useful temporary navigation reference. Once the next inner wall becomes visible and stable again, the controller progressively returns to normal inner-wall navigation and re-centers the robot.
+```text
+FRONTAL SAFETY
+```
 
-The third front-facing ultrasonic sensor solves a different problem. Because the two lateral sensors cannot reliably observe the entire area directly ahead of Piolín, the S1 front sensor provides an independent emergency stopping layer. It does not continuously modify steering, which prevents it from interfering with the mathematical wall-navigation system.
+and:
 
-The resulting responsibility structure is:
+```text
+LATERAL NAVIGATION
+```
 
-> **Front US → emergency frontal collision protection**
+while allowing both systems to influence the final vehicle behavior.
 
-> **Left + Right US → track geometry, corner interpretation, and lateral collision protection**
+---
 
-This architecture also reflects an important engineering lesson learned throughout Piolín's development:
+# 2.75 Engineering Significance
 
-> **Adding a sensor is most useful when it solves a specific missing problem rather than when every sensor attempts to control the same navigation variable.**
+The three-ultrasonic architecture gives Piolín a compact but useful spatial model.
 
-The final three-sensor configuration therefore increases physical coverage and safety while preserving the simpler two-sensor geometric model that Piolín uses for normal navigation.
+It does not attempt to reconstruct the complete environment in three dimensions.
+
+Instead, it measures the three directions most relevant to the vehicle:
+
+```text
+LEFT
+
+FRONT
+
+RIGHT
+```
+
+The lateral pair provides enough information to reason about:
+
+```text
+Wall distance
+
+Lateral displacement
+
+Corner openings
+
+Wall reacquisition
+
+Post-obstacle recovery
+```
+
+while the front sensor adds:
+
+```text
+Independent frontal clearance
+```
+
+The architecture is therefore based on **specialized sensor roles rather than one universal distance calculation**.
+
+---
+
+# 2.76 Final Ultrasonic Geometry Summary
+
+Piolín's current ultrasonic system is:
+
+```text
+                         S1
+                         ↑
+                         │
+                         │
+
+                S3 ← [ PIOLÍN ] → S2
+```
+
+with:
+
+```text
+S1
+=
+Front safety
+
+
+S2
+=
+Physical right sensor
+
+
+S3
+=
+Physical left sensor
+```
+
+After course direction is established:
+
+```text
+CLOCKWISE
+
+D_INNER = D_RIGHT
+D_OUTER = D_LEFT
+```
+
+and:
+
+```text
+COUNTERCLOCKWISE
+
+D_INNER = D_LEFT
+D_OUTER = D_RIGHT
+```
+
+Normal wall following uses:
+
+```text
+E_WALL =
+D_TARGET - D_INNER
+```
+
+while lateral geometry consistency can be represented by:
+
+```text
+G =
+ABS(
+(D_INNER + D_OUTER)
+-
+C_REF
+)
+```
+
+and, when both measurements have been corrected to a common vehicle reference and the corridor model is valid:
+
+```text
+X_EST =
+(W + D_INNER_C - D_OUTER_C) / 2
+```
+
+These equations represent different levels of information:
+
+```text
+D_INNER
+     ↓
+Primary wall relationship
+
+
+D_OUTER
+     ↓
+Secondary geometry
+
+
+E_WALL
+     ↓
+Steering error
+
+
+G
+     ↓
+Geometry confidence
+
+
+X_EST
+     ↓
+Possible center-referenced position estimate
+```
+
+The front sensor remains independent:
+
+```text
+D_FRONT
+     ↓
+Frontal safety
+```
+
+The resulting architecture allows Piolín to navigate using the physical geometry of the WRO track without requiring a gyroscope:
+
+```text
+STRAIGHT WALL
+      ↓
+FOLLOW
+
+
+INNER WALL LOST
+      ↓
+CORNER
+
+
+OUTER GEOMETRY
+      ↓
+TURN SUPPORT
+
+
+INNER WALL REACQUIRED
+      ↓
+EXIT
+
+
+SIDE DISTANCES AFTER PILLAR
+      ↓
+RECOVERY
+
+
+FRONT DISTANCE
+      ↓
+SAFETY
+```
+
+This combination of lateral geometry, state-dependent interpretation, short-window noise rejection, and independent frontal ranging forms the core of Piolín's current ultrasonic navigation system.
+
+---
+
+## Continue Reading
+
+[Color Sensor Configuration](03_color_sensor.md)
+
+[HuskyLens Vision System](04_huskylens.md)
+
+[Sensor Calibration](05_Calibration.md)
+
+---
+
+## Related Hardware Documentation
+
+[Ultrasonic Sensors](../components/05_UltrasonicSensors.md)
+
+[Hardware Overview](../components/01_Hardwareoverview.md)
+
+---
+
+## Related Mechanical Documentation
+
+[Chassis Design](../mobility_mechanical/02_chassis.md)
+
+[Robot Mobility](../mobility_mechanical/03_RMobility.md)
+
+[Steering System](../mobility_mechanical/04_steering.md)
+
+[Mechanical Testing](../mobility_mechanical/06_testing.md)
+
+---
+
+## Related Navigation Documentation
+
+[Software Architecture](../software_obstacles_strategy/01_SWArchitecture.md)
+
+[Wall Following](../software_obstacles_strategy/03_wallfollowing.md)
+
+[Corner Handling](../software_obstacles_strategy/04_cornerhandling.md)
+
+[Obstacle Strategy](../software_obstacles_strategy/06_obstaclestrateg.md)
+
+---
+
+## Reproducibility
+
+[Wiring](../reproducibility/03_wiring.md)
+
+[Calibration Procedure](../reproducibility/06_HowToCalibrate.md)
+
+[Testing Protocol](../reproducibility/07_TestingProtocol.md)
+
+[Troubleshooting](../reproducibility/08_Troubleshooting.md)
+
+---
+
+## Historical Reference
+
+[Legacy Documentation Notice](../legacy/00_LEGACY_NOTICE.md)
+
+[Legacy Gyroscope Configuration](../legacy/01_GConfig.md)
+
+[Legacy Performance Testing and Analysis](../legacy/03_PTesting&Analysis.md)
