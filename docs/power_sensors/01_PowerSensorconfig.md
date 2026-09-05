@@ -1,1075 +1,2121 @@
-# 3. Power & Sensor Architecture
+# 1. Power and Sensor Configuration
 
-Piolín's final WRO Future Engineers 2026 electrical architecture was designed around a simple engineering principle:
+Piolín's sensing architecture is organized around the **LEGO Mindstorms EV3**, which acts as the main vehicle controller and receives the measurements required for autonomous navigation.
 
-> **Keep all systems required for basic autonomous navigation directly controlled by the EV3, while using a separate vision subsystem only when computer vision is required.**
-
-The final robot therefore uses the **LEGO Mindstorms EV3 Intelligent Brick** as its main controller.
-
-For normal track navigation, the EV3 directly controls:
-
-- the drive motor,
-- the steering motor,
-- two lateral ultrasonic sensors,
-- and one downward-facing color sensor.
-
-For the Obstacle Challenge, Piolín adds a **HuskyLens vision sensor connected through an Arduino Nano**, with the Nano communicating with the EV3 through USB.
-
-This architecture was selected after testing several previous hardware configurations. The final version prioritizes:
-
-- reliability,
-- simple wiring,
-- direct EV3 motor control,
-- clear sensor responsibilities,
-- independent subsystem testing,
-- and reduced electrical and software complexity.
-
-> [!IMPORTANT]
-> The final 2026 Piolín configuration does **not** use a gyroscope, PixyCam, Raspberry Pi, Arduino Mega, front ultrasonic sensor, external motor driver, or external steering servo as part of its active competition hardware.
-
----
-
-# 3.1 Final Port Configuration
-
-The following table represents the final electrical connection map of Piolín.
-
-| Port / Interface | Connected Device | Primary Function |
-| :--- | :--- | :--- |
-| **Motor Port A** | Drive Motor | Provides propulsion |
-| **Motor Port B** | Steering Motor | Controls Ackermann steering |
-| **Sensor Port S1** | Unused | Available in final configuration |
-| **Sensor Port S2** | Right Ultrasonic Sensor | Measures right-side wall distance |
-| **Sensor Port S3** | Left Ultrasonic Sensor | Measures left-side wall distance |
-| **Sensor Port S4** | LEGO Color Sensor | Detects blue/orange floor markings |
-| **EV3 USB** | Arduino Nano | Communication with vision subsystem |
-| **Arduino Nano** | HuskyLens | Receives visual obstacle detections |
-
-The EV3 remains the **main vehicle controller** at all times.
-
-The Arduino Nano is not responsible for propulsion or steering. Its role is limited to interfacing the HuskyLens vision subsystem with the EV3.
-
----
-
-# 3.2 Complete System Architecture
-
-```mermaid
-flowchart TB
-
-    POWER[EV3 Power System]
-
-    EV3[LEGO EV3<br>Main Controller]
-
-    DRIVE[Drive Motor<br>Port A]
-    STEER[Steering Motor<br>Port B]
-
-    USR[Right Ultrasonic<br>Port S2]
-    USL[Left Ultrasonic<br>Port S3]
-
-    COLOR[Color Sensor<br>Port S4]
-
-    NANO[Arduino Nano]
-    HUSKY[HuskyLens]
-
-    POWER --> EV3
-
-    EV3 --> DRIVE
-    EV3 --> STEER
-
-    USR --> EV3
-    USL --> EV3
-    COLOR --> EV3
-
-    EV3 <-->|USB| NANO
-    NANO <-->|Vision Data| HUSKY
-````
-
-The architecture can be separated into three functional sensing layers:
-
-| Sensing Layer           | Hardware                        | Main Responsibility                                            |
-| :---------------------- | :------------------------------ | :------------------------------------------------------------- |
-| **Track Geometry**      | Left + Right Ultrasonic Sensors | Wall following, corner interpretation and collision prevention |
-| **Track Progress**      | LEGO Color Sensor               | Direction selection and lap/corner counting                    |
-| **Obstacle Perception** | HuskyLens + Arduino Nano        | Recognition of colored traffic pillars                         |
-
-Each sensing system therefore has a clearly defined responsibility.
-
----
-
-# 3.3 Power Architecture
-
-## 3.3.1 Main EV3 Power Domain
-
-The LEGO EV3 provides the main electrical power domain used for Piolín's basic navigation system.
-
-It directly powers and controls:
-
-* Drive Motor — Port A
-* Steering Motor — Port B
-* Right Ultrasonic Sensor — S2
-* Left Ultrasonic Sensor — S3
-* Color Sensor — S4
-
-This removes the need for external H-bridge motor drivers or separate motor power converters for the basic drivetrain.
+The current configuration combines:
 
 ```text
-EV3 POWER / CONTROL DOMAIN
-│
-├── Port A ── Drive Motor
-├── Port B ── Steering Motor
-│
-├── S2 ────── Right Ultrasonic
-├── S3 ────── Left Ultrasonic
-└── S4 ────── Color Sensor
-```
-
-Using native EV3 motors and sensors reduces:
-
-* wiring complexity,
-* external electrical components,
-* connector count,
-* possible voltage-level incompatibilities,
-* and potential failure points caused by loose connections.
-
----
-
-## 3.3.2 Vision Subsystem
-
-Computer vision is treated as a secondary subsystem.
-
-```text
-HuskyLens
-    │
-    ▼
-Arduino Nano
-    │
-    │ USB
-    ▼
+Three Ultrasonic Sensors
+        +
+One Downward Color Sensor
+        +
+HuskyLens Vision System
+        +
+Arduino Nano Interface
+        +
 LEGO EV3
 ```
 
-The Arduino Nano acts as a **communication bridge**.
+The system is intentionally divided by responsibility.
 
-The EV3 still decides:
+The lateral ultrasonic sensors describe the geometry of the track walls.
 
-* vehicle speed,
-* steering direction,
-* wall corrections,
-* obstacle-avoidance response,
-* and overall autonomous behavior.
+The front ultrasonic sensor provides an independent frontal safety reference.
 
-This separation is particularly useful because the Open Challenge does not depend on vision.
+The color sensor identifies floor markings and course-state information.
 
-If the camera subsystem is not required, Piolín can still navigate using:
+The HuskyLens provides obstacle identity during the Obstacle Challenge.
 
-> **EV3 + two ultrasonic sensors + color sensor + motors**
+The Arduino Nano supports communication between the vision subsystem and the EV3.
 
----
+The EV3 combines these inputs and makes the final navigation decisions.
 
-# 3.4 Power Budget and Electrical Behavior
-
-Piolín's electrical load changes depending on which actuators and sensors are active.
-
-The largest dynamic loads are expected when:
-
-* the drive motor accelerates,
-* the steering motor makes a strong correction,
-* propulsion and steering operate simultaneously,
-* and the vision subsystem is active during the Obstacle Challenge.
-
-Because final voltage measurements have not yet been performed with external measurement equipment, the following values are used as **preliminary engineering estimates**.
-
-| Operating Condition                | Estimated Supply Voltage | Electrical Condition                     |
-| :--------------------------------- | :----------------------: | :--------------------------------------- |
-| **EV3 Idle / Sensors Active**      |        **~7.9 V**        | Baseline system load                     |
-| **Straight Driving**               |        **~7.6 V**        | Drive motor active                       |
-| **Drive + Steering**               |        **~7.3 V**        | Both motors operating                    |
-| **Full System + Nano + HuskyLens** |        **~7.2 V**        | Highest expected normal competition load |
-
-The estimated difference between the lightest and heaviest operating conditions is:
-
-$$
-\Delta V = V_{idle}-V_{load}
-$$
-
-$$
-\Delta V = 7.9-7.2
-$$
-
-$$
-\boxed{\Delta V\approx0.7V}
-$$
-
-The estimated relative voltage reduction is:
-
-$$
-\frac{0.7}{7.9}\times100
-\approx8.9\%
-$$
-
-This represents a preliminary electrical design estimate rather than a direct multimeter measurement.
-
-> [!NOTE]
-> These voltage values are engineering estimates. They can later be replaced by measured experimental values without changing the architecture or reasoning described in this section.
-
----
-
-## 3.4.1 Reducing Electrical Stress
-
-The software and mechanical design also influence electrical reliability.
-
-The final navigation strategy avoids unnecessary actuator load by minimizing:
-
-* continuous maximum steering,
-* repeated left-right steering oscillations,
-* steering against a mechanical limit,
-* unnecessary rapid corrections,
-* and prolonged high-load maneuvers.
-
-This is important because a navigation algorithm that continuously oscillates the steering does not only reduce trajectory stability; it also increases mechanical wear and electrical demand.
-
----
-
-# 3.5 Ultrasonic Sensor Architecture
-
-Piolín uses **two lateral LEGO ultrasonic sensors**.
-
-There is no dedicated front ultrasonic sensor in the final configuration.
-
-| Sensor               | EV3 Port | Orientation |
-| :------------------- | :------: | :---------- |
-| **Right Ultrasonic** |  **S2**  | Faces right |
-| **Left Ultrasonic**  |  **S3**  | Faces left  |
-
-The ultrasonic sensors are positioned approximately:
-
-$$
-1.7\text{ in}\approx43\text{ mm}
-$$
-
-above the floor.
-
----
-
-## 3.5.1 Physical Orientation
-
-Top view:
+The complete information flow is:
 
 ```text
-                     FRONT
-                       ↑
-
-       LEFT US  ←  [ PIOLÍN ]  →  RIGHT US
-
-                       ↓
-                     REAR
+                    ENVIRONMENT
+                        │
+        ┌───────────────┼───────────────┐
+        ▼               ▼               ▼
+      WALLS          FLOOR MARKS      PILLARS
+        │               │               │
+        ▼               ▼               ▼
+ ULTRASONICS        COLOR SENSOR      HUSKYLENS
+        │               │               │
+        │               │               ▼
+        │               │          ARDUINO NANO
+        │               │               │
+        │               │              USB
+        │               │               │
+        └───────────────┴───────────────┘
+                        ▼
+                     LEGO EV3
+                        │
+                        ▼
+                NAVIGATION DECISION
+                        │
+               ┌────────┴────────┐
+               ▼                 ▼
+            Motor A           Motor B
+             Drive            Steering
 ```
 
-The two sensors observe opposite track walls.
+This document describes the current sensor and power architecture of the final Piolín robot.
 
-This allows the same physical sensor configuration to operate in both possible competition directions.
+Historical systems involving the gyroscope, PixyCam, Raspberry Pi, or alternative controller arrangements are documented separately in:
+
+[Legacy Documentation](../legacy/00_LEGACY_NOTICE.md)
 
 ---
 
-# 3.6 Dynamic Inner and Outer Wall Assignment
+## 1.1 Current EV3 Port Configuration
 
-Piolín does not permanently define the left or right sensor as the most important sensor.
+The final sensor and actuator assignment is:
 
-Instead, the role depends on the direction determined from the floor markings.
+| EV3 Interface | Component | Current Responsibility |
+| :--- | :--- | :--- |
+| **Motor A** | Drive Motor | Rear propulsion |
+| **Motor B** | Steering Motor | Ackermann steering |
+| **S1** | Front Ultrasonic Sensor | Frontal safety |
+| **S2** | Right Ultrasonic Sensor | Right-side wall geometry |
+| **S3** | Left Ultrasonic Sensor | Left-side wall geometry |
+| **S4** | LEGO Color Sensor | Floor-marking detection |
+| **USB** | Arduino Nano | Vision-data communication |
 
-### Counterclockwise
+The configuration can be represented as:
 
 ```text
-LEFT US  = Inner Wall
-RIGHT US = Outer Wall
+                         LEGO EV3
+                            │
+       ┌──────────┬─────────┼─────────┬──────────┐
+       ▼          ▼         ▼         ▼          ▼
+      S1         S2        S3        S4         USB
+       │          │         │         │           │
+       ▼          ▼         ▼         ▼           ▼
+ Front US     Right US   Left US    Color     Arduino Nano
+                                                  ▲
+                                                  │
+                                              HuskyLens
 ```
 
-### Clockwise
+This port map should be used when interpreting all current Piolín documentation.
+
+---
+
+# 1.2 Sensor Responsibility Separation
+
+A central design principle of the current architecture is that each sensor has a **specific responsibility**.
+
+The system does not treat all sensors as interchangeable sources of distance or navigation information.
 
 ```text
-RIGHT US = Inner Wall
-LEFT US  = Outer Wall
+S1 FRONT ULTRASONIC
+        ↓
+Frontal safety
+
+
+S2 RIGHT ULTRASONIC
+        ↓
+Right-side geometry
+
+
+S3 LEFT ULTRASONIC
+        ↓
+Left-side geometry
+
+
+S4 COLOR SENSOR
+        ↓
+Floor / course state
+
+
+HUSKYLENS
+        ↓
+Obstacle identity
 ```
 
-This produces the following mapping:
-
-| Direction            | Inner Wall Sensor | Outer Wall Sensor |
-| :------------------- | :---------------- | :---------------- |
-| **Counterclockwise** | Left US           | Right US          |
-| **Clockwise**        | Right US          | Left US           |
-
-This allows one navigation algorithm to operate in either direction without physically changing the sensor layout.
+This separation simplifies the interpretation of sensor data and reduces the risk that one subsystem is assigned conflicting roles.
 
 ---
 
-# 3.7 Ultrasonic Geometry During Straight Sections
+# 1.3 Main Controller
 
-During a straight section, both ultrasonic sensors observe approximately parallel track walls.
+The LEGO EV3 remains the main controller of Piolín.
 
-The nominal corridor width used during Piolín's navigation development is approximately:
-
-$$
-W=1000\text{ mm}
-$$
-
-The current target distance from the inner ultrasonic sensor is approximately:
-
-$$
-D_{inner,target}=270\text{ mm}
-$$
-
-During a normal straight:
+Its responsibilities include:
 
 ```text
-OUTER WALL
-────────────────────────────────────
+Reading S1–S4
 
-        ← Douter
+Receiving Nano vision information
 
-        [ PIOLÍN ]
+Interpreting navigation state
 
-        Dinner →
+Calculating steering response
 
-────────────────────────────────────
-INNER WALL
+Controlling Motor A
+
+Controlling Motor B
+
+Managing safety conditions
 ```
 
-The inner ultrasonic sensor provides the primary wall-following reference.
+The Arduino Nano does not replace the EV3.
 
-The outer ultrasonic sensor provides:
+The HuskyLens does not directly control the motors.
 
-* additional geometric information,
-* detection of extreme lateral displacement,
-* and protection against approaching the outer wall too closely.
-
----
-
-# 3.8 Why Ultrasonic Meaning Changes at a Corner
-
-A major lesson from Piolín's testing was that an ultrasonic reading cannot always be interpreted only as lateral distance.
-
-During a straight:
-
-> A large inner distance may mean that Piolín moved away from the wall.
-
-During a corner:
-
-> A large inner distance may mean that the wall physically ended.
-
-Consider the following geometry:
+The architecture is therefore:
 
 ```text
-INNER WALL
-──────────────────────────┐
-                          │
-                          │
-                  PIOLÍN  │
-                     ↗    │
-                          │
+SENSORS
+   ↓
+INFORMATION
+   ↓
+EV3
+   ↓
+DECISION
+   ↓
+ACTUATORS
 ```
 
-As Piolín reaches the corner, the inner ultrasonic sensor begins to point into open space.
-
-The measured distance increases significantly.
-
-If the controller treated this only as:
-
-> "Piolín is too far from the inner wall"
-
-the robot could incorrectly command an aggressive steering correction.
-
-Instead, the final strategy interprets this change as a possible **corner transition**.
+This creates a clear boundary between **perception** and **vehicle control**.
 
 ---
 
-# 3.9 Final Corner Sensor Strategy
+# 1.4 Current Power Architecture
 
-Piolín's final Open Challenge strategy combines lessons learned from previous ultrasonic and gyro-based experiments.
+The EV3 battery system is the primary energy source for the EV3-controlled vehicle subsystem.
 
-The sequence is:
+Conceptually:
 
 ```text
-STRAIGHT
-   ↓
-Follow inner wall
-   ↓
-Monitor outer wall
-   ↓
-Inner wall disappears
-   ↓
-Confirm corner
-   ↓
-Begin steering into corner
-   ↓
-Outer wall becomes temporary reference
-   ↓
-Inner wall reappears
-   ↓
-Reduce corner steering
-   ↓
-Re-center
-   ↓
-Return to inner-wall following
+EV3 BATTERY
+     ↓
+LEGO EV3
+     ├── Motor A
+     ├── Motor B
+     ├── S1
+     ├── S2
+     ├── S3
+     └── S4
 ```
 
-This allows the meaning of each ultrasonic sensor to change according to the geometry currently observed.
-
----
-
-## 3.9.1 Straight Section
-
-Primary reference:
-
-> **Inner Ultrasonic**
-
-Secondary reference:
-
-> **Outer Ultrasonic**
-
----
-
-## 3.9.2 Corner Entry
-
-The inner wall begins to disappear.
-
-The controller does not immediately interpret the large reading as a normal wall-following error.
-
-Instead, additional readings are used to determine whether the robot is actually reaching a corner.
-
----
-
-## 3.9.3 Corner
-
-Once the corner has been confirmed:
-
-> **Outer Ultrasonic becomes the primary temporary wall reference.**
-
-The inner ultrasonic may currently be pointing toward open space and therefore becomes less useful for normal distance control.
-
----
-
-## 3.9.4 Corner Exit
-
-As Piolín progresses around the corner, the inner wall eventually becomes visible again.
-
-This indicates the transition toward the next straight section.
-
-The robot then:
-
-1. reduces the corner steering command,
-2. restores the inner sensor as the main reference,
-3. stabilizes its lateral position,
-4. and returns to straight navigation.
-
-The transition is gradual to avoid an abrupt steering reversal.
-
----
-
-# 3.10 Ultrasonic Filtering
-
-Ultrasonic measurements can contain occasional abnormal readings caused by:
-
-* reflection angle,
-* wall geometry,
-* floor reflections,
-* nearby objects,
-* track openings,
-* or isolated echo errors.
-
-A navigation system should therefore avoid making a major steering decision from one isolated measurement.
-
-One tested approach uses a short **median-of-three filter**.
-
-For three consecutive readings:
-
-$$
-D_1,\ D_2,\ D_3
-$$
-
-the filtered measurement is:
-
-$$
-D_{filtered}=median(D_1,D_2,D_3)
-$$
-
-For example:
-
-$$
-268,\ 271,\ 940\text{ mm}
-$$
-
-results in:
-
-$$
-median(268,271,940)=271\text{ mm}
-$$
-
-The isolated 940 mm measurement therefore does not immediately cause an extreme response.
-
-This method has an important advantage over a long moving-average filter:
-
-> it rejects isolated spikes while maintaining relatively fast sensor response.
-
----
-
-# 3.11 Ultrasonic Calibration Procedure
-
-Each ultrasonic sensor should be characterized independently before navigation thresholds are finalized.
-
-Piolín's ultrasonic calibration procedure consists of:
-
-1. positioning the robot parallel to a flat wall,
-2. placing the sensor at a known physical distance,
-3. recording multiple ultrasonic readings,
-4. comparing measured and physical distance,
-5. repeating the test at several distances,
-6. observing measurement variation and isolated spikes,
-7. repeating the process for both sensors,
-8. testing both sensors simultaneously between the track walls,
-9. and observing how readings change when entering a corner.
-
-The objective is not to force the two sensors to produce identical values.
-
-Instead, calibration establishes:
-
-* normal operating range,
-* repeatability,
-* useful wall-following distances,
-* spike behavior,
-* and corner-transition behavior.
-
----
-
-# 3.12 Color Sensor Architecture
-
-The LEGO Color Sensor is connected directly to:
-
-> **EV3 Port S4**
-
-and faces the competition floor.
-
-The color sensor does not directly steer Piolín.
-
-Instead, it has two specific responsibilities:
-
-1. determining initial driving direction,
-2. tracking course progress.
-
----
-
-# 3.13 Initial Direction Detection
-
-The first valid color detection determines Piolín's driving direction.
-
-| First Valid Color | Direction        |
-| :---------------- | :--------------- |
-| **Blue**          | Counterclockwise |
-| **Orange**        | Clockwise        |
-
-Once the direction is known, the software also knows which ultrasonic sensor corresponds to the inner wall.
-
-For example:
+The EV3 therefore acts as both:
 
 ```text
-BLUE
- ↓
-COUNTERCLOCKWISE
- ↓
-LEFT = INNER WALL
-RIGHT = OUTER WALL
+Main controller
 ```
-
-or:
-
-```text
-ORANGE
- ↓
-CLOCKWISE
- ↓
-RIGHT = INNER WALL
-LEFT = OUTER WALL
-```
-
-This creates a direct relationship between the color and ultrasonic subsystems.
-
----
-
-# 3.14 Lap and Corner Counting
-
-The WRO track contains four corners per lap.
-
-Piolín must complete three laps:
-
-$$
-4\text{ corners/lap}\times3\text{ laps}
-=
-12\text{ corners}
-$$
-
-Each corner contains two colored floor markings:
-
-* one blue,
-* one orange.
-
-Therefore, over three complete laps Piolín expects:
-
-$$
-12\text{ blue detections}
-$$
 
 and:
 
-$$
-12\text{ orange detections}
-$$
-
-This means the complete track-progress target becomes:
-
 ```text
-BLUE  = 12
-ORANGE = 12
+Central power-distribution point
+for the EV3-connected vehicle hardware
 ```
 
-The first detection is still counted even though it also determines direction.
+The exact battery chemistry, nominal voltage, capacity, and measured current consumption are not specified here because those values have not been established as confirmed final specifications in the current project documentation.
+
+For component-level information, see:
+
+[Battery](../components/08_Battery.md)
+
+[Power Distribution](../components/09_PowerDistribution.md)
 
 ---
 
-# 3.15 Preventing Duplicate Color Counts
+# 1.5 Power and Data Must Be Distinguished
 
-A physical color strip remains underneath the sensor for more than one software cycle.
-
-Without protection, one line could be counted many times.
-
-Piolín therefore treats a colored line as an **event**, rather than as a continuous state.
+One important documentation rule is to distinguish:
 
 ```text
-Neutral floor
-     ↓
-Valid color detected
-     ↓
-Register line ONCE
-     ↓
-Lock detector
-     ↓
-Robot leaves line
-     ↓
-Neutral floor confirmed
-     ↓
-Unlock detector
+DATA CONNECTION
 ```
 
-This detection lock prevents repeated counts while the sensor remains on the same strip.
-
-Additional protection can be provided through a minimum traveled distance before another line is accepted.
-
----
-
-# 3.16 Color Sensor Calibration
-
-Color sensing is strongly influenced by illumination.
-
-The apparent RGB and reflected-light values of the track can change because of:
-
-* sunlight,
-* indoor competition lighting,
-* shadows,
-* reflections,
-* sensor height,
-* and sensor angle.
-
-For this reason, Piolín does not rely only on one theoretical LEGO color classification.
-
-Calibration should compare actual sensor readings over:
-
-* neutral floor,
-* blue line,
-* orange line.
-
-The useful objective is to establish **ranges and relationships**, not one perfect RGB value.
-
-For example, identification can consider:
-
-* relative red, green and blue intensity,
-* reflected-light level,
-* and differences between color channels.
-
----
-
-# 3.17 Ambient-Light Mitigation
-
-Software thresholds alone cannot completely eliminate lighting variation.
-
-Piolín therefore also applies a mechanical solution by positioning the color sensor close to the floor and reducing the amount of uncontrolled external light reaching the sensing area.
-
-This reflects an important engineering principle:
-
-> **Improve the physical input signal before attempting to solve every sensing problem in software.**
-
-Mechanical shielding and software calibration therefore work together.
-
----
-
-# 3.18 HuskyLens Vision Architecture
-
-The HuskyLens is Piolín's final computer-vision sensor for the Obstacle Challenge.
-
-Its role is different from the ultrasonic sensors.
-
-The ultrasonic sensors answer:
-
-> **How far are the walls from the robot?**
-
-The HuskyLens answers:
-
-> **Which colored obstacle is visible and where is it located in the camera's field of view?**
-
-This distinction is important.
-
-The HuskyLens does not replace the ultrasonic sensors.
-
-Instead, the two sensing systems provide complementary information.
-
----
-
-# 3.19 Vision Processing Flow
+from:
 
 ```text
-Physical obstacle
-      ↓
+POWER CONNECTION
+```
+
+For the current vision system, the confirmed relationship is:
+
+```text
 HuskyLens
-      ↓
-Color / object identification
-      ↓
+    ↓
 Arduino Nano
-      ↓
-USB communication
-      ↓
+    ↓
+USB
+    ↓
 LEGO EV3
+```
+
+The Nano-to-EV3 USB connection is confirmed as the vision-data connection.
+
+This document does not infer an unconfirmed HuskyLens-to-Nano electrical protocol or power-routing method.
+
+Therefore:
+
+```text
+CONFIRMED
+Nano ↔ EV3 via USB
+```
+
+while details not explicitly verified should not be presented as final wiring facts.
+
+This distinction improves reproducibility and prevents assumptions from being mixed with confirmed architecture.
+
+---
+
+# 1.6 Sensor Data Categories
+
+Piolín receives several fundamentally different types of information.
+
+| Sensor | Data Category | What It Describes |
+| :--- | :--- | :--- |
+| **S1 Front US** | Distance | Space directly ahead |
+| **S2 Right US** | Distance | Right-side wall geometry |
+| **S3 Left US** | Distance | Left-side wall geometry |
+| **S4 Color** | Optical / color | Floor marking beneath robot |
+| **HuskyLens** | Vision / classification | Obstacle identity |
+
+These data types answer different questions.
+
+```text
+ULTRASONIC
+"How far?"
+
+
+COLOR
+"What floor event?"
+
+
+VISION
+"What obstacle?"
+```
+
+The EV3 combines those answers according to the current navigation state.
+
+---
+
+# 1.7 Physical Sensor Arrangement
+
+The final sensor arrangement can be represented conceptually as:
+
+```text
+                         FRONT
+                           ↑
+
+                       HuskyLens
+
+                    Front US — S1
+
+
+          Left US — S3       S2 — Right US
+                 ←      [ PIOLÍN ]      →
+
+
+                         S4
+                         │
+                         ▼
+                  TRACK SURFACE
+```
+
+The three ultrasonic sensors observe different spatial regions.
+
+The color sensor observes the track below the vehicle.
+
+The HuskyLens observes the region in front of Piolín.
+
+This physical arrangement creates complementary perception rather than duplicated sensing.
+
+---
+
+# 1.8 Lateral Ultrasonic Geometry
+
+The lateral ultrasonic sensors are:
+
+```text
+S2 = RIGHT
+
+S3 = LEFT
+```
+
+Their confirmed approximate mounting height is:
+
+```text
+43.2 mm above the floor
+```
+
+They are oriented laterally rather than being used as front-facing obstacle detectors.
+
+Their primary task is to describe the robot's relationship with the side boundaries of the course.
+
+Conceptually:
+
+```text
+LEFT WALL                    RIGHT WALL
+    │                            │
+    │                            │
+    ▼                            ▼
+  [S3] ←────── [ PIOLÍN ] ─────→ [S2]
+```
+
+Because their interpretation depends on course direction, their physical labels and logical roles must be distinguished.
+
+---
+
+# 1.9 Physical Side vs. Logical Role
+
+The sensor positions never change:
+
+```text
+S3 = physically LEFT
+
+S2 = physically RIGHT
+```
+
+However, the navigation roles:
+
+```text
+INNER
+
+OUTER
+```
+
+change according to the selected travel direction.
+
+This creates two different concepts:
+
+```text
+PHYSICAL SENSOR
+```
+
+and:
+
+```text
+LOGICAL SENSOR ROLE
+```
+
+The software assigns the logical role after determining the direction of travel.
+
+---
+
+# 1.10 Counterclockwise Configuration
+
+If the first valid direction marker is blue:
+
+```text
+BLUE
+  ↓
+COUNTERCLOCKWISE
+```
+
+then:
+
+```text
+S3 LEFT
+=
+INNER SENSOR
+```
+
+and:
+
+```text
+S2 RIGHT
+=
+OUTER SENSOR
+```
+
+The relationship is:
+
+```text
+COUNTERCLOCKWISE
+
+Outer wall                  Inner wall
+    │                           │
+    ▼                           ▼
+   S2       [ PIOLÍN ]         S3
+ RIGHT                       LEFT
+```
+
+The left side becomes the primary inner-wall navigation reference.
+
+---
+
+# 1.11 Clockwise Configuration
+
+If the first valid direction marker is orange:
+
+```text
+ORANGE
+   ↓
+CLOCKWISE
+```
+
+then:
+
+```text
+S2 RIGHT
+=
+INNER SENSOR
+```
+
+and:
+
+```text
+S3 LEFT
+=
+OUTER SENSOR
+```
+
+Conceptually:
+
+```text
+CLOCKWISE
+
+Inner wall                  Outer wall
+    │                           │
+    ▼                           ▼
+   S2       [ PIOLÍN ]         S3
+ RIGHT                       LEFT
+```
+
+The same physical sensor hardware therefore supports both course directions.
+
+---
+
+# 1.12 Why Dynamic Assignment Is Useful
+
+Without dynamic assignment, the code would need separate navigation logic for:
+
+```text
+Left-wall following
+```
+
+and:
+
+```text
+Right-wall following
+```
+
+Instead, the software can conceptually define:
+
+```text
+D_INNER
+```
+
+and:
+
+```text
+D_OUTER
+```
+
+then map the physical sensors once the course direction is known.
+
+For example:
+
+```text
+if direction == COUNTERCLOCKWISE:
+
+    D_INNER = LEFT_US
+    D_OUTER = RIGHT_US
+```
+
+and:
+
+```text
+if direction == CLOCKWISE:
+
+    D_INNER = RIGHT_US
+    D_OUTER = LEFT_US
+```
+
+This simplifies the navigation architecture.
+
+---
+
+# 1.13 Front Ultrasonic Sensor
+
+S1 is dedicated to the forward direction.
+
+Its purpose is fundamentally different from S2 and S3.
+
+```text
+S1
+ ↓
+Forward distance
+ ↓
+Frontal safety
+```
+
+The front ultrasonic sensor does **not** participate in the normal:
+
+```text
+D_INNER
+
+D_OUTER
+```
+
+wall-following geometry.
+
+This keeps frontal collision protection independent from the side-wall navigation model.
+
+---
+
+# 1.14 Why S1 Is Kept Separate
+
+Suppose the lateral system reports:
+
+```text
+Good wall position
+```
+
+while the front sensor reports:
+
+```text
+Very limited forward clearance
+```
+
+The lateral measurements alone would not describe the frontal risk.
+
+Therefore:
+
+```text
+SIDE GEOMETRY
+      ≠
+FRONT GEOMETRY
+```
+
+The dedicated S1 sensor provides a second spatial dimension to the safety architecture.
+
+Conceptually:
+
+```text
+Normal wall controller
+        ↓
+Continue forward
+```
+
+but:
+
+```text
+Front safety condition
+        ↓
+Can override normal movement
+```
+
+The exact software threshold belongs to current calibration and code, not to this architecture overview.
+
+---
+
+# 1.15 Three-Ultrasonic Spatial Model
+
+The current ultrasonic configuration gives Piolín three principal ranging directions:
+
+```text
+LEFT
+  ↓
+S3
+
+
+FRONT
+  ↓
+S1
+
+
+RIGHT
+  ↓
+S2
+```
+
+Conceptually:
+
+```text
+                S1
+                ↑
+                │
+
+       S3 ← [ PIOLÍN ] → S2
+```
+
+This does **not** provide complete 360-degree ranging.
+
+Instead, it provides three deliberately selected directions corresponding to the most useful track boundaries for the current navigation strategy.
+
+---
+
+# 1.16 Ultrasonic Distance Interpretation
+
+The ultrasonic sensors provide distance information based on acoustic time of flight.
+
+The general physical principle is:
+
+```text
+Sensor emits sound
+        ↓
+Sound reaches surface
+        ↓
+Echo returns
+        ↓
+Travel time is measured
+```
+
+The basic physical relationship is:
+
+```text
+d =
+(v × t) / 2
+```
+
+where:
+
+```text
+d
+=
+Distance
+
+
+v
+=
+Speed of sound
+
+
+t
+=
+Round-trip travel time
+```
+
+The division by two is required because the acoustic pulse travels to the surface and back.
+
+In Piolín, the LEGO sensor interface provides usable distance information to the EV3, so the navigation software does not need to manually calculate the acoustic timing.
+
+---
+
+# 1.17 Distance Does Not Equal Robot Position
+
+An ultrasonic sensor reports distance from the **sensor**, not automatically from the center of the vehicle.
+
+Therefore:
+
+```text
+SENSOR DISTANCE
+        ≠
+CENTERLINE DISTANCE
+```
+
+unless the sensor offset is also known and included.
+
+Similarly:
+
+```text
+Side distance changes
+```
+
+does not uniquely prove that Piolín translated sideways.
+
+The reading can also change because:
+
+```text
+Robot rotated
+
+Wall ended
+
+Wall geometry changed
+
+Sensor orientation changed
+```
+
+This is why ultrasonic data must be interpreted together with navigation state.
+
+---
+
+# 1.18 Normal Straight-Wall State
+
+During a normal straight section, the inner wall is the principal geometric reference.
+
+The information flow is:
+
+```text
+INNER ULTRASONIC
+        ↓
+Distance measurement
+        ↓
+Compare with navigation reference
+        ↓
+Steering correction
+        ↓
+Robot trajectory changes
+        ↓
+New distance measurement
+```
+
+This creates a closed feedback loop.
+
+The outer ultrasonic sensor remains available as additional geometric information and safety context.
+
+Detailed wall-following logic is documented in:
+
+[Wall Following](../software_obstacles_strategy/03_wallfollowing.md)
+
+---
+
+# 1.19 Corner Sensor Transition
+
+At a corner, the sensor geometry changes significantly.
+
+The current strategy relies on this transition.
+
+```text
+NORMAL STRAIGHT
       ↓
-Navigation decision
+Inner wall visible
+      ↓
+Approach corner
+      ↓
+Inner wall ends
+      ↓
+Inner reading increases / changes
+      ↓
+Corner state
 ```
 
-The HuskyLens performs image recognition internally.
-
-The EV3 therefore does not need to process a full raw video stream.
-
-It receives only the information required for autonomous navigation.
-
----
-
-# 3.20 Why Arduino Nano Is Used
-
-The Arduino Nano has one specialized purpose:
-
-> **interface the HuskyLens vision system with the EV3.**
-
-It is not Piolín's main controller.
+As Piolín turns:
 
 ```text
-           VEHICLE CONTROL
-                EV3
-                 ▲
-                 │
-                USB
-                 │
-            Arduino Nano
-                 ▲
-                 │
-             HuskyLens
+Outer geometry becomes useful
 ```
 
-Keeping the EV3 as the primary controller preserves:
-
-* native EV3 motor control,
-* native ultrasonic integration,
-* native color sensor integration,
-* and the existing navigation software.
-
-The vision subsystem can therefore be added without redesigning Piolín's complete control architecture.
-
----
-
-# 3.21 Challenge-Specific Sensor Usage
-
-The final hardware does not require every sensor to have the same importance in both competition challenges.
-
-| Hardware             |          Open Challenge          | Obstacle Challenge |
-| :------------------- | :------------------------------: | :----------------: |
-| **EV3**              |                 ✅                |          ✅         |
-| **Drive Motor**      |                 ✅                |          ✅         |
-| **Steering Motor**   |                 ✅                |          ✅         |
-| **Left Ultrasonic**  |                 ✅                |          ✅         |
-| **Right Ultrasonic** |                 ✅                |          ✅         |
-| **Color Sensor**     |                 ✅                |          ✅         |
-| **Arduino Nano**     | Not required for Open navigation |          ✅         |
-| **HuskyLens**        | Not required for Open navigation |          ✅         |
-| **Gyroscope**        |                 ❌                |          ❌         |
-
-The important advantage is that Open Challenge navigation remains independent from computer vision.
-
----
-
-# 3.22 Sensor Responsibility Matrix
-
-To avoid control conflicts, every sensor is assigned a specific responsibility.
-
-| Driving Situation        |      Inner US      |           Outer US          |  Color Sensor  | HuskyLens |
-| :----------------------- | :----------------: | :-------------------------: | :------------: | :-------: |
-| **Straight Navigation**  |       Primary      |          Secondary          |     Monitor    |     —     |
-| **Corner Detection**     |  Primary indicator |         Confirmation        |     Monitor    |     —     |
-| **Corner Navigation**    |    Reacquisition   | Primary temporary reference |     Monitor    |     —     |
-| **Corner Exit**          | Returns to primary |          Secondary          |     Monitor    |     —     |
-| **Direction Detection**  |          —         |              —              |     Primary    |     —     |
-| **Lap Tracking**         |          —         |              —              |     Primary    |     —     |
-| **Obstacle Recognition** |     Wall safety    |         Wall safety         | Track progress |  Primary  |
-
-This structure prevents unrelated sensors from continuously fighting for steering control.
-
----
-
-# 3.23 Failure-Point Analysis
-
-Reliability does not mean assuming that sensors never fail.
-
-Instead, Piolín's design identifies likely failure modes and attempts to reduce their effect.
-
-| Failure Mode                             | Possible Effect                  | Engineering Response                                 |
-| :--------------------------------------- | :------------------------------- | :--------------------------------------------------- |
-| **Single ultrasonic spike**              | False steering correction        | Short filtering and confirmation                     |
-| **Inner US observes open corner**        | Distance appears extremely large | Interpret reading according to track geometry        |
-| **Repeated color readings**              | One strip counted multiple times | Detection lock + neutral confirmation                |
-| **Lighting variation**                   | Incorrect color classification   | Mechanical shielding + calibration                   |
-| **Outer wall becomes too close**         | Collision risk                   | Outer US remains available for safety                |
-| **HuskyLens temporarily loses a pillar** | Vision information disappears    | Wall-safety sensing remains independent              |
-| **Vision subsystem disconnected**        | Obstacle recognition unavailable | Open Challenge navigation remains functional         |
-| **Steering reaches mechanical limit**    | Increased motor load             | Software steering limits                             |
-| **Excessive steering oscillation**       | Mechanical/electrical stress     | Reduced unnecessary corrections                      |
-| **Battery voltage decreases**            | Reduced motor performance        | Controlled battery condition before competition runs |
-
-The goal is not to claim that failure is impossible.
-
-The goal is to understand:
-
-> **what can fail, what effect it would have, and how the system reduces that effect.**
-
----
-
-# 3.24 Evolution of the Sensor Architecture
-
-Piolín's current architecture was not the first system tested.
-
-Several earlier approaches contributed directly to the final design.
-
----
-
-## 3.24.1 Two-Ultrasonic Mathematical Controller
-
-One experimental navigation system continuously combined the two ultrasonic sensors to estimate Piolín's lateral position.
-
-During straight sections this provided useful information because both sensors observed approximately parallel walls.
-
-However, testing revealed an important limitation:
-
-> **The same geometric relationship cannot be assumed when entering a corner.**
-
-As the inner wall disappears, one ultrasonic sensor no longer measures a normal lateral wall distance.
-
-This experiment led to the decision to make sensor interpretation dependent on track geometry.
-
----
-
-## 3.24.2 Gyroscope-Assisted Navigation Experiment
-
-Another experimental controller introduced a gyroscope.
-
-In that architecture:
-
-* ultrasonic sensors helped during straight sections,
-* the gyro provided heading stabilization,
-* and corners were executed as approximately 90° heading changes.
-
-This provided an absolute angular reference, but also introduced another sensor dependency and changed the navigation architecture substantially.
-
-The gyroscope was eventually removed from the final competition configuration.
-
-Sensor Port S1 therefore remains unused.
-
----
-
-## 3.24.3 Earlier Vision Architectures
-
-Piolín also experimented with other vision and processing architectures before arriving at the final system.
-
-Previous development included alternatives such as:
-
-* Pixy-based vision,
-* external processing architectures,
-* and more complex controller configurations.
-
-These experiments demonstrated that increasing processing capability does not automatically increase competition reliability.
-
-The final architecture instead retains the EV3 for vehicle control and uses the HuskyLens/Nano combination only for the specialized vision task.
-
----
-
-# 3.25 Final Sensor Strategy
-
-The final sensor architecture combines lessons from the previous experiments:
+and later:
 
 ```text
-STRAIGHT
-   │
-   ├── Inner US = main trajectory reference
-   └── Outer US = secondary reference
-              ↓
-      INNER WALL DISAPPEARS
-              ↓
-        CONFIRM CORNER
-              ↓
-     BEGIN CORNER STEERING
-              ↓
- Outer US = temporary main reference
-              ↓
-      INNER WALL REAPPEARS
-              ↓
-       REDUCE STEERING
-              ↓
-          RE-CENTER
-              ↓
-           STRAIGHT
+Inner wall reappears
 ```
 
-The final strategy therefore does not require a gyroscope to identify the shape of the track.
+which helps identify corner exit.
 
-Instead, it uses the geometry already observed by the two lateral ultrasonic sensors.
-
----
-
-# 3.26 Engineering Trade-Offs
-
-Every hardware decision introduces both advantages and disadvantages.
-
-Piolín's final architecture deliberately accepts several trade-offs.
-
-| Design Decision                        | Advantage                                             | Trade-Off                                          |
-| :------------------------------------- | :---------------------------------------------------- | :------------------------------------------------- |
-| **Two lateral US instead of three US** | Lower wiring complexity and direct wall geometry      | No dedicated forward distance sensor               |
-| **No gyroscope**                       | Fewer sensor dependencies and free S1                 | Turns must be inferred from wall geometry          |
-| **EV3 as main controller**             | Native sensor/motor integration                       | Less processing power than modern SBCs             |
-| **Nano + HuskyLens**                   | Adds vision without replacing EV3                     | Adds one additional communication subsystem        |
-| **Color-based progress tracking**      | Uses physical track markings directly                 | Requires lighting calibration                      |
-| **Short filtering**                    | Rejects isolated errors with low delay                | Cannot eliminate every incorrect reading           |
-| **Outer-wall corner reference**        | Maintains useful geometry while inner wall disappears | Requires reliable transition logic                 |
-| **Separate Open and Vision systems**   | Open navigation remains independent                   | More than one sensing subsystem must be maintained |
-
-The final configuration prioritizes **predictability and understandability** over maximum hardware complexity.
+This is a major reason the lateral sensors are documented as a **geometry pair** rather than two independent obstacle detectors.
 
 ---
 
-# 3.27 Reproducibility
+# 1.20 Corner Geometry Without a Gyroscope
 
-Another team should be able to reconstruct the electrical and sensor architecture from the following connection map.
+The current Piolín architecture does not use a gyroscope.
+
+Corner navigation instead derives information from:
+
+```text
+Inner wall disappearance
+
+Outer wall geometry
+
+Inner wall reacquisition
+
+Vehicle motion
+```
+
+The transition is:
+
+```text
+INNER PRESENT
+     ↓
+INNER LOST
+     ↓
+TURN
+     ↓
+OUTER REFERENCE
+     ↓
+INNER REACQUIRED
+     ↓
+EXIT
+```
+
+This allows the navigation system to remain referenced to the physical track.
+
+The previous gyro-based architecture is preserved in:
+
+[Legacy Gyroscope Configuration](../legacy/01_GConfig.md)
+
+---
+
+# 1.21 Color Sensor Configuration
+
+The color sensor occupies:
+
+```text
+S4
+```
+
+and is mounted downward toward the track surface.
+
+Its main responsibilities are:
+
+```text
+Determine initial travel direction
+
+Detect valid floor-marking events
+
+Track course progression
+```
+
+It does not directly control the steering motor.
+
+The information path is:
+
+```text
+Floor marking
+     ↓
+Color sensor
+     ↓
+EV3
+     ↓
+Course-state update
+     ↓
+Navigation interpretation
+```
+
+Current component documentation:
+
+[Color Sensor](../components/06_ColorSensor.md)
+
+---
+
+# 1.22 Direction Detection
+
+At the beginning of the run, the color system identifies the initial direction.
+
+The current interpretation is:
+
+```text
+BLUE FIRST
+    ↓
+COUNTERCLOCKWISE
+```
+
+and:
+
+```text
+ORANGE FIRST
+     ↓
+CLOCKWISE
+```
+
+This decision affects the meaning of the lateral sensors.
+
+Therefore:
+
+```text
+COLOR EVENT
+     ↓
+TRAVEL DIRECTION
+     ↓
+INNER / OUTER SENSOR ASSIGNMENT
+```
+
+The color sensor indirectly changes wall-navigation behavior by defining the course orientation.
+
+---
+
+# 1.23 Course Progress Tracking
+
+The track contains repeated colored floor markings.
+
+Piolín uses valid color events to help determine course progression across the three-lap run.
+
+The conceptual relationship is:
+
+```text
+Vehicle moves
+      ↓
+Color sensor crosses marking
+      ↓
+Valid event confirmed
+      ↓
+Progress counter changes
+```
+
+Because the sensor can remain physically over the same colored region for several sampling cycles, the software must distinguish:
+
+```text
+ONE PHYSICAL MARKING
+```
+
+from:
+
+```text
+MANY SENSOR READINGS
+```
+
+This motivates event-locking and cooldown logic.
+
+Detailed implementation belongs to:
+
+[RGB Detection](../software_obstacles_strategy/09_RGBdetection.md)
+
+and:
+
+[Software Architecture](../software_obstacles_strategy/01_SWArchitecture.md)
+
+---
+
+# 1.24 Color Detection and Physical Mounting
+
+The reliability of the color sensor depends partly on its mechanical configuration.
+
+The current sensor is:
+
+```text
+Downward-facing
+```
+
+and uses a casing intended to reduce unwanted surrounding light reaching the observed floor region.
+
+Conceptually:
+
+```text
+AMBIENT LIGHT
+    \       /
+     \     /
+      [CASING]
+         │
+    COLOR SENSOR
+         │
+         ▼
+       FLOOR
+```
+
+This demonstrates an important systems principle:
+
+```text
+MECHANICAL DESIGN
+      can improve
+SENSOR QUALITY
+```
+
+without changing the electronics.
+
+The corresponding 3D model is available at:
+
+[Color Sensor Casing](../../models/3dprint/ColorSensorCasing.stl)
+
+---
+
+# 1.25 Vision Subsystem Configuration
+
+The current obstacle-vision architecture uses:
+
+```text
+HuskyLens
+     ↓
+Arduino Nano
+     ↓
+USB
+     ↓
+LEGO EV3
+```
+
+The vision subsystem is mainly required during the Obstacle Challenge.
+
+Its role is different from the ultrasonic system.
+
+```text
+ULTRASONIC
+      ↓
+Distance / geometry
+
+
+HUSKYLENS
+      ↓
+Obstacle identity
+```
+
+This separation allows the robot to know both:
+
+```text
+What is ahead?
+```
+
+and:
+
+```text
+Where are the walls?
+```
+
+---
+
+# 1.26 Current Obstacle Identification
+
+The current HuskyLens configuration uses:
+
+```text
+ID 1 = GREEN PILLAR
+
+ID 2 = RED PILLAR
+```
+
+The required passing behavior is:
+
+```text
+GREEN
+   ↓
+Pass on LEFT
+```
+
+and:
+
+```text
+RED
+  ↓
+Pass on RIGHT
+```
+
+The HuskyLens does not directly move the robot.
+
+Instead:
+
+```text
+Obstacle
+   ↓
+HuskyLens
+   ↓
+Classification
+   ↓
+Arduino Nano
+   ↓
+EV3
+   ↓
+Vehicle response
+```
+
+Detailed vision documentation:
+
+[HuskyLens](../components/07_HuskyLens.md)
+
+[HuskyLens Vision](../software_obstacles_strategy/08_CameraHLVision.md)
+
+---
+
+# 1.27 Open Challenge Sensor Configuration
+
+During the Open Challenge, the core navigation architecture does not require the vision subsystem for wall navigation.
+
+The principal sensor flow is:
+
+```text
+S1 FRONT US
+      ↓
+Frontal safety
+
+
+S2 + S3
+      ↓
+Wall navigation
+
+
+S4
+      ↓
+Direction + course progress
+```
+
+Conceptually:
+
+```text
+               OPEN CHALLENGE
+
+                    LEGO EV3
+                       ▲
+          ┌────────────┼────────────┐
+          │            │            │
+         S1          S2/S3          S4
+          │            │            │
+          ▼            ▼            ▼
+       FRONT        WALLS         FLOOR
+       SAFETY      NAVIGATION      STATE
+```
+
+This provides a relatively compact sensing architecture for the Open round.
+
+---
+
+# 1.28 Obstacle Challenge Sensor Configuration
+
+The Obstacle Challenge adds obstacle identity to the same base system.
+
+```text
+                OBSTACLE CHALLENGE
+
+                      LEGO EV3
+                         ▲
+       ┌──────────┬──────┼──────┬───────────┐
+       │          │             │           │
+      S1        S2/S3           S4         USB
+       │          │             │           │
+       ▼          ▼             ▼           ▼
+    FRONT       WALLS          FLOOR       NANO
+    SAFETY     NAVIGATION      STATE        ▲
+                                            │
+                                        HUSKYLENS
+```
+
+The base wall-navigation architecture therefore remains available while the vision system contributes obstacle information.
+
+This modularity is important because obstacle perception should not replace track-boundary sensing.
+
+---
+
+# 1.29 Sensor Fusion
+
+Piolín's navigation does not treat one sensor as a universal solution.
+
+Instead, the system combines specialized measurements.
+
+For example, during obstacle avoidance:
+
+```text
+HuskyLens
+     ↓
+Required passing side
+```
+
+while:
+
+```text
+Lateral US
+     ↓
+Available wall clearance
+```
+
+and:
+
+```text
+Front US
+     ↓
+Frontal safety
+```
+
+The EV3 combines these constraints.
+
+Conceptually:
+
+```text
+OBSTACLE IDENTITY
+       +
+WALL GEOMETRY
+       +
+FRONT SAFETY
+       +
+COURSE STATE
+       ↓
+FINAL NAVIGATION DECISION
+```
+
+This is the central sensor-fusion principle of Piolín.
+
+---
+
+# 1.30 Sensor Priority Concept
+
+Different sensors may simultaneously suggest different movement priorities.
+
+A useful system hierarchy is:
+
+```text
+FRONTAL COLLISION SAFETY
+          ↓
+LATERAL WALL SAFETY
+          ↓
+OBSTACLE / CORNER LOGIC
+          ↓
+NORMAL WALL FOLLOWING
+```
+
+This hierarchy does not mean each sensor directly overrides the motors independently.
+
+Instead, it represents the relative importance of different navigation constraints when the EV3 calculates the final action.
+
+The result should always be:
+
+```text
+Many sensor inputs
+        ↓
+One coherent vehicle command
+```
+
+---
+
+# 1.31 Why Sensor Roles Should Not Conflict
+
+Suppose the camera determines:
+
+```text
+Move left to pass obstacle
+```
+
+while the left ultrasonic indicates:
+
+```text
+Wall clearance is becoming small
+```
+
+If the camera were allowed to control steering independently:
+
+```text
+Correct obstacle behavior
+        ↓
+Possible wall collision
+```
+
+The better architecture is:
+
+```text
+Vision request
+       +
+Wall constraint
+       ↓
+EV3 arbitration
+       ↓
+Constrained steering command
+```
+
+This illustrates why centralized decision-making is important.
+
+---
+
+# 1.32 Sensor Sampling and Vehicle Motion
+
+Sensor data is only meaningful in relation to time and movement.
+
+Between two readings:
+
+```text
+Piolín may have moved
+
+Piolín may have rotated
+
+Wall geometry may have changed
+```
+
+At greater vehicle speed, the robot travels farther between sensor updates.
+
+Therefore:
+
+```text
+SENSOR UPDATE RATE
+        +
+VEHICLE SPEED
+        ↓
+PHYSICAL RESPONSE DISTANCE
+```
+
+This is why drivetrain speed affects sensing performance even though the sensors themselves do not control propulsion.
+
+---
+
+# 1.33 Sensor Noise and Filtering
+
+Real sensor data can contain variation.
+
+A navigation system should therefore avoid assuming that every single reading is a perfect representation of the environment.
+
+For ultrasonic sensing, a short median-based filter can conceptually operate as:
+
+```text
+Reading 1
+Reading 2
+Reading 3
+     ↓
+MEDIAN
+     ↓
+Navigation value
+```
+
+For example:
+
+```text
+245 mm
+247 mm
+690 mm
+```
+
+has a median of:
+
+```text
+247 mm
+```
+
+which is less influenced by the isolated extreme reading than an immediate single-sample reaction.
+
+Detailed filtering behavior should be documented in:
+
+[Ultrasonic Sensor Data](02_USSensorD.md)
+
+rather than duplicated fully here.
+
+---
+
+# 1.34 Sensor Validation vs. Sensor Calibration
+
+Two concepts should be distinguished.
+
+### Validation
+
+```text
+Does the sensor behave reliably
+enough for the intended role?
+```
+
+### Calibration
+
+```text
+Which measured values should the
+software use for this robot?
+```
+
+For example:
+
+```text
+Ultrasonic validation
+        ↓
+Check distance behavior
+```
+
+while:
+
+```text
+Wall calibration
+        ↓
+Determine useful navigation references
+```
+
+Detailed calibration procedures belong in:
+
+[Sensor Calibration](05_Calibration.md)
+
+and:
+
+[How to Calibrate](../reproducibility/06_HowToCalibrate.md)
+
+---
+
+# 1.35 Sensor Geometry and Mechanical Stability
+
+Sensor behavior depends on mechanical mounting.
+
+For example:
+
+```text
+Ultrasonic mount rotates
+        ↓
+Observed surface changes
+        ↓
+Distance changes
+```
+
+even if the vehicle center remains nearly unchanged.
+
+Similarly:
+
+```text
+HuskyLens angle changes
+        ↓
+Field of view changes
+```
+
+and:
+
+```text
+Color sensor height changes
+        ↓
+Observed floor region changes
+```
+
+Therefore, the sensor system depends directly on:
+
+[Chassis Design](../mobility_mechanical/02_chassis.md)
+
+Mechanical stability is part of sensing reliability.
+
+---
+
+# 1.36 Sensor Failure Propagation
+
+A sensor-related problem can propagate through the full control system.
+
+Example:
+
+```text
+Sensor mount moves
+        ↓
+Measurement changes
+        ↓
+EV3 calculates new error
+        ↓
+Motor B changes steering
+        ↓
+Vehicle trajectory changes
+```
+
+The resulting behavior may look like a steering problem even though the original cause was the sensor geometry.
+
+This is why troubleshooting should consider:
+
+```text
+Sensor electronics
+
+Sensor mounting
+
+Software interpretation
+
+Mechanical response
+```
+
+together.
+
+---
+
+# 1.37 Power Demand Changes With Robot State
+
+Electrical demand is not constant throughout a run.
+
+Different operating states can place different loads on the EV3-controlled system.
+
+For example:
+
+```text
+Straight movement
+```
+
+may involve moderate drive and steering activity.
+
+A corner can require:
+
+```text
+Drive motor
++
+Larger steering movement
+```
+
+while an obstacle maneuver can require:
+
+```text
+Drive changes
++
+Steering reversals
++
+Sensor processing
++
+Vision communication
+```
+
+Therefore:
+
+```text
+ROBOT STATE
+      ↓
+Changes electrical demand
+```
+
+No numerical current values are presented here because they have not been measured as confirmed final data.
+
+---
+
+# 1.38 Power Stability and Sensor Reliability
+
+Power stability matters because the control system relies on continuous operation of:
+
+```text
+EV3
+
+Motors
+
+Ultrasonic sensors
+
+Color sensor
+```
+
+and communication with the supporting vision subsystem.
+
+A power interruption can appear as:
+
+```text
+Sensor unavailable
+
+Controller reset
+
+Motor response loss
+
+Communication interruption
+```
+
+For this reason, electrical reliability is treated as part of overall autonomous reliability rather than as a separate issue.
+
+Detailed electrical architecture:
+
+[Power Distribution](../components/09_PowerDistribution.md)
+
+[Electrical Schematic](../reproducibility/04_elecschem.md)
+
+---
+
+# 1.39 Wiring as Part of Sensor Configuration
+
+Sensor assignment includes both:
+
+```text
+Logical port
+```
+
+and:
+
+```text
+Physical connection
+```
+
+The final EV3 sensor connections should remain:
+
+```text
+S1 → Front Ultrasonic
+
+S2 → Right Ultrasonic
+
+S3 → Left Ultrasonic
+
+S4 → Color Sensor
+```
+
+Changing physical connections without changing software configuration can cause the EV3 to interpret:
+
+```text
+Left as right
+
+Right as front
+
+Front as another sensor
+```
+
+depending on the mismatch.
+
+Therefore, port consistency is essential for reproducibility.
+
+Current wiring:
+
+[Wiring](../reproducibility/03_wiring.md)
+
+---
+
+# 1.40 Sensor Configuration Verification
+
+Before interpreting a navigation failure, the current configuration should first be verified conceptually:
+
+```text
+Is S1 physically the front ultrasonic?
+
+Is S2 physically the right ultrasonic?
+
+Is S3 physically the left ultrasonic?
+
+Is S4 the downward color sensor?
+
+Is the Nano connected to EV3 through USB?
+
+Are sensor mounts still aligned?
+```
+
+This simple verification can prevent debugging software based on an incorrect physical configuration.
+
+---
+
+# 1.41 Current vs. Legacy Sensor Architecture
+
+The final configuration differs significantly from previous Piolín systems.
+
+| Function | Legacy Examples | Current Piolín |
+| :--- | :--- | :--- |
+| **S1** | Gyroscope / unused | Front Ultrasonic |
+| **S2** | Different US arrangements | Right Ultrasonic |
+| **S3** | Different US arrangements | Left Ultrasonic |
+| **S4** | Color Sensor | Color Sensor |
+| **Vision** | PixyCam | HuskyLens |
+| **Vision Interface** | Previous concepts | Arduino Nano |
+| **Main Controller** | Alternative experiments | LEGO EV3 |
+| **Gyroscope** | Used experimentally | Not installed |
+| **Frontal ranging** | Previous / absent | Dedicated S1 |
+
+Historical information should not be mixed with the current sensor configuration.
+
+See:
+
+[Legacy Documentation Notice](../legacy/00_LEGACY_NOTICE.md)
+
+---
+
+# 1.42 Sensor Responsibility Matrix
+
+| Information Needed | Sensor / System |
+| :--- | :--- |
+| **Forward clearance** | S1 Front Ultrasonic |
+| **Right wall distance** | S2 Right Ultrasonic |
+| **Left wall distance** | S3 Left Ultrasonic |
+| **Inner wall distance** | S2 or S3 depending on direction |
+| **Outer wall distance** | S2 or S3 depending on direction |
+| **Initial course direction** | S4 Color Sensor |
+| **Course progress** | S4 Color Sensor |
+| **Green pillar identity** | HuskyLens |
+| **Red pillar identity** | HuskyLens |
+| **Vision communication** | Arduino Nano |
+| **Final interpretation** | LEGO EV3 |
+| **Propulsion response** | Motor A |
+| **Steering response** | Motor B |
+
+This table summarizes the current information architecture.
+
+---
+
+# 1.43 Open Challenge Information Flow
+
+The Open Challenge can be represented as:
+
+```text
+                       TRACK
+                         │
+           ┌─────────────┼─────────────┐
+           ▼             ▼             ▼
+       SIDE WALLS    FRONT SPACE    FLOOR MARKS
+           │             │             │
+           ▼             ▼             ▼
+        S2 / S3          S1            S4
+           │             │             │
+           └─────────────┼─────────────┘
+                         ▼
+                      LEGO EV3
+                         │
+                         ▼
+                  NAVIGATION STATE
+                         │
+               ┌─────────┴─────────┐
+               ▼                   ▼
+            Motor A             Motor B
+```
+
+The vision system is not required to define ordinary Open-round wall navigation.
+
+---
+
+# 1.44 Obstacle Challenge Information Flow
+
+The Obstacle Challenge adds a fourth perception path:
+
+```text
+                         TRACK
+                           │
+       ┌───────────┬───────┼───────┬────────────┐
+       ▼           ▼               ▼            ▼
+   SIDE WALLS  FRONT SPACE      FLOOR MARKS   PILLAR
+       │           │               │            │
+       ▼           ▼               ▼            ▼
+    S2 / S3        S1              S4       HuskyLens
+       │           │               │            │
+       │           │               │        Arduino Nano
+       │           │               │            │
+       └───────────┴───────┬───────┴────────────┘
+                           ▼
+                        LEGO EV3
+                           │
+                           ▼
+                  SENSOR FUSION / STATE
+                           │
+                 ┌─────────┴─────────┐
+                 ▼                   ▼
+              Motor A             Motor B
+```
+
+This structure keeps the EV3 as the central decision-making element even when vision is active.
+
+---
+
+# 1.45 Why the Architecture Is Modular
+
+The sensing system is modular because each subsystem can be understood independently:
+
+```text
+WALL MODULE
+=
+S2 + S3
+
+
+FRONT SAFETY MODULE
+=
+S1
+
+
+COURSE-STATE MODULE
+=
+S4
+
+
+VISION MODULE
+=
+HuskyLens + Nano
+```
+
+These modules converge at:
 
 ```text
 LEGO EV3
-│
-├── Motor Port A
-│      └── Drive Motor
-│
-├── Motor Port B
-│      └── Steering Motor
-│
-├── Sensor Port S1
-│      └── Unused
-│
-├── Sensor Port S2
-│      └── Right Ultrasonic
-│
-├── Sensor Port S3
-│      └── Left Ultrasonic
-│
-├── Sensor Port S4
-│      └── Color Sensor
-│
-└── USB
-       │
-       ▼
-   Arduino Nano
-       │
-       ▼
-    HuskyLens
 ```
 
----
-
-## 3.27.1 Physical Sensor Placement
+This provides several engineering advantages:
 
 ```text
-TOP VIEW
+Clear responsibilities
 
-                      FRONT
-                        ↑
+Simpler debugging
 
-                 [ HuskyLens ]
+Easier testing
 
+Better documentation
 
-LEFT ULTRASONIC  ←  ┌───────────────┐  → RIGHT ULTRASONIC
-                    │               │
-                    │    PIOLÍN     │
-                    │               │
-                    └───────────────┘
-
-
-                    Color Sensor
-                         ↓
-                       FLOOR
+Reduced dependence on one sensor
 ```
 
-The ultrasonic sensors are mounted laterally, approximately **43 mm above the competition surface**.
-
-The color sensor is mounted facing downward toward the colored floor markings.
+A failure in one sensor category can therefore be investigated without redefining the entire robot architecture.
 
 ---
 
-# 3.28 Final Engineering Summary
+# 1.46 Sensor Redundancy vs. Complementarity
 
-Piolín's final Power & Sensor Architecture is intentionally simpler than several previous prototypes.
+Piolín's sensors are mostly **complementary**, not simple duplicates.
 
-The final system assigns each subsystem one clearly defined responsibility:
+For example:
 
-### LEGO EV3
+```text
+S1
+```
 
-Main navigation and vehicle control.
+cannot replace:
 
-### Two Lateral Ultrasonic Sensors
+```text
+S2 / S3
+```
 
-Track-wall geometry, wall following, corner interpretation and collision prevention.
+because forward distance and lateral distance describe different geometry.
 
-### LEGO Color Sensor
+Similarly:
 
-Direction selection and track-progress counting.
+```text
+HuskyLens
+```
 
-### Arduino Nano
+cannot replace:
 
-Communication interface between the vision system and the EV3.
+```text
+Color Sensor
+```
+
+because obstacle identity and floor markings are different information classes.
+
+The architecture therefore gains robustness through **different sensing modalities**, rather than by measuring the same quantity multiple times with identical sensors.
+
+---
+
+# 1.47 Environmental Reference Philosophy
+
+The current architecture intentionally relies on the actual competition environment.
+
+The main navigation references are:
+
+```text
+Walls
+
+Floor markings
+
+Pillars
+```
+
+The robot extracts information from those physical features using specialized sensors.
+
+This can be summarized as:
+
+```text
+PHYSICAL TRACK
+      ↓
+SENSOR MEASUREMENT
+      ↓
+ENVIRONMENTAL STATE
+      ↓
+VEHICLE CONTROL
+```
+
+This is different from the legacy gyro concept, which attempted to maintain an independent angular reference.
+
+---
+
+# 1.48 Sensor-to-Action Traceability
+
+Every current sensor has a traceable path to a vehicle behavior.
+
+### Front ultrasonic
+
+```text
+Front distance
+      ↓
+Safety decision
+      ↓
+Drive / motion response
+```
+
+### Lateral ultrasonics
+
+```text
+Wall distance
+      ↓
+Navigation error
+      ↓
+Steering correction
+```
+
+### Color sensor
+
+```text
+Floor event
+      ↓
+Course state
+      ↓
+Navigation interpretation
+```
 
 ### HuskyLens
 
-Colored-obstacle recognition during the Obstacle Challenge.
+```text
+Pillar identity
+      ↓
+Passing side
+      ↓
+Obstacle maneuver
+```
 
-The most important engineering lesson learned during development was:
+This traceability is important because it allows each design claim to be connected to software, hardware, and testing evidence.
 
-> **More sensors and more processing power do not automatically produce a more reliable autonomous vehicle.**
+---
 
-Reliability improved when each sensor was given a clearly defined responsibility and when its limitations were considered explicitly.
+# 1.49 Confirmed Sensor Specifications Used in This Section
 
-The final Piolín architecture is therefore based on three principles:
+The current confirmed configuration is:
 
-> **Measure only information that is useful.**
+| Parameter | Confirmed Value |
+| :--- | :--- |
+| **Main controller** | LEGO EV3 |
+| **S1** | Front Ultrasonic |
+| **S2** | Right Ultrasonic |
+| **S3** | Left Ultrasonic |
+| **S4** | Color Sensor |
+| **Vision sensor** | HuskyLens |
+| **Vision interface** | Arduino Nano |
+| **Nano → EV3** | USB |
+| **Lateral US mounting height** | ~43.2 mm |
+| **Gyroscope** | Not installed |
+| **PixyCam** | Not installed |
+| **Raspberry Pi** | Not part of final architecture |
 
-> **Interpret sensor readings according to the geometry of the track.**
+No unconfirmed values are claimed here for:
 
-> **Keep fundamental navigation independent from non-essential subsystems.**
+```text
+Front ultrasonic mounting height
 
-This produces a sensor architecture that is easier to test, easier to reproduce, and easier to diagnose when unexpected behavior occurs.
+Final wall target distances
+
+Front emergency threshold
+
+Battery voltage
+
+Battery capacity
+
+Motor current
+
+Sensor current
+
+Vision-system power consumption
+
+HuskyLens-to-Nano protocol
+```
+
+Those values should only be added when confirmed from the current robot or current code.
+
+---
+
+# 1.50 Configuration Summary
+
+Piolín's final WRO Future Engineers 2026 power and sensor architecture is centered around the LEGO EV3.
+
+The sensing system is organized as:
+
+```text
+S1
+↓
+FRONT SAFETY
 
 
+S2 + S3
+↓
+LATERAL GEOMETRY
+
+
+S4
+↓
+COURSE STATE
+
+
+HUSKYLENS
+↓
+OBSTACLE IDENTITY
+
+
+ARDUINO NANO
+↓
+VISION COMMUNICATION
+
+
+LEGO EV3
+↓
+FINAL DECISION
+```
+
+The power and information architecture can therefore be summarized as:
+
+```text
+                  EV3 BATTERY
+                       ↓
+                    LEGO EV3
+                       │
+          ┌────────────┼────────────┐
+          ▼            ▼            ▼
+       MOTORS        SENSORS      PROCESSING
+       A + B         S1–S4          EV3
+
+
+                    LEGO EV3
+                       ▲
+                       │ USB
+                       │
+                 Arduino Nano
+                       ▲
+                       │
+                   HuskyLens
+```
+
+The design deliberately separates:
+
+```text
+Power
+
+Sensing
+
+Communication
+
+Decision making
+
+Actuation
+```
+
+while connecting them through one centralized vehicle-control architecture.
+
+This allows Piolín to use the physical track as its primary navigation reference:
+
+```text
+WALLS
+  ↓
+Ultrasonics
+
+
+FLOOR
+  ↓
+Color Sensor
+
+
+PILLARS
+  ↓
+HuskyLens
+```
+
+and convert those observations into controlled vehicle movement through the EV3.
+
+The resulting sensor architecture supports both competition modes:
+
+```text
+OPEN CHALLENGE
+=
+3 Ultrasonics
++
+Color Sensor
++
+EV3
+```
+
+and:
+
+```text
+OBSTACLE CHALLENGE
+=
+Open Challenge Base
++
+HuskyLens
++
+Arduino Nano
+```
+
+while maintaining the same core vehicle-control structure.
+
+---
+
+## Continue Reading
+
+[Ultrasonic Sensor Data](02_USSensorD.md)
+
+[Color Sensor Configuration](03_color_sensor.md)
+
+[HuskyLens Vision System](04_huskylens.md)
+
+[Sensor Calibration](05_Calibration.md)
+
+---
+
+## Related Hardware Documentation
+
+[Hardware Overview](../components/01_Hardwareoverview.md)
+
+[Ultrasonic Sensors](../components/05_UltrasonicSensors.md)
+
+[Color Sensor](../components/06_ColorSensor.md)
+
+[HuskyLens](../components/07_HuskyLens.md)
+
+[Battery](../components/08_Battery.md)
+
+[Power Distribution](../components/09_PowerDistribution.md)
+
+---
+
+## Reproducibility
+
+[Wiring](../reproducibility/03_wiring.md)
+
+[Electrical Schematic](../reproducibility/04_elecschem.md)
+
+[Calibration Procedure](../reproducibility/06_HowToCalibrate.md)
+
+[Testing Protocol](../reproducibility/07_TestingProtocol.md)
+
+---
+
+## Navigation
+
+[Wall Following](../software_obstacles_strategy/03_wallfollowing.md)
+
+[Corner Handling](../software_obstacles_strategy/04_cornerhandling.md)
+
+[Obstacle Detection](../software_obstacles_strategy/05_obstacledetec.md)
+
+[Obstacle Strategy](../software_obstacles_strategy/06_obstaclestrateg.md)
+
+[HuskyLens Vision](../software_obstacles_strategy/08_CameraHLVision.md)
+
+[RGB Detection](../software_obstacles_strategy/09_RGBdetection.md)
