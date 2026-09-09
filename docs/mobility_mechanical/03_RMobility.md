@@ -394,7 +394,7 @@ rather than both wheels remaining perfectly parallel.
 <div align="center">
 
 <img
-  src="../../embed/ackermann_geometry.png"
+  src="v-photos/v4/ackermann_geometry.png"
   alt="Ackermann steering geometry showing different inner and outer wheel angles"
   width="850"
 />
