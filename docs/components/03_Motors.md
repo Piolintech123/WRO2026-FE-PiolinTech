@@ -1,859 +1,1366 @@
 # 3. Motors and Actuation System
 
-Piolín uses **two independently controlled LEGO EV3 motors**, each with a clearly separated mechanical responsibility. One motor provides propulsion while the second controls the steering mechanism.
+<div align="center">
 
-This separation is fundamental to Piolín's vehicle architecture. Unlike a differential-drive robot, Piolín does not turn by changing the speed of two independent drive wheels. Instead, the robot uses a car-like configuration in which the rear drivetrain produces forward movement and the front wheels change direction through an Ackermann steering mechanism.
+<img
+  src="../../v-photos/v4/motor_a_large_drive.jpg"
+  alt="LEGO EV3 Large Motor installed as Piolín's propulsion motor"
+  width="700"
+/>
 
-The final motor assignment is:
+<br>
 
-| EV3 Port | Motor Role | Mechanical Function |
-| :--- | :--- | :--- |
-| **Port A** | Drive Motor | Provides propulsion through the rear drivetrain |
-| **Port B** | Steering Motor | Controls the front Ackermann steering mechanism |
+<sub><b>Figure 3.1.</b> LEGO EV3 Large Motor installed as Piolín's rear-propulsion actuator and connected to EV3 Motor Port A.</sub>
 
-The two actuators therefore control two different variables:
+</div>
+
+Piolín uses two LEGO Mindstorms EV3 motors, but they perform fundamentally different mechanical tasks. One motor is responsible for moving the complete vehicle forward and backward, while the other is responsible only for changing the orientation of the front wheels.
+
+The current actuation architecture is:
 
 ```text
-MOTOR A
-   ↓
-Vehicle Speed
-   ↓
-Forward / Reverse Motion
+Motor Port A
+→ LEGO EV3 Large Motor
+→ Rear propulsion
 
 
-MOTOR B
-   ↓
-Steering Position
-   ↓
-Vehicle Direction
+Motor Port B
+→ LEGO EV3 Medium Motor
+→ Ackermann steering
 ```
 
-This allows the EV3 to control speed and direction independently.
+This separation was selected because Piolín is not a differential-drive robot. The vehicle does not turn by changing the speeds of two independent drive motors. Instead, propulsion and steering are mechanically separated in the same way they are in a conventional car.
 
-> [!IMPORTANT]
-> Piolín does **not** use differential steering in its final configuration.  
-> Motor A provides propulsion while Motor B physically changes the direction of the front wheels.
+This has important consequences for the complete robot architecture. Motor A determines how quickly Piolín moves along its trajectory, while Motor B determines the shape of that trajectory. The EV3 software must therefore coordinate both actuators instead of treating them as two interchangeable motors.
 
 ---
 
-## 3.1 Motor Architecture
+## 3.1 Final Motor Architecture
 
-The final actuation system is centered around the EV3 motor outputs.
+The current motor configuration is intentionally simple.
+
+| Function | Motor | EV3 Port | Mechanical Responsibility |
+| :--- | :--- | :---: | :--- |
+| Propulsion | LEGO EV3 Large Motor | A | Drives the rear drivetrain |
+| Steering | LEGO EV3 Medium Motor | B | Actuates the front Ackermann steering linkage |
+
+<div align="center">
+
+<img
+  src="../../embed/motor_role_architecture.png"
+  alt="Piolín propulsion and steering motor architecture"
+  width="820"
+/>
+
+<br>
+
+<sub><b>Figure 3.2.</b> Separation of Piolín's actuation system into propulsion and steering responsibilities.</sub>
+
+</div>
+
+The system can be understood as:
 
 ```text
-                         LEGO EV3
-                            │
-               ┌────────────┴────────────┐
-               │                         │
-               ▼                         ▼
-           PORT A                    PORT B
-               │                         │
-               ▼                         ▼
-         DRIVE MOTOR               STEERING MOTOR
-               │                         │
-               ▼                         ▼
-        Rear Drivetrain           Steering Linkage
-               │                         │
-               ▼                         ▼
-          Rear Wheels             Front Wheels
-               │                         │
-               └────────────┬────────────┘
-                            ▼
-                     VEHICLE MOTION
+                    LEGO EV3
+                       │
+          ┌────────────┴────────────┐
+          │                         │
+          ▼                         ▼
+        PORT A                    PORT B
+          │                         │
+          ▼                         ▼
+     LARGE MOTOR               MEDIUM MOTOR
+          │                         │
+          ▼                         ▼
+   REAR PROPULSION           FRONT STEERING
+          │                         │
+          └────────────┬────────────┘
+                       ▼
+                  VEHICLE MOTION
 ```
 
-The drive and steering systems are mechanically related through the movement of the complete robot, but they are controlled independently by software.
-
-This is important because Piolín can reduce propulsion speed while keeping a strong steering command, or maintain a higher forward speed while making only a small steering correction.
+Using only two motors also reduces wiring, software complexity, mechanical mass, and the number of actuators that need to be calibrated before a run.
 
 ---
 
-# 3.2 Drive Motor
+## 3.2 Motor A — LEGO EV3 Large Motor
 
-The **drive motor connected to EV3 Port A** is responsible for Piolín's propulsion.
+The **LEGO Mindstorms EV3 Large Motor** is connected to **Motor Port A** and is Piolín's only propulsion motor.
 
-Its output is transmitted to the rear drivetrain, which converts motor rotation into vehicle movement. The rear wheels therefore provide the primary traction force that moves Piolín around the competition field.
+<div align="center">
 
-The complete propulsion chain is:
+<img
+  src="../../v-photos/v4/drive_motor_mount.jpg"
+  alt="EV3 Large Motor mounting and drivetrain connection on Piolín"
+  width="680"
+/>
+
+<br>
+
+<sub><b>Figure 3.3.</b> Mechanical installation of Motor A showing its relationship with Piolín's rear drivetrain.</sub>
+
+</div>
+
+The Large Motor was selected for propulsion because this actuator must overcome the mechanical resistance of the complete vehicle. When Piolín accelerates, the propulsion motor is responsible for accelerating the robot's full mass. It must also maintain vehicle motion while the front wheels are turned, reverse when required, and continue producing useful wheel torque throughout the complete course.
+
+The propulsion chain is:
 
 ```text
-EV3 Port A
-     ↓
-Drive Motor
-     ↓
-Mechanical Transmission
-     ↓
-Rear Axle
-     ↓
-Rear Wheels
-     ↓
-Forward / Reverse Motion
+EV3
+ ↓
+Motor Port A
+ ↓
+Large Motor
+ ↓
+Rear drivetrain
+ ↓
+Rear wheels
+ ↓
+Vehicle translation
 ```
 
-Because the drive motor is connected directly to the EV3, Piolín does not require an external H-bridge or separate motor controller for its final propulsion system.
+<div align="center">
 
-This keeps the actuation architecture integrated with the same controller that reads the sensors and calculates the navigation behavior.
+<img
+  src="../../embed/drivetrain_power_flow.png"
+  alt="Piolín propulsion power flow from Motor A to the rear wheels"
+  width="820"
+/>
+
+<br>
+
+<sub><b>Figure 3.4.</b> Mechanical propulsion path from the EV3 Large Motor to the rear wheels.</sub>
+
+</div>
+
+The EV3 determines the requested motor command, but the resulting vehicle motion depends on the complete mechanical system. Axle alignment, wheel traction, drivetrain friction, gearing, vehicle mass, battery condition, and steering angle all influence the physical result.
+
+For this reason, a motor command should not be interpreted as an exact vehicle speed without measurement.
 
 ---
 
-## 3.3 Rear Wheel Geometry
+## 3.3 Why a Large Motor Was Selected for Propulsion
 
-Piolín's final rear wheels have a measured diameter of approximately:
+The propulsion motor experiences a different type of load than the steering motor.
+
+Motor A must continuously transfer energy into vehicle motion. It needs sufficient mechanical capability to:
 
 ```text
-REAR_DIAMETER = 2.4 in
+accelerate the complete robot
+
+maintain forward motion
+
+reverse the vehicle
+
+continue driving during steering
+
+recover after obstacle maneuvers
 ```
 
-Using the conversion:
+The EV3 Large Motor is better suited to this role than the Medium Motor because Piolín's propulsion system benefits more from torque capacity and sustained drivetrain operation than from compact steering-oriented actuation.
+
+Using the Medium Motor as the primary drive actuator would reduce the distinction between the actuator roles and could make the propulsion system more sensitive to changes in vehicle load or drivetrain resistance.
+
+The final selection therefore follows the physical demand of each subsystem:
 
 ```text
-1 in = 25.4 mm
-```
-
-the diameter becomes:
-
-```text
-REAR_DIAMETER = 2.4 × 25.4
-```
-
-```text
-REAR_DIAMETER = 60.96 mm
-```
-
-Therefore:
-
-```text
-REAR_DIAMETER ≈ 61.0 mm
-```
-
-The corresponding radius is approximately:
-
-```text
-REAR_RADIUS ≈ 30.5 mm
-```
-
-The wheel circumference can be calculated using:
-
-```text
-CIRCUMFERENCE = PI × DIAMETER
-```
-
-Therefore:
-
-```text
-CIRCUMFERENCE = PI × 60.96
-```
-
-which gives approximately:
-
-```text
-REAR_CIRCUMFERENCE ≈ 191.5 mm
-```
-
-This means that one complete rotation of a rear wheel corresponds geometrically to approximately **191.5 mm of travel** if the wheel rolls without slipping.
-
-| Rear Wheel Parameter | Value |
-| :--- | :---: |
-| **Diameter** | **~61.0 mm** |
-| **Radius** | **~30.5 mm** |
-| **Circumference** | **~191.5 mm** |
-| **Primary Function** | Propulsion |
-
----
-
-## 3.4 Motor Rotation and Vehicle Movement
-
-The drive motor includes encoder feedback, allowing the EV3 to know how much the motor has rotated.
-
-Motor rotation can therefore be related to theoretical wheel travel.
-
-For a complete wheel rotation:
-
-```text
-1 rotation = 360°
-```
-
-and:
-
-```text
-DISTANCE = WHEEL_ROTATIONS × WHEEL_CIRCUMFERENCE
-```
-
-Using Piolín's rear wheel circumference:
-
-```text
-DISTANCE = WHEEL_ROTATIONS × 191.5 mm
-```
-
-For example:
-
-```text
-1 wheel rotation ≈ 191.5 mm
-```
-
-```text
-2 wheel rotations ≈ 383.0 mm
-```
-
-```text
-5 wheel rotations ≈ 957.5 mm
-```
-
-The same relationship can be written using degrees:
-
-```text
-WHEEL_ROTATIONS = ROTATION_DEGREES / 360
-```
-
-therefore:
-
-```text
-DISTANCE =
-(ROTATION_DEGREES / 360) × 191.5 mm
-```
-
-This relationship describes the geometric connection between wheel rotation and vehicle movement.
-
-In real operation, the actual physical distance can differ slightly because of tire deformation, drivetrain play, wheel slip, and friction between the tire and the competition surface.
-
-For this reason, the encoder is treated as a **repeatable rotational reference**, rather than as a perfect measurement of absolute ground distance.
-
----
-
-## 3.5 Why Encoder Feedback Is Important
-
-Without encoder feedback, propulsion would need to rely almost completely on time.
-
-A command such as:
-
-```text
-Drive for 1 second
-```
-
-does not necessarily produce exactly the same physical displacement every time because motor load, battery condition, mechanical resistance, and surface friction can affect the result.
-
-Encoder information provides a more direct reference:
-
-```text
-Motor rotates
-      ↓
-Encoder measures rotation
-      ↓
-EV3 knows motor displacement
-```
-
-This is especially useful for controlled movements where the software needs a repeatable reference for how far the drivetrain has rotated.
-
-The encoder does not eliminate physical wheel slip, but it provides a much more useful mechanical reference than elapsed time alone.
-
----
-
-# 3.6 Speed and Wheel Rotation
-
-The speed of Piolín is directly related to the rotational speed of the rear wheels.
-
-The relationship between wheel RPM and theoretical vehicle velocity is:
-
-```text
-LINEAR_SPEED =
-(RPM × WHEEL_CIRCUMFERENCE) / 60
-```
-
-Using Piolín's rear-wheel circumference:
-
-```text
-WHEEL_CIRCUMFERENCE = 0.1915 m
-```
-
-the equation becomes:
-
-```text
-LINEAR_SPEED =
-(RPM × 0.1915) / 60
-```
-
-For example, a wheel rotating at:
-
-```text
-100 RPM
-```
-
-would correspond geometrically to:
-
-```text
-LINEAR_SPEED =
-(100 × 0.1915) / 60
-```
-
-```text
-LINEAR_SPEED ≈ 0.319 m/s
-```
-
-This value is an example of the mathematical relationship between rotational speed and linear velocity. It is not presented as Piolín's measured competition speed.
-
-The actual speed of the complete robot also depends on motor command, battery condition, mechanical load, drivetrain resistance, tire behavior, and the current navigation state.
-
----
-
-# 3.7 Vehicle Mass and Drive Force
-
-Piolín's final measured mass is approximately:
-
-```text
-MASS = 0.80476 kg
-```
-
-The basic relationship between mass, acceleration, and force is:
-
-```text
-FORCE = MASS × ACCELERATION
-```
-
-For Piolín:
-
-```text
-FORCE = 0.80476 × ACCELERATION
-```
-
-If an idealized acceleration of:
-
-```text
-1 m/s²
-```
-
-is considered, the inertial force would be:
-
-```text
-FORCE = 0.80476 × 1
-```
-
-```text
-FORCE ≈ 0.805 N
-```
-
-This calculation represents only the ideal force associated with accelerating the robot's mass.
-
-In the physical drivetrain, additional force is required to overcome axle friction, tire deformation, rolling resistance, transmission resistance, and other mechanical losses.
-
-Those additional forces are not assigned arbitrary coefficients in this document because they are physical properties of the complete robot rather than fixed theoretical constants.
-
----
-
-# 3.8 Wheel Torque Relationship
-
-Torque at the driven wheel is related to tangential ground force through:
-
-```text
-TORQUE = FORCE × WHEEL_RADIUS
-```
-
-Piolín's rear wheel radius is approximately:
-
-```text
-REAR_RADIUS = 0.0305 m
-```
-
-Using the idealized force example:
-
-```text
-FORCE ≈ 0.805 N
-```
-
-the corresponding wheel torque would be:
-
-```text
-TORQUE = 0.805 × 0.0305
-```
-
-```text
-TORQUE ≈ 0.0246 N·m
-```
-
-This is an ideal mechanical calculation showing the relationship between robot mass, acceleration, wheel radius, and wheel torque. It does not represent the complete real torque requirement because mechanical losses are also present.
-
-The wheel radius produces an important engineering relationship:
-
-```text
-LARGER WHEEL
-      │
-      ├── Greater travel per rotation
-      │
-      └── Greater torque required
-          for the same ground force
-
-
-SMALLER WHEEL
-      │
-      ├── Less travel per rotation
-      │
-      └── Lower torque required
-          for the same ground force
-```
-
-Piolín's approximately 61 mm rear wheels therefore influence both vehicle speed and drivetrain load.
-
----
-
-# 3.9 Why Stall Torque Does Not Describe Normal Driving
-
-A motor's stall torque represents the torque produced when the motor shaft cannot rotate.
-
-At stall:
-
-```text
-MOTOR SPEED = 0
-```
-
-This is very different from normal autonomous driving.
-
-Piolín requires the motor to produce torque while simultaneously rotating at a useful speed. Therefore, stall torque alone does not describe the actual performance of the propulsion system during a competition run.
-
-Motor behavior generally follows the relationship:
-
-```text
-Higher mechanical load
+Higher continuous vehicle load
         ↓
-Lower motor speed
+Large Motor
         ↓
-Higher required torque
+Propulsion
 ```
 
 while:
 
 ```text
-Lower mechanical load
+Controlled angular positioning
         ↓
-Higher achievable speed
+Medium Motor
+        ↓
+Steering
 ```
-
-The final propulsion system is therefore considered as a balance between **speed and available torque**, rather than as a system designed around maximum stall torque.
 
 ---
 
-# 3.10 Variable Propulsion Speed
+## 3.4 Rear-Wheel Propulsion
 
-Motor A does not operate at one permanent speed throughout the entire course.
+Piolín uses rear-wheel propulsion rather than front-wheel drive or differential drive.
 
-Different navigation situations require different propulsion behavior.
+<div align="center">
 
-During a straight section, Piolín can use a relatively higher speed because the steering corrections are normally smaller and the track geometry is predictable.
+<img
+  src="../../v-photos/v4/rear_drivetrain_top.jpg"
+  alt="Piolín rear drivetrain viewed from above"
+  width="700"
+/>
 
-During a corner, lower propulsion speed can provide the steering system with more physical time to change the robot's trajectory.
+<br>
 
-During obstacle avoidance, the drive speed can also be controlled so that the steering mechanism has enough time to produce the commanded avoidance path.
+<sub><b>Figure 3.5.</b> Rear drivetrain through which Motor A transfers propulsion to the vehicle.</sub>
 
-The general relationship is:
+</div>
+
+This choice separates the two main mechanical functions of the vehicle.
+
+The front wheels primarily determine direction, while the rear wheels primarily generate longitudinal motion.
 
 ```text
-STRAIGHT
-   ↓
-Higher practical speed
+FRONT
+↓
+STEERING
 
 
-CORNER
-   ↓
-Controlled speed
-
-
-OBSTACLE MANEUVER
-   ↓
-Controlled speed
-
-
-FRONTAL EMERGENCY
-   ↓
-STOP
+REAR
+↓
+PROPULSION
 ```
 
-This means that propulsion is part of Piolín's navigation logic rather than simply an ON/OFF function.
+This is useful because the steering linkage can be optimized for controlled wheel-angle movement without also having to transmit propulsion torque through the same moving steering joints.
+
+The rear drive layout also allows the front assembly to remain mechanically focused on Ackermann steering geometry.
 
 ---
 
-# 3.11 Interaction Between Speed and Steering
+## 3.5 Motor A and Vehicle Speed
 
-The drive motor does not determine steering angle, but its speed strongly affects the trajectory produced by the steering system.
+The software can change the command sent to Motor A, but the relationship between motor command and actual vehicle speed is not perfectly constant.
 
-The actual path of the robot depends on both:
+Vehicle speed depends on several factors:
+
+```text
+motor command
+
+battery condition
+
+drivetrain resistance
+
+wheel traction
+
+vehicle mass
+
+steering angle
+
+track surface
+```
+
+For example, Piolín may travel differently at the same nominal drive command when the front wheels are centered compared with when they are strongly turned.
+
+During strong steering, the vehicle experiences additional rolling and lateral resistance. This means that the propulsion system and steering system cannot be treated as completely independent physical systems even though they use separate motors.
+
+The software must therefore consider the interaction between:
 
 ```text
 DRIVE SPEED
-     +
-STEERING ANGLE
-     ↓
-ROBOT TRAJECTORY
++
+STEERING INTENSITY
 ```
 
-A strong steering command at high propulsion speed can produce a very different physical result from the same steering command at a lower speed.
-
-At higher speed, inertia can carry Piolín farther before the steering system changes its direction sufficiently. At a lower speed, the same steering angle can produce a more controlled trajectory.
-
-For this reason, propulsion and steering are treated as interconnected control variables even though they are physically controlled by separate motors.
+especially during corners and obstacle avoidance.
 
 ---
 
-# 3.12 Drive Motor During Straight Navigation
+## 3.6 Motor Encoder Feedback
 
-During straight track sections, Motor A provides continuous propulsion while the steering motor performs small directional corrections.
+The LEGO EV3 motors provide rotational feedback through their internal encoders. This allows the software to reason about motor rotation rather than controlling the actuator only through time.
 
 Conceptually:
 
 ```text
-                 STRAIGHT SECTION
-                        │
-                        ▼
-                    MOTOR A
-                Forward Propulsion
-                        │
-                        +
-                        │
-                    MOTOR B
-              Small Corrections
-                        │
-                        ▼
-                Stable Trajectory
+Motor command
+     ↓
+Motor rotates
+     ↓
+Encoder measures rotation
+     ↓
+EV3 reads motor position
 ```
 
-The ultrasonic sensors continuously provide information about Piolín's relationship with the track walls.
-
-The EV3 can therefore maintain propulsion while modifying steering independently.
-
-This separation prevents normal wall-following corrections from requiring changes to the drivetrain architecture.
-
----
-
-# 3.13 Drive Motor During Corner Navigation
-
-When Piolín enters a corner, the steering demand becomes significantly larger than during a straight section.
-
-The propulsion system must therefore work together with the Ackermann steering mechanism.
+This is particularly useful for movements such as:
 
 ```text
-Corner detected
+controlled forward displacement
+
+reverse movement
+
+parking approach
+
+steering-centering procedures
+```
+
+However, encoder rotation should not automatically be interpreted as exact vehicle displacement.
+
+For propulsion:
+
+```text
+Motor rotation
       ↓
-Navigation state changes
+Drivetrain rotation
       ↓
-Steering demand increases
-      +
-Drive speed controlled
+Wheel rotation
       ↓
-Vehicle follows corner
+Theoretical distance
 ```
 
-Reducing propulsion when necessary allows the front wheels more time to redirect the robot before Piolín reaches the next wall.
+but the physical robot may experience:
 
-The drive motor therefore contributes indirectly to corner accuracy even though Motor B is responsible for the physical steering angle.
+```text
+tire slip
+
+mechanical compliance
+
+gear backlash
+
+wheel deformation
+
+turning losses
+```
+
+Therefore encoder-based movement is useful, but it is not equivalent to perfect odometry.
 
 ---
 
-# 3.14 Drive Motor During Obstacle Avoidance
+## 3.7 Motor Rotation and Theoretical Vehicle Distance
 
-During the Obstacle Challenge, the propulsion system must also respond to pillar detections from the vision subsystem.
+If the effective wheel circumference and drivetrain ratio are known, theoretical displacement can be estimated from motor rotation.
 
-The HuskyLens provides obstacle information through the Arduino Nano, and the EV3 determines the corresponding avoidance behavior.
-
-The relationship becomes:
+For a directly driven wheel:
 
 ```text
-HuskyLens
-     ↓
-Arduino Nano
-     ↓
-LEGO EV3
-     ↓
-Obstacle Decision
-     │
-     ├──────────────┐
-     ▼              ▼
-  MOTOR A         MOTOR B
-Controlled       Avoidance
-  Speed          Steering
-     │              │
-     └──────┬───────┘
-            ▼
-      Obstacle Path
+DISTANCE =
+(MOTOR_ROTATION / 360)
+×
+WHEEL_CIRCUMFERENCE
 ```
 
-Piolín can therefore modify both propulsion and steering during an avoidance maneuver without changing the physical drivetrain configuration.
+If a gear ratio exists between the motor and wheel:
+
+```text
+G =
+MOTOR_ROTATION / WHEEL_ROTATION
+```
+
+then:
+
+```text
+WHEEL_ROTATION =
+MOTOR_ROTATION / G
+```
+
+and:
+
+```text
+DISTANCE =
+(MOTOR_ROTATION / (360 × G))
+×
+WHEEL_CIRCUMFERENCE
+```
+
+These equations are useful for understanding the drivetrain, but the final Piolín documentation should only substitute numerical wheel dimensions and gear ratios after the current V4 robot has been physically measured.
+
+<div align="center">
+
+<img
+  src="../../embed/motor_encoder_distance.png"
+  alt="Relationship between motor encoder rotation and theoretical vehicle distance"
+  width="800"
+/>
+
+<br>
+
+<sub><b>Figure 3.6.</b> Relationship between Motor A encoder rotation, drivetrain transmission, wheel rotation, and theoretical vehicle displacement.</sub>
+
+</div>
 
 ---
 
-# 3.15 Emergency Propulsion Stop
+## 3.8 Motor B — LEGO EV3 Medium Motor
 
-The front ultrasonic sensor connected to S1 provides a high-priority safety input for the drive system.
+Motor B is a **LEGO Mindstorms EV3 Medium Motor** dedicated to steering.
 
-The sensor does not continuously control Motor A. Instead, it can interrupt normal propulsion if the EV3 determines that something is dangerously close directly ahead.
+<div align="center">
+
+<img
+  src="../../v-photos/v4/motor_b_medium_steering.jpg"
+  alt="LEGO EV3 Medium Motor installed as Piolín's steering actuator"
+  width="680"
+/>
+
+<br>
+
+<sub><b>Figure 3.7.</b> EV3 Medium Motor installed as Motor B and connected to Piolín's Ackermann steering mechanism.</sub>
+
+</div>
+
+Unlike Motor A, Motor B does not continuously propel the robot. Its main responsibility is controlled angular positioning.
+
+The actuation path is:
 
 ```text
-Front Ultrasonic
-       │
-       ▼
-Frontal danger?
-       │
-   ┌───┴───┐
-   │       │
-  NO      YES
-   │       │
-   ▼       ▼
-Normal   Stop /
-Drive    Brake
+EV3
+ ↓
+Motor Port B
+ ↓
+Medium Motor
+ ↓
+Mechanical steering linkage
+ ↓
+Front-wheel angles
+ ↓
+Vehicle turning trajectory
 ```
 
-This creates an independent relationship between frontal safety and propulsion.
+The Medium Motor was selected because steering requires relatively fast and repeatable position changes within a limited motion range.
 
-Even if Piolín is currently executing wall-following, corner handling, or obstacle avoidance, a sufficiently dangerous frontal condition can take priority over the normal drive command.
+The steering motor must be able to:
 
-This does not guarantee that every physical collision is impossible. It provides an additional safety layer designed to reduce the risk of continued propulsion toward a directly detected frontal obstacle.
+```text
+move left
+
+move right
+
+return toward center
+
+hold an intermediate steering request
+
+change direction during recovery
+```
+
+rather than rotate continuously through an unrestricted drivetrain.
 
 ---
 
-# 3.16 Physical Braking Behavior
+## 3.9 Why a Medium Motor Was Selected for Steering
 
-A motor command can change immediately, but the physical robot cannot stop with zero distance.
+Using a Large Motor for steering would provide greater mechanical size and torque capability, but those characteristics are not necessarily advantageous in the front steering system.
 
-Piolín has mass and therefore momentum while moving.
-
-The physical sequence is:
+The steering actuator benefits from:
 
 ```text
-Stop command
-     ↓
-Motor braking begins
-     ↓
-Vehicle decelerates
-     ↓
-Robot stops
+compact installation
+
+controlled angular movement
+
+lower moving-system mass
+
+quick directional response
 ```
 
-This distinction is important because software stopping and physical stopping are not the same event.
+The Medium Motor fits the steering mechanism more naturally and allows the front section of the chassis to remain more compact.
 
-The propulsion system therefore interacts directly with Piolín's safety architecture. Higher vehicle speed produces greater momentum, while controlled speed gives the robot more room to respond to navigation and safety information.
+The comparison between the two selected actuators is therefore functional rather than simply based on which motor is stronger.
+
+| Characteristic | Large Motor — A | Medium Motor — B |
+| :--- | :--- | :--- |
+| Main role | Propulsion | Steering |
+| Typical operation in Piolín | Continuous/variable rotation | Limited angular positioning |
+| Mechanical load | Complete vehicle motion | Steering linkage |
+| Connected mechanism | Rear drivetrain | Front Ackermann linkage |
+| Software variable | Drive command | Steering command |
+| Encoder use | Rotation/displacement reference | Steering-position reference |
+
+This division prevents one actuator from being required to perform two very different mechanical tasks.
 
 ---
 
-# 3.17 Battery and Motor Behavior
+## 3.10 Steering Motor Position Is Not Wheel Angle
 
-The EV3 supplies the motors from the robot's battery system.
-
-Motor behavior can therefore change as electrical conditions change.
-
-The power path is:
+A critical detail in Piolín's steering system is that:
 
 ```text
-BATTERY
+Motor B angle
+≠
+physical wheel angle
+```
+
+The Medium Motor rotates a mechanical linkage. That linkage then changes the orientation of the front wheels.
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/ackermann_top.jpg"
+  alt="Piolín steering linkage showing the connection between Motor B and front wheels"
+  width="720"
+/>
+
+<br>
+
+<sub><b>Figure 3.8.</b> Ackermann-style linkage through which Motor B rotation becomes physical front-wheel steering.</sub>
+
+</div>
+
+The relationship can be represented conceptually as:
+
+```text
+Motor encoder angle
+        ↓
+Steering linkage geometry
+        ↓
+Steering-arm displacement
+        ↓
+Left wheel angle
++
+Right wheel angle
+```
+
+The relationship is not necessarily linear across the complete range.
+
+This is why the steering system must be calibrated mechanically rather than assuming that:
+
+```text
+10° motor rotation
+=
+10° wheel rotation
+```
+
+No such equality is assumed in the current documentation.
+
+---
+
+## 3.11 Mechanical Center
+
+The most important steering reference is the **mechanical center**.
+
+When Piolín is intended to travel straight, the front steering system should return to a physical alignment in which the wheels are approximately centered relative to the chassis.
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/ackermann_center.jpg"
+  alt="Piolín front wheels at steering center"
+  width="680"
+/>
+
+<br>
+
+<sub><b>Figure 3.9.</b> Front steering mechanism at its mechanical center reference.</sub>
+
+</div>
+
+Software can then use a steering-center reference:
+
+```text
+STEERING_CENTER
+```
+
+from which left and right commands are measured.
+
+Conceptually:
+
+```text
+negative / one direction
+←
+CENTER
+→
+positive / opposite direction
+```
+
+The exact numerical convention depends on the current program.
+
+The important engineering requirement is consistency between:
+
+```text
+software center
+```
+
+and:
+
+```text
+physical wheel center
+```
+
+If these do not match, a software command intended to drive straight can create a continuous curved trajectory.
+
+---
+
+## 3.12 Steering Limits
+
+The steering mechanism has finite physical limits.
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/ackermann_left_lock.jpg"
+  alt="Piolín steering mechanism near its left physical limit"
+  width="620"
+/>
+
+<br>
+
+<sub><b>Figure 3.10.</b> Steering mechanism near the left side of its usable range.</sub>
+
+</div>
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/ackermann_right_lock.jpg"
+  alt="Piolín steering mechanism near its right physical limit"
+  width="620"
+/>
+
+<br>
+
+<sub><b>Figure 3.11.</b> Steering mechanism near the right side of its usable range.</sub>
+
+</div>
+
+These limits exist because the mechanical linkage cannot rotate indefinitely.
+
+Driving Motor B beyond the useful steering range can create:
+
+```text
+mechanical stress
+
+linkage deformation
+
+increased motor load
+
+unpredictable wheel geometry
+```
+
+The software should therefore keep steering requests inside a validated usable range rather than treating the Medium Motor as an unrestricted actuator.
+
+The final numerical limits should be documented after the V4 steering mechanism is measured and calibrated.
+
+---
+
+## 3.13 Ackermann Steering and Motor B
+
+Motor B acts on an Ackermann-style steering mechanism rather than rotating both wheels to exactly the same angle.
+
+During an ideal turn:
+
+```text
+INNER FRONT WHEEL
+→ larger steering angle
+
+
+OUTER FRONT WHEEL
+→ smaller steering angle
+```
+
+because the inner wheel follows a smaller turning radius.
+
+<div align="center">
+
+<img
+  src="../../embed/ackermann_linkage_annotated.png"
+  alt="Annotated Piolín Ackermann steering linkage"
+  width="820"
+/>
+
+<br>
+
+<sub><b>Figure 3.12.</b> Annotated steering linkage showing how one Motor B input produces coordinated movement of both front wheels.</sub>
+
+</div>
+
+This improves vehicle-like turning compared with a front axle where both steering wheels are forced into identical angles.
+
+The detailed Ackermann geometry is documented in the mechanical steering section, but Motor B is the actuator that makes that geometry usable by the autonomous controller.
+
+---
+
+## 3.14 Steering Movement Evidence
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/steering_motion.gif"
+  alt="Piolín steering movement from left through center to right"
+  width="680"
+/>
+
+<br>
+
+<sub><b>Figure 3.13.</b> Real movement of the current steering mechanism through its usable range.</sub>
+
+</div>
+
+The steering-motion GIF is valuable because it provides direct physical evidence that Motor B actuates both front wheels through the installed linkage.
+
+It also helps document properties that are difficult to communicate through a static diagram, including:
+
+```text
+linkage motion
+
+relative wheel movement
+
+mechanical clearance
+
+return toward center
+```
+
+The GIF should not be treated as proof that the geometry is mathematically perfect Ackermann. Instead, it demonstrates the actual installed mechanism that the software must control.
+
+---
+
+## 3.15 Coordinating Motor A and Motor B
+
+Piolín's movement is produced by combining propulsion and steering.
+
+```text
+Motor A
+→ how strongly the robot moves
+
+
+Motor B
+→ where that motion is directed
+```
+
+Neither actuator alone defines the complete trajectory.
+
+For example, a strong steering command while the drive motor is moving quickly can create:
+
+```text
+larger lateral acceleration
+
+greater tire scrub
+
+larger swept path
+
+more difficult recovery
+```
+
+The same steering request at a lower propulsion speed can produce a more controlled maneuver.
+
+This means the EV3 software must consider vehicle speed when choosing steering behavior.
+
+<div align="center">
+
+<img
+  src="../../embed/drive_steering_interaction.png"
+  alt="Interaction between propulsion speed and steering command"
+  width="820"
+/>
+
+<br>
+
+<sub><b>Figure 3.14.</b> Vehicle motion results from the combined effect of Motor A propulsion and Motor B steering.</sub>
+
+</div>
+
+---
+
+## 3.16 Motors During the Open Challenge
+
+The motor hardware is identical in both competition rounds.
+
+During Open, the EV3 uses information from:
+
+```text
+S1 Gyro
+
+S2 Left Ultrasonic
+
+S3 Right Ultrasonic
+
+S4 Color
+```
+
+to determine the appropriate Motor A and Motor B commands.
+
+The interaction is:
+
+```text
+wall geometry
++
+gyro heading
++
+course state
+       ↓
+EV3
+       ↓
+drive request
++
+steering request
+       ↓
+Motor A + Motor B
+```
+
+Motor A provides the forward motion required to traverse the course, while Motor B reacts to wall position, heading error, and corner state.
+
+The gyro does not physically steer the robot. It changes the information used by the EV3 to decide the Motor B command.
+
+---
+
+## 3.17 Motors During Cornering
+
+Corners create one of the strongest interactions between the two motors.
+
+During a straight, Motor B should remain relatively close to the steering center while Motor A provides forward propulsion.
+
+Approaching a corner:
+
+```text
+corner detected
+      ↓
+steering request increases
+      ↓
+Motor B changes wheel angles
+      ↓
+vehicle begins curved trajectory
+```
+
+The propulsion motor continues moving the robot through this trajectory.
+
+The software can reduce, maintain, or otherwise adjust Motor A depending on how aggressive the curve needs to be.
+
+The physical result depends on both actuators simultaneously.
+
+```text
+Corner shape
+≈
+Steering geometry
++
+Vehicle speed
++
+Mechanical traction
+```
+
+This is why a corner that appears too wide is not automatically a Motor B problem. It can also result from excessive propulsion speed.
+
+---
+
+## 3.18 Motors During the Obstacle Challenge
+
+During Obstacles, Motor A and Motor B remain physically unchanged.
+
+What changes is the information used by the EV3.
+
+```text
+Pixy2.1
+→ obstacle signature and position
+
+
+Ultrasonics
+→ wall geometry
+
+
+Color
+→ course state
+```
+
+The resulting avoidance maneuver requires coordinated actuation.
+
+For a green pillar:
+
+```text
+GREEN
+→ required LEFT passing side
+```
+
+For a red pillar:
+
+```text
+RED
+→ required RIGHT passing side
+```
+
+However, the color does not directly determine one fixed steering-motor angle.
+
+The EV3 must consider:
+
+```text
+pillar position
+
+pillar size
+
+wall distances
+
+vehicle speed
+
+previous steering state
+```
+
+before commanding Motor B.
+
+Motor A must also move the vehicle through the maneuver at a speed that allows the steering system enough time to react.
+
+---
+
+## 3.19 Countersteering and Recovery
+
+Obstacle avoidance does not end when Piolín moves to one side of a pillar.
+
+After passing the obstacle, the vehicle must recover a useful trajectory.
+
+This often requires **countersteering**.
+
+Conceptually:
+
+```text
+avoid pillar
+      ↓
+vehicle displaced laterally
+      ↓
+pillar passed
+      ↓
+reverse steering tendency
+      ↓
+Motor B countersteers
+      ↓
+vehicle returns toward normal path
+```
+
+<div align="center">
+
+<img
+  src="../../embed/obstacle_steering_sequence.png"
+  alt="Motor B obstacle avoidance and countersteering sequence"
+  width="850"
+/>
+
+<br>
+
+<sub><b>Figure 3.15.</b> Steering sequence during obstacle avoidance: initial avoidance, passing phase, countersteering, and recovery.</sub>
+
+</div>
+
+If the countersteering begins too early, the robot can move back toward the pillar.
+
+If it begins too late, Piolín can remain too close to a wall or enter the next section with an incorrect trajectory.
+
+This demonstrates why Motor B behavior is closely connected to obstacle-state logic.
+
+---
+
+## 3.20 Reverse Motion
+
+Motor A is capable of reversing Piolín.
+
+Reverse movement is useful when the robot needs to create additional space before reacting to:
+
+```text
+an obstacle
+
+a wall
+
+a failed approach
+
+a parking maneuver
+```
+
+The mechanical architecture does not change during reverse motion. Motor B continues controlling the front steering geometry while Motor A drives the rear wheels in the opposite direction.
+
+However, the relationship between steering and vehicle path changes from the driver's perspective because the robot is moving backward.
+
+For this reason, reverse behavior should be tested as a vehicle maneuver rather than assumed to behave identically to forward steering.
+
+---
+
+## 3.21 Parking
+
+Parking is one of the situations where encoder feedback, propulsion control, and steering control can all interact.
+
+A parking sequence may require:
+
+```text
+progress detection
+
+controlled approach
+
+steering alignment
+
+forward or reverse movement
+
+final displacement
+```
+
+Motor A provides the vehicle movement while Motor B determines the orientation of the vehicle during that movement.
+
+Because the final parking strategies for both rounds are still being tuned, this document does not present one fixed motor-angle or encoder-distance value as final.
+
+The motor hardware itself is already defined, while the exact parking control sequence belongs to the software and calibration layers.
+
+---
+
+## 3.22 Mechanical Load and Motor Response
+
+Motor response depends on mechanical load.
+
+For Motor A, sources of load include:
+
+```text
+robot mass
+
+drivetrain friction
+
+wheel traction
+
+steering angle
+
+track surface
+```
+
+For Motor B, load can increase because of:
+
+```text
+tire friction
+
+steering linkage friction
+
+mechanical misalignment
+
+linkage binding
+
+wheel load
+```
+
+A motor that appears weak does not necessarily have an electrical problem.
+
+The failure may be mechanical.
+
+This is why motor diagnostics should distinguish:
+
+```text
+Motor command problem
+
+Motor hardware problem
+
+Mechanical transmission problem
+```
+
+rather than changing software values immediately.
+
+---
+
+## 3.23 Mechanical Alignment and Propulsion Efficiency
+
+The rear drivetrain should rotate freely and remain properly aligned.
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/rear_drivetrain_bottom.jpg"
+  alt="Bottom view of Piolín rear drivetrain"
+  width="700"
+/>
+
+<br>
+
+<sub><b>Figure 3.16.</b> Bottom view of the rear drivetrain, useful for examining axle alignment and mechanical transmission.</sub>
+
+</div>
+
+If an axle is misaligned or a wheel rubs against the chassis, Motor A must overcome additional resistance.
+
+This can produce symptoms such as:
+
+```text
+reduced speed
+
+asymmetric movement
+
+greater battery demand
+
+inconsistent encoder displacement
+```
+
+The correct response is not necessarily to increase motor command.
+
+Improving the drivetrain mechanically can provide a better solution.
+
+---
+
+## 3.24 Mechanical Alignment and Steering Load
+
+The same principle applies to Motor B.
+
+If the steering linkage is too tight or misaligned, the Medium Motor may:
+
+```text
+move slowly
+
+fail to reach requested position
+
+return inconsistently
+
+produce different left/right behavior
+```
+
+The first diagnostic should therefore be mechanical.
+
+```text
+Disconnect / unload steering
+        ↓
+Check free linkage motion
+        ↓
+Check motor response
+        ↓
+Reconnect system
+```
+
+This prevents software from compensating for avoidable physical resistance.
+
+---
+
+## 3.25 Motor Commands vs. Physical Results
+
+A recurring engineering distinction in Piolín is:
+
+```text
+software command
+≠
+guaranteed physical result
+```
+
+For example:
+
+```text
+Motor A command
+≠
+exact vehicle speed
+```
+
+and:
+
+```text
+Motor B command
+≠
+exact wheel angle
+```
+
+The physical result passes through several layers:
+
+```text
+COMMAND
    ↓
-LEGO EV3
+MOTOR
    ↓
-┌───────────────┐
-│               │
-▼               ▼
-MOTOR A       MOTOR B
-Drive         Steering
+MECHANICAL TRANSMISSION
+   ↓
+WHEELS
+   ↓
+TRACK INTERACTION
+   ↓
+VEHICLE MOTION
 ```
 
-Both motors can operate simultaneously, meaning that propulsion and steering share the same EV3 power source.
+<div align="center">
 
-Mechanical load also affects motor behavior. A steering mechanism under increased resistance and a drivetrain accelerating the complete robot can create a different electrical demand than a motor operating with little mechanical load.
+<img
+  src="../../embed/motor_command_to_motion.png"
+  alt="Transformation from EV3 motor command to physical vehicle motion"
+  width="850"
+/>
 
-The battery and power-distribution architecture are documented separately in the dedicated component sections.
+<br>
+
+<sub><b>Figure 3.17.</b> A motor command becomes vehicle motion only after passing through the actuator, mechanical transmission, wheel geometry, and track interaction.</sub>
+
+</div>
+
+This is why Piolín's final parameters must be calibrated on the assembled vehicle.
 
 ---
 
-# 3.18 Mechanical Sources of Propulsion Error
+## 3.26 Alternative Actuation Architectures
 
-The encoder measures motor rotation, but several mechanical elements exist between motor rotation and real vehicle movement.
+Several vehicle architectures could theoretically have been used.
 
-```text
-MOTOR ENCODER
-      ↓
-MOTOR SHAFT
-      ↓
-DRIVETRAIN
-      ↓
-REAR WHEELS
-      ↓
-TIRE / FLOOR INTERACTION
-      ↓
-REAL VEHICLE MOVEMENT
-```
+| Architecture | Advantage | Limitation for Piolín |
+| :--- | :--- | :--- |
+| Differential drive | Mechanically simple turning control | Does not reproduce car-like steering geometry |
+| Two independent drive motors + steering | Potential for additional propulsion control | Greater weight, wiring, power demand, and control complexity |
+| One Large Motor for drive + one Large Motor for steering | Greater steering torque | Larger steering actuator and unnecessary mechanical capacity |
+| One Medium Motor for drive + one Medium Motor for steering | Compact | Less appropriate propulsion role |
+| **Large Motor drive + Medium Motor steering** | **Actuator role matches mechanical demand** | Requires coordinated car-like control |
 
-Mechanical play, axle resistance, loose wheel connections, tire deformation, and wheel slip can all affect the relationship between motor rotation and physical displacement.
+The current configuration was selected because each motor is assigned according to the mechanical task it performs.
 
-This is why Piolín's propulsion system is treated as a complete mechanical chain rather than as the motor alone.
-
-A software command can be correct while the resulting physical movement differs because of mechanical behavior elsewhere in the drivetrain.
+Piolín therefore does not maximize the number or size of motors. It uses the actuator that best matches each subsystem.
 
 ---
 
-# 3.19 Steering Motor Relationship
+## 3.27 Why Two Motors Are Enough
 
-The second EV3 motor, connected to **Port B**, is responsible for controlling Piolín's front-wheel steering mechanism.
+Adding more motors does not automatically improve the vehicle.
 
-Unlike Motor A, Motor B is not used to create forward propulsion.
-
-Its job is to move the mechanical linkage that changes the angle of the front wheels.
+Additional motors would introduce:
 
 ```text
-MOTOR A
-   ↓
-PROPULSION
+more mass
 
+more cables
 
-MOTOR B
-   ↓
+more ports
+
+greater electrical demand
+
+more synchronization
+
+more mechanical components
+```
+
+The current architecture already provides the two independently controllable quantities required for vehicle motion:
+
+```text
+longitudinal propulsion
+
+steering direction
+```
+
+Therefore:
+
+```text
+2 motors
+=
+2 required actuation roles
+```
+
+Adding another motor would only be justified if it provided a clearly necessary mechanical function.
+
+No such additional actuator is required in the current Piolín design.
+
+---
+
+## 3.28 Motor Architecture Evolution
+
+Earlier robot configurations explored different mobility and steering arrangements before the current architecture stabilized.
+
+The most important development was moving toward a clear separation between:
+
+```text
+DRIVE
+```
+
+and:
+
+```text
 STEERING
 ```
 
-The two motors therefore complement each other.
+rather than treating the robot like a conventional two-wheel educational EV3 platform.
 
-Motor A determines how Piolín advances through the track, while Motor B determines the direction of that movement.
+<div align="center">
 
-The steering motor, its encoder reference, mechanical linkage, steering limits, and relationship with Ackermann geometry are documented in detail in:
+<img
+  src="../../embed/evolution_motor_architecture.png"
+  alt="Evolution of Piolín motor and mobility architecture"
+  width="880"
+/>
+
+<br>
+
+<sub><b>Figure 3.18.</b> Evolution toward the current Large-Motor propulsion and Medium-Motor Ackermann steering architecture.</sub>
+
+</div>
+
+The current actuation architecture better matches the physical requirements of WRO Future Engineers because the robot behaves as a small autonomous vehicle rather than as a point-turning mobile base.
+
+---
+
+## 3.29 Current Motor Configuration
+
+The current final motor hardware is:
 
 ```text
-docs/components/04_SteeringMotor.md
+MOTOR A
+LEGO Mindstorms EV3 Large Motor
+
+Role:
+Rear propulsion
+
+
+MOTOR B
+LEGO Mindstorms EV3 Medium Motor
+
+Role:
+Front Ackermann steering
 ```
 
----
-
-# 3.20 Why Two Separate Motors Were Selected
-
-Using independent propulsion and steering actuators gives Piolín greater control over its vehicle behavior.
-
-With differential steering, wheel speed differences are responsible for both propulsion and rotation.
-
-Piolín instead separates those functions:
+The architecture is identical in both rounds.
 
 ```text
-              DIFFERENTIAL SYSTEM
-
-Left Motor ──┐
-             ├── Speed + Direction
-Right Motor ─┘
+OPEN
+A = Large Drive
+B = Medium Steering
 
 
-              PIOLÍN SYSTEM
-
-Drive Motor ─────── Propulsion
-Steering Motor ──── Direction
+OBSTACLES
+A = Large Drive
+B = Medium Steering
 ```
 
-This arrangement more closely resembles the control architecture of a conventional road vehicle.
+Only the sensing configuration changes between Open and Obstacles.
 
-The separation also makes the software easier to reason about. A propulsion adjustment changes speed without intentionally changing steering geometry, while a steering adjustment changes vehicle direction without requiring independent left/right drive-wheel commands.
-
----
-
-# 3.21 Motor Responsibility by Navigation Situation
-
-The two motors work together differently depending on Piolín's current navigation state.
-
-| Navigation Situation | Drive Motor A | Steering Motor B |
-| :--- | :--- | :--- |
-| **Straight Navigation** | Provides forward propulsion | Performs small wall-following corrections |
-| **Corner Entry** | Maintains controlled movement | Begins stronger steering |
-| **Corner** | Controls corner speed | Holds required turning direction |
-| **Corner Exit** | Returns toward straight speed | Reduces steering toward center |
-| **Obstacle Approach** | Provides controlled approach | Prepares avoidance trajectory |
-| **Obstacle Avoidance** | Controls forward movement | Produces avoidance steering |
-| **Recovery** | Continues propulsion | Re-centers trajectory |
-| **Frontal Emergency** | **Stops / brakes** | No normal navigation priority |
-
-This demonstrates that the motors are not independent from the software state machine even though their mechanical roles remain separate.
+This means that motor behavior can be developed and mechanically validated on one common vehicle platform.
 
 ---
 
-# 3.22 Integration With Piolín's Complete Hardware System
+## 3.30 Values Intentionally Not Claimed as Final
 
-The motor system forms the final output stage of Piolín's autonomous architecture.
+The following values should only be documented numerically after they are measured on the current V4 robot:
 
 ```text
-                    ENVIRONMENT
-                        │
-          ┌─────────────┼─────────────┐
-          │             │             │
-          ▼             ▼             ▼
-     ULTRASONICS      COLOR       HUSKYLENS
-          │             │             │
-          │             │         ARDUINO
-          │             │             │
-          └─────────────┴──────┬──────┘
-                               ▼
-                            LEGO EV3
-                               │
-                        Navigation Logic
-                               │
-                    ┌──────────┴──────────┐
-                    ▼                     ▼
-                 MOTOR A               MOTOR B
-                 DRIVE                STEERING
-                    │                     │
-                    ▼                     ▼
-              Rear Wheels          Front Wheels
-                    │                     │
-                    └──────────┬──────────┘
-                               ▼
-                        ROBOT MOVEMENT
+final drivetrain gear ratio
+
+maximum vehicle speed
+
+maximum useful drive command
+
+current rear wheel diameter
+
+current front wheel diameter
+
+exact steering-motor limits
+
+exact physical left-wheel angle
+
+exact physical right-wheel angle
+
+motor-angle to wheel-angle relationship
+
+minimum turning radius
+
+measured acceleration
+
+measured stopping distance
 ```
 
-The sensors describe what is happening around Piolín. The EV3 interprets that information. The two motors then convert those decisions into physical motion.
+Older measurements may remain useful in development history, but they should not automatically become final motor specifications.
 
-This closes the autonomous control loop.
-
----
-
-# 3.23 Engineering Considerations
-
-The final motor architecture involves several important engineering trade-offs.
-
-| Design Choice | Main Advantage | Engineering Consideration |
-| :--- | :--- | :--- |
-| **Dedicated drive motor** | Independent propulsion control | Requires separate steering actuator |
-| **Dedicated steering motor** | Vehicle-like directional control | Adds mechanical steering linkage |
-| **Rear propulsion** | Compatible with front Ackermann steering | Rear traction influences acceleration |
-| **~61 mm drive wheels** | Larger travel per wheel rotation | Greater torque requirement for a given ground force |
-| **Encoder feedback** | Repeatable rotational reference | Cannot directly detect wheel slip |
-| **Variable drive speed** | Allows different behavior for straights and corners | Requires software coordination |
-| **EV3 direct motor control** | Simple integration with main controller | Both motors share the EV3 power system |
-| **Independent emergency stop** | Can interrupt unsafe forward motion | Physical stopping still requires distance |
-
-The final design was therefore not selected simply to maximize motor power or wheel speed. It was selected to create a drivetrain that works predictably with Piolín's steering geometry, sensors, and autonomous software.
+This keeps the motor documentation tied to the physical robot that will actually compete.
 
 ---
 
-# 3.24 Final Motor Architecture Summary
+## 3.31 Motor System Engineering Principle
 
-Piolín's final actuation system uses two EV3-controlled motors with clearly separated responsibilities.
+Piolín's motor system follows one central principle:
+
+> **Actuator selection should match the physical task instead of using identical motors for mechanically different responsibilities.**
+
+The Large Motor is responsible for moving the complete vehicle.
+
+The Medium Motor is responsible for positioning the steering mechanism.
 
 ```text
-                   LEGO EV3
-                      │
-        ┌─────────────┴─────────────┐
-        │                           │
-        ▼                           ▼
-     PORT A                      PORT B
-        │                           │
-        ▼                           ▼
-  DRIVE MOTOR                 STEERING MOTOR
-        │                           │
-        ▼                           ▼
- REAR DRIVETRAIN             ACKERMANN LINKAGE
-        │                           │
-        ▼                           ▼
-   REAR WHEELS                  FRONT WHEELS
-        │                           │
-        └─────────────┬─────────────┘
-                      ▼
-                PIOLÍN MOTION
+                  LEGO EV3
+                     │
+          ┌──────────┴──────────┐
+          │                     │
+          ▼                     ▼
+       MOTOR A               MOTOR B
+          │                     │
+          ▼                     ▼
+     LARGE MOTOR           MEDIUM MOTOR
+          │                     │
+          ▼                     ▼
+   REAR PROPULSION       ACKERMANN STEERING
+          │                     │
+          └──────────┬──────────┘
+                     ▼
+               VEHICLE MOTION
 ```
 
-The drive motor provides propulsion through the rear drivetrain and works with approximately **61 mm rear wheels**, giving a theoretical rolling circumference of approximately **191.5 mm**.
+The simplicity of this architecture is one of its strengths. Each motor has one clear responsibility, each physical effect can be diagnosed independently, and the EV3 can coordinate both actuators from the same autonomous control system.
 
-The steering motor operates independently and changes the direction of the front wheels through Piolín's Ackermann mechanism.
+---
 
-The most important feature of this architecture is not the presence of two motors by itself. It is the **separation of responsibilities** between them.
+<div align="center">
 
-> **Motor A controls how Piolín moves forward. Motor B controls where Piolín moves.**
+### [← Back to PiolínTech Main README](../../README.md)
 
-This separation allows propulsion, steering, sensing, and safety logic to work together as parts of one complete autonomous vehicle system.
-
-Detailed information about the steering actuator and mechanical steering linkage is provided in the next section, `04_SteeringMotor.md`.
+</div>
