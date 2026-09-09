@@ -1,132 +1,1373 @@
-## The Evolution of our robot Piolín
+# Evolution of Piolín
 
-The development of our kid Piolín was not a linear path. It required a rigorous iterative engineering process that moved from a highly unstable proof of concept prototype to a tightly integrated autonomous vehicle ready for competition. This section documents our engineering journey in absolute detail. We explore the mechanical, electrical, and software transformations across our primary development phases. By analyzing our past failures and documenting our iterative solutions, we demonstrate the robustness, reliability, and engineering logic behind our final design choices.
-<br>
+This directory documents the engineering evolution of **Piolín**, PiolínTech's autonomous vehicle for the WRO Future Engineers 2026 competition.
 
-### [Phase 1: The Initial Prototype](./evolution/Phase1.md)
+Piolín did not evolve through a single complete redesign.
 
-Phase 1 represents our foundational attempt at solving the WRO track challenges. The primary goal during this early stage was simply to achieve basic mobility, verify sensor integration, and test initial lane tracking capabilities. However, this phase was heavily constrained by our reliance on standard LEGO Technic parts, failing external sensors, and structurally weak components that could not handle the physical demands of autonomous racing.
+Instead, the robot developed through a sequence of mechanical, sensing, vision, and software iterations in which each prototype exposed limitations that influenced the next engineering decision.
 
-#### Mechanical and Structural Baseline
-During our initial mechanical drafting, we utilized standard plastic building elements to prototype the chassis. While this allowed for quick assembly, we immediately encountered severe structural limitations that degraded our physical performance. The most critical failure occurred in our front steering assembly. We used a standard technic piece that has exactly 3 holes (two horizontal and one vertical) to act as our primary steering knuckle. This specific component suffered from immense torsional flex when subjected to the lateral cornering forces of the track. This flex resulted in a shifting kingpin angle and unpredictable steering geometry, making reliable PD calibration nearly impossible. Furthermore, the center of gravity was excessively high, causing the inner wheels to lift during high speed turns and destabilizing the platform.
+One important fact remained constant throughout the project:
 
-#### Electrical and Processing Architecture
-The first iteration relied on a fragmented processing approach. We attempted to route sensor data through a chaotic mix of cables, leading to communication bottlenecks and hardware limitations.
-*   **Motor Control:** We utilized standard LEGO EV3 motors connected directly to the EV3 brick. While these motors were reliable, our cable routing was disorganized, leading to loose connections and signal dropouts during high speed maneuvers.
-*   **Vision Failures:** We initially utilized a generic external camera module that lacked any onboard processing. This generic camera sent raw video feeds directly to the main processor, completely overwhelming the system bandwidth. This caused severe frame drops and frequent false positives due to ambient track lighting changes. The integration of this external non standard part proved far too unstable for a reliable race run.
+> **Piolín has always been developed around the LEGO MINDSTORMS EV3 platform.**
 
-#### Software and Logic Limitations
-The software architecture in Phase 1 was strictly synchronous and relied on inferior peripheral components that constantly failed under load.
-*   **Latency:** This blocking architecture meant that whenever the generic camera processed a frame, the steering control loop paused. This resulted in a stuttering movement profile where the robot would zig zag violently down the straights instead of maintaining a smooth trajectory.
-*   **Inefficient Loops:** Our code was fragmented and difficult to manage. This made debugging incredibly difficult and massively increased the time it took to iterate and test new code between track runs.
+The evolution was therefore not:
 
-<br>
-
-### [Phase 2: The "All LEGO" Pure Architecture](./evolution/Phase2.md)
-
-Phase 2 marks a massive pivot in our engineering strategy. Realizing that complexity was our enemy, we completely discarded the unstable external camera and the weak structural components of Phase 1. Instead, we embraced a pure, centralized architecture built strictly from LEGO components. V2 was completely "blind" and had absolutely no external camera modules. We utilized the LEGO Mindstorms EV3 block, LEGO SPIKE structural elements, and LEGO Ultrasonic sensors to create a highly reliable, closed ecosystem.
-
-#### Advanced Mechanical Redesign with LEGO SPIKE
-To resolve the structural failures and flex of Phase 1, we transitioned entirely to an "All LEGO" framework. By leveraging the superior rigidity of modern LEGO SPIKE components, we eliminated the mechanical slop found in the older 3 hole technic pieces.
-*   **SPIKE Integration:** We utilized LEGO SPIKE frames and wheels to build a bespoke chassis that maximized rigidity while minimizing weight. The SPIKE wheels provided vastly superior traction on the track surface compared to our earlier iterations, preventing wheel slip during hard acceleration.
-*   **Centralized Balance:** The heavy battery packs and the EV3 controller were relocated to the absolute lowest deck of the chassis. This drastically improved cornering stability, lowered the roll center, and completely eliminated the wheel lift we experienced in Phase 1.
-
-#### Pure LEGO Sensor and Processing Upgrades
-The electrical architecture was completely rebuilt to integrate the EV3 as our primary, stand alone control hub. There was absolutely zero external or third party hardware in this iteration, entirely eliminating the signal instability of Phase 1.
-*   **Memory and Storage Constraints:** A critical engineering challenge in Phase 2 was that our EV3 unit had no micro SD card connected. Without expandable storage, we had to heavily optimize our Python scripts. We stripped out all unnecessary libraries and logging functions so the code could deploy directly into the highly limited internal memory footprint of the EV3 brick.
-*   **Blind Navigation Strategy:** We completely removed the failing generic camera from Phase 1. V2 was entirely blind. We relied 100 percent on two LEGO EV3 Ultrasonic sensors to feel the track walls. This forced us to develop highly advanced acoustic filtering algorithms. The robot calculated the delta (difference) between the left and right ultrasonic pings to determine its exact lateral position within the lane.
-
-#### Software Integration with Python and Pybricks
-The most significant leap in Phase 2 was the software overhaul. We rewrote the core logic using Python via the Pybricks ecosystem to function as efficiently as possible within our pure LEGO hardware constraints.
-*   **Optimized Python Logic:** The PID lane tracking algorithm was programmed in Python to run continuously based purely on ultrasonic returns. Because there was no heavy video processing, the control loop ran at maximum speed. This ensured the LEGO steering motors received constant, uninterrupted updates to keep the robot perfectly centered between the track walls.
-*   **Deterministic Parking:** Because the robot was blind, we could not use visual markers to stop at the finish line. We implemented precise motor encoder tracking using the Pybricks libraries. For the final lap, the robot calculated its exact spatial distance from the start row to execute a flawless position based deceleration sequence.
-
-<br>
-
-### [Phase 3: The Piolín Optimization](/evolution/Phase3.md)
-
-Phase 3 represents the maturation of our engineering process, marking the shift from experimental prototyping to a refined, competition-ready platform. The primary objective in this phase was to maximize mechanical reliability and sensor deterministic performance for the WRO 2026 Future Engineers competition. By abandoning the fragmented architectures of earlier phases and centralizing our logic on the EV3 Intelligent Brick, we have transformed the robot into a high-performance machine optimized for consistent, autonomous path following.
-
-#### Mechanical and Structural Evolution
-
-In this phase, we moved away from generic structural designs to a hybrid engineering approach. We combined the rapid-prototyping versatility of LEGO Technic with custom 3D-printed structural components to create a rigid, cross-braced frame. We addressed the mechanical failures of previous versions by fabricating custom bevel gears and chassis connectors. By ensuring that all structural joints, including the critical 3-hole Technic pieces (two horizontal and one vertical), were properly fitted, we eliminated the torsional flex that plagued our early steering assemblies. This rigidity ensures the Ackermann geometry remains constant during high-speed cornering, allowing our PID loops to operate on a consistent physical baseline.
-
-#### Electrical and Processing Integration
-
-Phase 3 solidified our electrical architecture by prioritizing stability and clean signal paths. We moved away from complex, external computing dependencies, settling on the LEGO EV3 Intelligent Brick as our central processing unit.
-
-* **Motor Configuration:** We resolved the previous mapping inconsistencies by accurately configuring our steering and drive motors to use $ain1$ and $ain2$, finally discarding the problematic $bin1$ and $bin2$ configuration.
-* **System Stability:** To ensure a deterministic environment, we verified that the EV3 system runs independently of external memory devices, specifically confirming that no SD card is currently connected to the brick, which prevents potential I/O bottlenecks.
-* **Sensor Reliability:** We integrated the PixyCam 2.1 using a custom, vibration-proofed wiring harness, ensuring that signal dropouts are a thing of the past.
-
-#### Software and Control Logic
-
-The software architecture in Phase 3 is built for speed and computational efficiency, moving entirely away from the blocking, synchronous code structures of Phase 1.
-
-* **Asynchronous Processing:** We implemented an asynchronous control loop that allows the robot to handle vision data from the PixyCam and proximity data from the HC-SR04 ultrasonic array simultaneously. This ensures the robot never "stutters" and can react to obstacles in real time without pausing the steering correction logic.
-* **Precision PID Tuning:** Our software now utilizes a fine-tuned PID controller that accounts for the specific mass and momentum of our custom chassis. By utilizing the EV3 native clock, we have achieved smooth, fluid steering that eliminates the erratic zig-zag behavior seen in previous iterations. This level of control allows "Piolín" to maintain a center line trajectory even under aggressive cornering conditions.
-
-### Architectural Flowchart: V1 vs V2
-
-The transition from a fragmented external system to a pure LEGO architecture drastically simplified our data pipeline. The flowchart below illustrates how we eliminated processing bottlenecks in Phase 2.
-
-```mermaid
-graph TD
-    subgraph Phase 1: Fragmented Architecture
-        V1Cam[Generic Camera] -->|Raw Video Feed| V1Proc[EV3 Brick]
-        V1US[LEGO Ultrasonic] -->|Analog Ping| V1Proc
-        V1Proc -->|Blocking Logic| V1Motor[LEGO Motors]
-        V1Proc -.->|Signal Interference| V1Noise[Instability]
-    end
-
-    subgraph Phase 2: Pure LEGO Architecture
-        V2US[LEGO Ultrasonic Array] -->|Digital Ping| V2EV3[LEGO EV3 Brick]
-        V2EV3 -->|Pybricks Python Logic| V2Math[PD Acoustic Filtering]
-        V2Math -->|Non-Blocking Loop| V2EV3
-        V2EV3 -->|Native Control| V2Motor[LEGO SPIKE Motors]
-    end
-
+```text
+EV3
+→ different computer
+→ completely different robot
 ```
 
-### Technical Comparison Matrix
+It was:
 
-This comparison highlights the specific metrics and hardware choices that defined the evolution of PiolínTech.
+```text
+EV3 INITIAL PROTOTYPE
+        ↓
+MECHANICAL + NAVIGATION DEVELOPMENT
+        ↓
+SENSOR + VISION + CONTROL EXPERIMENTATION
+        ↓
+CURRENT EV3 COMPETITION ARCHITECTURE
+```
 
-| Feature Category | Phase 1 (Initial Prototype) | Phase 2 (Pure LEGO V2) | Engineering Advantage of V2 |
-| --- | --- | --- | --- |
-| **Logic Controller** | LEGO EV3 | LEGO Mindstorms EV3 | Native hardware support, reliable ecosystem |
-| **Programming** | C++ / Synchronous | Python / Pybricks | Rapid iteration, optimized loops |
-| **Vision System** | Generic External Camera | **None (Completely Blind)** | Zero latency, 100% loop consistency |
-| **Sensors** | Generic + LEGO Ultrasonic | LEGO EV3 Digital Ultrasonic | Highly accurate digital returns, zero external noise |
-| **Motor Drivers** | Native EV3 | Native EV3 | Closed loop, zero signal interference |
-| **Storage** | External Modules | Internal EV3 Memory | Forced highly optimized code footprint |
-| **Chassis Frame** | Standard 3 hole Technic | LEGO SPIKE Elements | Extreme rigidity, zero torsional flex on kingpins |
-| **Top Speed** | 0.6 m/s (Erratic) | 1.1 m/s (Stable) | 83% speed increase via acoustic tracking |
-| **Stop Strategy** | Unreliable Timers | Pybricks Motor Encoders | Flawless, repeatable parking |
+Earlier phases are preserved as engineering evidence.
 
-### Visualizing the Evolution
+**Phase 4 represents Piolín's current architecture.**
 
-The physical transformation of Piolín is best understood by comparing the structural layouts of our iterations.
+---
 
-#### [PiolínTech V1 (Visual)](/PTechV1.png)
-*(Click the link above to view the high resolution file in the repository)*
+# Development Timeline
 
-**V1 Design Analysis:**
-As seen in the V1 render, the chassis is characterized by a higher profile and a reliance on a chaotic mix of hardware. The external generic camera is mounted too high, causing severe perspective distortion and massive balance issues. The steering geometry relies on the older, highly flexible 3 hole technic linkages that caused our initial tracking failures. The overall footprint is bulky, resulting in a larger turning radius that struggled to clear the inner corners of the WRO track.
+```mermaid
+flowchart LR
 
-#### [PiolínTech V2 (Visual)](/PTechV2.png)
-*(Click the link above to view the high resolution file in the repository)*
+    P1["PHASE 1<br/><br/>Initial EV3 Prototype<br/><br/>Basic mobility<br/>Initial sensing<br/>Early autonomous control"]
 
-**V2 Design Analysis:**
-The V2 visual demonstrates a massive leap in our engineering capabilities by successfully integrating a pure, blind, All LEGO architecture.
+    P2["PHASE 2<br/><br/>Mechanical + Navigation Development<br/><br/>Ackermann steering<br/>Motor A / Motor B roles<br/>Ultrasonic geometry<br/>S4 floor sensing"]
 
-1. **Streamlined SPIKE Chassis:** The main body is lower and much more compact. The integration of LEGO SPIKE structural components perfectly cradles the EV3 block, lowering the center of mass significantly.
-2. **Blind Sensor Array:** The chaotic external camera is gone. In its place, the front assembly features a rigid, dual LEGO Ultrasonic sensor array. These sensors are angled perfectly to capture the track walls without processing unnecessary background acoustic noise.
-3. **Optimized Pure LEGO Drivetrain:** The front steering and rear propulsion utilize standard LEGO SPIKE motors controlled natively by the EV3. All chaotic wiring is eliminated, creating a closed, clean, and highly reliable platform.
+    P3["PHASE 3<br/><br/>Sensor + Vision + Control Experimentation<br/><br/>Sensor-placement tests<br/>Gyro experiments<br/>HuskyLens + Nano<br/>Pixy2.1 experiments<br/>Recovery + arbitration concepts"]
 
-#### [PiolínTech V3 (Visual)](/PTechV3.jpeg)
-*(Click the link above to view the high resolution file in the repository)*
+    P4["PHASE 4 — CURRENT<br/><br/>Competition Architecture<br/><br/>S1 round-specific<br/>S2 LEFT + S3 RIGHT<br/>S4 Color<br/>Gyro Open<br/>Pixy2.1 Obstacles<br/>State-based control"]
 
-### Summary of Evolution
+    P1 --> P2
+    P2 --> P3
+    P3 --> P4
+```
 
-The journey from V1 to V2 encapsulates the core engineering ethos of our team. By systematically identifying bottlenecks in our hardware flex and software latency in Phase 1, we successfully engineered a highly stable platform in Phase 2. The transition from a failing mix of external parts to a pure, blind, All LEGO architecture powered by the EV3, SPIKE components, and Pybricks Python logic ensured PiolínTech had a rock solid foundation. Mastering blind acoustic navigation proved that our fundamental math and chassis design were flawless.
+The four phases represent major architectural stages rather than individual software revisions.
+
+Small tuning changes such as:
+
+```text
+steering gain adjustments
+
+color thresholds
+
+parking distances
+
+Pixy confirmation values
+
+speed changes
+```
+
+remain part of the current phase unless they create a major architectural redesign.
+
+---
+
+# Evolution Overview
+
+| Phase | Main Engineering Focus | Controller | Status |
+|---|---|---|---|
+| [Phase 1](Phase1.md) | Initial mobility and autonomous-control prototype | LEGO EV3 | Legacy |
+| [Phase 2](Phase2.md) | Mechanical design, Ackermann steering, navigation and sensor geometry | LEGO EV3 | Legacy development |
+| [Phase 3](Phase3.md) | Sensor, vision and control experimentation | LEGO EV3 | Legacy development |
+| [Phase 4](Phase4.md) | Current competition architecture | LEGO EV3 | **CURRENT** |
+
+The purpose of preserving all four phases is to show not only:
+
+```text
+what Piolín looks like now
+```
+
+but also:
+
+```text
+why Piolín looks and behaves this way now
+```
+
+---
+
+# Phase 1 — Initial EV3 Prototype
+
+### [View Phase 1 Documentation](Phase1.md)
+
+Phase 1 represents the beginning of Piolín.
+
+The objective was to create a functional EV3 vehicle that could:
+
+```text
+move autonomously
+
+respond to basic sensor information
+
+test steering behavior
+
+run early Python control logic
+```
+
+At this stage, the robot was primarily a learning and experimentation platform.
+
+The development questions were relatively fundamental:
+
+```text
+Can the vehicle move predictably?
+
+How does it react to steering commands?
+
+How can distance sensing affect movement?
+
+What mechanical problems become visible during real driving?
+```
+
+The architecture was intentionally simple.
+
+```text
+EV3
+ ↓
+basic sensing
+ ↓
+basic control
+ ↓
+motors
+ ↓
+vehicle movement
+```
+
+Phase 1 revealed that successful Future Engineers navigation would require more than simply commanding motors.
+
+The team needed to understand the relationship between:
+
+```text
+mechanical geometry
+
+sensor placement
+
+vehicle speed
+
+steering response
+
+physical trajectory
+```
+
+These observations defined the goals of Phase 2.
+
+---
+
+# Phase 2 — Mechanical and Navigation Development
+
+### [View Phase 2 Documentation](Phase2.md)
+
+Phase 2 focused on transforming Piolín from a basic mobile prototype into a more deliberate autonomous vehicle architecture.
+
+One of the most important developments was the adoption and refinement of:
+
+```text
+ACKERMANN-STYLE FRONT STEERING
+```
+
+The motor responsibilities also became clearly separated:
+
+```text
+Motor A
+→ rear propulsion
+```
+
+```text
+Motor B
+→ front steering
+```
+
+This created the vehicle structure that would continue into later versions.
+
+Phase 2 also expanded ultrasonic navigation.
+
+The engineering question changed from:
+
+```text
+Is something nearby?
+```
+
+toward:
+
+```text
+Where is Piolín relative to the surrounding course geometry?
+```
+
+This encouraged experiments with:
+
+```text
+left sensing
+
+right sensing
+
+different sensor positions
+
+different sensor orientations
+```
+
+and eventually established the importance of lateral course measurements.
+
+---
+
+## Floor Landmark Development
+
+Phase 2 also strengthened the role of the downward EV3 Color Sensor.
+
+The course contains:
+
+```text
+BLUE
+
+ORANGE
+```
+
+floor markings.
+
+These became navigation landmarks rather than simply isolated color readings.
+
+The initial direction concept developed toward:
+
+```text
+FIRST BLUE
+→ COUNTERCLOCKWISE
+```
+
+```text
+FIRST ORANGE
+→ CLOCKWISE
+```
+
+This allowed the course itself to provide information about the required driving direction.
+
+---
+
+## Main Phase 2 Contribution
+
+Phase 2 established that:
+
+> **Mechanical design, sensor geometry, and navigation software must be developed together.**
+
+The robot's physical steering geometry directly affects:
+
+```text
+turning radius
+
+wall distance
+
+corner behavior
+
+sensor readings
+
+control response
+```
+
+This systems-level relationship became one of the foundations of later Piolín development.
+
+---
+
+# Phase 3 — Sensor, Vision, and Control Experimentation
+
+### [View Phase 3 Documentation](Phase3.md)
+
+Phase 3 was the most experimental stage of Piolín's development.
+
+By this point, Piolín had a stronger mechanical and navigation foundation.
+
+The new challenge was the Obstacle Challenge.
+
+Piolín now needed to answer:
+
+```text
+What object is ahead?
+
+Is it Red?
+
+Is it Green?
+
+Which side must I pass?
+
+When have I physically cleared it?
+
+How should I return to the normal course?
+```
+
+Distance sensing alone could not answer these questions.
+
+Vision became necessary.
+
+---
+
+## Vision Experiments
+
+Phase 3 included multiple approaches to camera-based perception.
+
+One important experimental architecture used:
+
+```text
+HuskyLens
+      ↓
+Arduino Nano
+      ↓
+EV3
+```
+
+This demonstrated that external vision could be integrated with Piolín.
+
+However, it also introduced additional:
+
+```text
+hardware
+
+communication
+
+wiring
+
+debugging
+
+software integration
+```
+
+layers.
+
+The architecture became valuable development evidence but was eventually moved to legacy status.
+
+---
+
+## Pixy2.1 Development
+
+Phase 3 also introduced Pixy2.1 experimentation.
+
+Pixy could provide:
+
+```text
+signature
+
+x
+
+y
+
+width
+
+height
+```
+
+for detected objects.
+
+This led to a major architectural distinction:
+
+```text
+SIGNATURE
+→ tells Piolín WHAT the target is
+```
+
+while:
+
+```text
+x / y / width / height
+→ describe WHERE and HOW RELEVANT it is
+```
+
+This became particularly important for obstacle rules.
+
+```text
+RED
+→ PASS RIGHT
+```
+
+```text
+GREEN
+→ PASS LEFT
+```
+
+The pillar's position inside the camera image does not redefine these rules.
+
+---
+
+## Moving Beyond Direct Camera Reactions
+
+One of the strongest lessons from Phase 3 was:
+
+```text
+CAMERA DETECTION
+≠
+DIRECT MOTOR COMMAND
+```
+
+Early obstacle logic could behave approximately like:
+
+```text
+camera sees Red
+→ steer
+```
+
+but real testing exposed problems such as:
+
+```text
+temporary detection loss
+
+multiple visible blocks
+
+wrong target selection
+
+controller conflict
+
+late avoidance
+
+incorrect recovery
+```
+
+This motivated the more structured pipeline:
+
+```text
+DETECT
+   ↓
+VALIDATE
+   ↓
+SELECT
+   ↓
+CONFIRM
+   ↓
+LOCK
+   ↓
+MANEUVER
+```
+
+---
+
+## Recovery and Pass Confirmation
+
+Phase 3 also revealed that obstacle avoidance does not end when the camera loses the pillar.
+
+```text
+TARGET LOST
+≠
+TARGET PASSED
+```
+
+Piolín may lose visual contact because the vehicle and camera rotate during the maneuver.
+
+The development therefore moved toward:
+
+```text
+AVOID
+   ↓
+PASS_CONFIRM
+   ↓
+RECOVER
+   ↓
+NORMAL
+```
+
+This became one of the major software concepts carried into Phase 4.
+
+---
+
+## Controller Conflict
+
+Another important failure mode occurred when several behaviors attempted to control Motor B at the same time.
+
+For example:
+
+```text
+pillar avoidance
+→ RIGHT
+```
+
+while:
+
+```text
+wall correction
+→ LEFT
+```
+
+This showed that Piolín required a control-authority hierarchy.
+
+The concept developed toward:
+
+```text
+CRITICAL SAFETY
+      ↓
+ACTIVE MANEUVER
+      ↓
+NORMAL NAVIGATION
+```
+
+which became explicit in Phase 4.
+
+---
+
+# Phase 4 — Current Competition Architecture
+
+### [View Phase 4 Documentation](Phase4.md)
+
+Phase 4 represents the **current Piolín architecture**.
+
+The purpose of Phase 4 is not to maximize the number of sensors or algorithms.
+
+Instead, each subsystem is assigned a clearly defined responsibility.
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/piolin_open_isometric.jpg"
+  alt="Piolín Phase 4 current Open Challenge configuration"
+  width="760"
+/>
+
+<br>
+
+<sub><b>Figure 1.</b> Piolín's current Phase 4 Open Challenge configuration.</sub>
+
+</div>
+
+The common architecture is:
+
+```text
+LEGO MINDSTORMS EV3
+        │
+        ├── Motor A → rear propulsion
+        │
+        ├── Motor B → Ackermann steering
+        │
+        ├── S2 → LEFT Ultrasonic
+        │
+        ├── S3 → RIGHT Ultrasonic
+        │
+        └── S4 → Color Sensor
+```
+
+S1 changes according to the competition round.
+
+---
+
+# Current Open Challenge Architecture
+
+```text
+S1
+→ EV3 Gyro Sensor
+
+S2
+→ LEFT Ultrasonic
+
+S3
+→ RIGHT Ultrasonic
+
+S4
+→ Color Sensor
+```
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/wiring_open.jpg"
+  alt="Piolín Phase 4 Open Challenge wiring"
+  width="760"
+/>
+
+<br>
+
+<sub><b>Figure 2.</b> Phase 4 Open Challenge wiring and sensor configuration.</sub>
+
+</div>
+
+The Open architecture separates:
+
+```text
+S2/S3
+→ lateral geometry
+```
+
+```text
+Gyro
+→ heading / vehicle rotation
+```
+
+```text
+S4
+→ course landmarks
+```
+
+This gives the navigation system different information about:
+
+```text
+WHERE THE VEHICLE IS
+
+WHERE THE VEHICLE IS POINTING
+
+WHERE IT IS IN THE COURSE SEQUENCE
+```
+
+---
+
+# Current Obstacle Challenge Architecture
+
+During Obstacles:
+
+```text
+S1
+→ Pixy2.1
+
+S2
+→ LEFT Ultrasonic
+
+S3
+→ RIGHT Ultrasonic
+
+S4
+→ Color Sensor
+```
+
+There is no gyro installed in this configuration.
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/piolin_obstacle_isometric.jpg"
+  alt="Piolín Phase 4 current Obstacle Challenge configuration"
+  width="760"
+/>
+
+<br>
+
+<sub><b>Figure 3.</b> Piolín's Phase 4 Obstacle Challenge configuration with Pixy2.1.</sub>
+
+</div>
+
+The corresponding wiring architecture is:
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/wiring_obstacle.jpg"
+  alt="Piolín Phase 4 Obstacle Challenge wiring"
+  width="760"
+/>
+
+<br>
+
+<sub><b>Figure 4.</b> Phase 4 Obstacle Challenge wiring and sensor configuration.</sub>
+
+</div>
+
+The design decision is:
+
+```text
+OPEN
+needs strong heading information
+→ GYRO
+```
+
+while:
+
+```text
+OBSTACLES
+needs visual object identity
+→ PIXY2.1
+```
+
+The two devices therefore share S1 as **round-specific alternatives**.
+
+They are not installed simultaneously in the current architecture.
+
+---
+
+# Phase 4 Vision Architecture
+
+Pixy2.1 is directly integrated with the EV3 through S1 during the Obstacle Challenge.
+
+The current signature convention is:
+
+```text
+sig1
+→ PINK
+→ Parking
+```
+
+```text
+sig2
+→ RED
+→ PASS RIGHT
+```
+
+```text
+sig3
+→ GREEN
+→ PASS LEFT
+```
+
+The processing objective is:
+
+```text
+PIXY
+   ↓
+VALIDATION
+   ↓
+TARGET SELECTION
+   ↓
+CONFIRMATION
+   ↓
+TARGET LOCK
+   ↓
+STATE MACHINE
+   ↓
+CONTROLLER
+```
+
+rather than:
+
+```text
+PIXY
+→ MOTOR B
+```
+
+This separation is one of the most significant architectural improvements produced by Piolín's evolution.
+
+---
+
+# Phase 4 Software Architecture
+
+The current software direction is increasingly state-oriented.
+
+Important behavioral states include:
+
+```text
+START / ACQUIRE
+
+NORMAL
+
+TARGET_ACQUIRE
+
+AVOID
+
+PASS_CONFIRM
+
+RECOVER
+
+CORNER
+
+PARKING
+
+STOP
+```
+
+Each state represents a different physical objective.
+
+For example:
+
+```text
+NORMAL
+→ maintain course geometry
+```
+
+```text
+AVOID
+→ execute required pillar trajectory
+```
+
+```text
+PASS_CONFIRM
+→ determine whether the pillar has actually been cleared
+```
+
+```text
+RECOVER
+→ return toward a usable course position
+```
+
+```text
+PARKING
+→ construct final parking pose
+```
+
+This structure prevents every navigation behavior from operating simultaneously with equal authority.
+
+---
+
+# Control Arbitration
+
+Piolín has multiple possible controllers but only one physical steering actuator:
+
+```text
+Motor B
+```
+
+Phase 4 therefore introduces explicit controller arbitration.
+
+```text
+CRITICAL SAFETY
+      ↓
+ACTIVE MANEUVER
+      ↓
+NORMAL NAVIGATION
+```
+
+The software decides which controller currently owns the trajectory before sending the final command to Motor B.
+
+This avoids uncontrolled combinations such as:
+
+```text
+wall correction
++
+pillar correction
++
+corner correction
++
+recovery correction
+```
+
+which can otherwise create unstable or contradictory steering.
+
+---
+
+# Color Event Processing
+
+The S4 Color Sensor also became more structured through the evolution.
+
+Instead of counting every individual sensor reading:
+
+```text
+BLUE
+BLUE
+BLUE
+BLUE
+```
+
+as multiple events, the current concept is:
+
+```text
+CLASSIFY
+   ↓
+CONFIRM
+   ↓
+LATCH
+   ↓
+COUNT ONCE
+   ↓
+WAIT FOR NEUTRAL
+   ↓
+RELEASE
+   ↓
+RE-ARM
+```
+
+The objective is:
+
+```text
+ONE PHYSICAL COURSE MARKING
+→ ONE SOFTWARE EVENT
+```
+
+This supports:
+
+```text
+direction determination
+
+course progression
+
+corner context
+
+parking eligibility
+```
+
+---
+
+# 3D-Printed Sensor Integration
+
+Phase 4 also includes custom 3D-printed sensor components.
+
+Current models include:
+
+```text
+ColorSensorCasing.stl
+
+PIXY_Case1.stl
+
+PIXY_Case2.stl
+```
+
+The Color Sensor casing helps create a more controlled optical environment around S4.
+
+The Pixy casing supports a more repeatable physical installation of the camera.
+
+These parts demonstrate the relationship between:
+
+```text
+MECHANICAL DESIGN
+      ↓
+SENSOR INSTALLATION
+      ↓
+PERCEPTION
+      ↓
+SOFTWARE CALIBRATION
+```
+
+The manufacturing process is documented under:
+
+[3D Printing Documentation](../3dprint/PrintingProcess.md)
+
+---
+
+# Architecture Evolution Matrix
+
+| Engineering Area | Phase 1 | Phase 2 | Phase 3 | Phase 4 — Current |
+|---|---|---|---|---|
+| **Main controller** | EV3 | EV3 | EV3 | **EV3** |
+| **Primary objective** | Basic prototype | Mechanical/navigation development | Sensor/vision experimentation | **Competition architecture** |
+| **Propulsion** | Early EV3 implementation | Motor A role established | Refined | **Motor A rear propulsion** |
+| **Steering** | Early mechanism | Ackermann development | Refinement | **Motor B Ackermann steering** |
+| **Ultrasonic sensing** | Simple sensing | Placement experiments | Multiple configurations evaluated | **S2 LEFT + S3 RIGHT** |
+| **Floor sensing** | Early | S4 integration | Event-processing development | **S4 event system** |
+| **Open orientation** | Not mature | Experimental | Gyro evaluated | **S1 Gyro** |
+| **Obstacle vision** | None | Not mature | HuskyLens/Nano/Pixy experiments | **S1 Pixy2.1** |
+| **Camera architecture** | None | None | Multiple experimental paths | **Direct Pixy2.1 → EV3 S1** |
+| **Obstacle decision** | None | Early | Reactive experimentation | **Structured perception + state logic** |
+| **Target handling** | None | None | Confirmation/lock concepts | **Validate → select → confirm → lock** |
+| **Pass verification** | None | None | Need identified | **PASS_CONFIRM architecture** |
+| **Recovery** | None | Early | Need identified | **Dedicated RECOVER state** |
+| **Controller priority** | Basic | Basic | Conflict discovered | **Explicit arbitration** |
+| **Color counting** | Basic | Course landmarks | Event concepts | **Confirmed discrete events** |
+| **Parking** | Not developed | Early concept | Experimental | **Dedicated subsystem under calibration** |
+
+---
+
+# What Remained Constant
+
+The most important continuity throughout Piolín's evolution is the EV3 platform.
+
+```text
+PHASE 1 → EV3
+PHASE 2 → EV3
+PHASE 3 → EV3
+PHASE 4 → EV3
+```
+
+The project did not achieve greater capability simply by replacing the central computer.
+
+Instead, improvement came from progressively refining:
+
+```text
+MECHANICS
+
+STEERING
+
+SENSOR PLACEMENT
+
+PERCEPTION
+
+CONTROL
+
+SOFTWARE ORGANIZATION
+
+TESTING
+```
+
+This continuity makes it possible to trace current design decisions back to earlier experiments.
+
+---
+
+# What Changed the Most
+
+Although the controller remained constant, almost everything around it became more structured.
+
+The evolution of Piolín can be represented as:
+
+```text
+BASIC MOBILITY
+      ↓
+VEHICLE GEOMETRY
+      ↓
+COURSE GEOMETRY
+      ↓
+MULTI-SENSOR NAVIGATION
+      ↓
+VISUAL PERCEPTION
+      ↓
+TARGET VALIDATION
+      ↓
+STATE-BASED BEHAVIOR
+      ↓
+CONTROL ARBITRATION
+      ↓
+RECOVERY
+      ↓
+EVENT PROCESSING
+      ↓
+PARKING
+```
+
+The largest improvement was therefore not one individual component.
+
+It was the increasing organization of the robot as a complete system.
+
+---
+
+# From More Hardware to Clearer Responsibilities
+
+An important lesson from Phase 3 was that:
+
+```text
+MORE SENSORS
+```
+
+does not automatically mean:
+
+```text
+BETTER ROBOT
+```
+
+Every sensor must answer a useful question.
+
+The current architecture follows this principle.
+
+### S2 and S3
+
+```text
+What is Piolín's lateral relationship with the course?
+```
+
+### S4
+
+```text
+What floor landmark is Piolín crossing?
+```
+
+### Gyro during Open
+
+```text
+How is the vehicle oriented / rotating?
+```
+
+### Pixy2.1 during Obstacles
+
+```text
+What visual target is ahead?
+```
+
+### State machine
+
+```text
+What objective should Piolín currently execute?
+```
+
+### Arbitration
+
+```text
+Which controller is allowed to command Motor B?
+```
+
+This clarity is one of the defining characteristics of Phase 4.
+
+---
+
+# Current vs. Legacy
+
+The evolution documentation deliberately preserves obsolete approaches.
+
+```text
+PHASE 1
+PHASE 2
+PHASE 3
+→ DEVELOPMENT HISTORY / LEGACY
+```
+
+```text
+PHASE 4
+→ CURRENT ARCHITECTURE
+```
+
+Legacy material may include systems that were useful during experimentation but are no longer active, such as:
+
+```text
+HuskyLens
+
+Arduino Nano vision bridge
+
+temporary ultrasonic arrangements
+
+earlier camera configurations
+
+earlier navigation logic
+```
+
+These are retained because they provide evidence of:
+
+```text
+experimentation
+
+failure analysis
+
+design trade-offs
+
+engineering decisions
+```
+
+They should not be interpreted as current hardware.
+
+---
+
+# Evolution of the Engineering Questions
+
+The questions PiolínTech asked also became more sophisticated.
+
+### Phase 1
+
+```text
+Can we make the robot move autonomously?
+```
+
+### Phase 2
+
+```text
+Can we make the vehicle follow a repeatable course geometry?
+```
+
+### Phase 3
+
+```text
+Can the robot understand obstacles and coordinate multiple sensors?
+```
+
+### Phase 4
+
+```text
+Can each subsystem have a clear role,
+and can Piolín reliably decide which behavior
+should control the vehicle at each moment?
+```
+
+This progression reflects the transition from:
+
+```text
+PROTOTYPING
+```
+
+to:
+
+```text
+SYSTEMS ENGINEERING
+```
+
+---
+
+# Engineering Process Behind the Evolution
+
+Each phase follows the same broader development cycle:
+
+```text
+OBSERVE
+   ↓
+IDENTIFY FAILURE
+   ↓
+FIND FIRST INCORRECT LAYER
+   ↓
+FORM HYPOTHESIS
+   ↓
+CHANGE ONE PRIMARY VARIABLE
+   ↓
+TEST
+   ↓
+COMPARE
+   ↓
+KEEP OR REVERT
+   ↓
+DOCUMENT
+```
+
+Failures therefore became part of the design process.
+
+A prototype that was replaced still contributed information.
+
+For example:
+
+```text
+HuskyLens + Nano
+→ demonstrated external vision integration
+→ revealed additional integration complexity
+→ informed direct Pixy2.1 architecture
+```
+
+Likewise:
+
+```text
+multiple ultrasonic configurations
+→ demonstrated different geometric information
+→ helped identify the value of permanent lateral sensing
+```
+
+This is why earlier phases remain documented.
+
+---
+
+# Evolution Summary
+
+The complete development path can be summarized as:
+
+```text
+                        PHASE 1
+                 INITIAL EV3 PROTOTYPE
+                          │
+                          ▼
+                  BASIC AUTONOMY WORKS
+                          │
+                          ▼
+                        PHASE 2
+             MECHANICAL + NAVIGATION DEVELOPMENT
+                          │
+             ┌────────────┼────────────┐
+             ▼            ▼            ▼
+         ACKERMANN      MOTOR A/B   COURSE SENSING
+             │            │            │
+             └────────────┼────────────┘
+                          ▼
+                        PHASE 3
+             SENSOR + VISION EXPERIMENTATION
+                          │
+            ┌─────────────┼─────────────┐
+            ▼             ▼             ▼
+      SENSOR TESTS    CAMERA TESTS   CONTROL TESTS
+            │             │             │
+            └─────────────┼─────────────┘
+                          ▼
+                ENGINEERING LESSONS
+                          │
+                          ▼
+                        PHASE 4
+               CURRENT ARCHITECTURE
+                          │
+      ┌───────────────────┼───────────────────┐
+      ▼                   ▼                   ▼
+   OPEN                 COMMON             OBSTACLES
+      │                   │                   │
+ S1 GYRO             S2 LEFT US          S1 PIXY2.1
+                     S3 RIGHT US
+                     S4 COLOR
+      │                   │                   │
+      └───────────────────┼───────────────────┘
+                          ▼
+                     PERCEPTION
+                          ↓
+                    STATE MACHINE
+                          ↓
+                      CONTROL
+                          ↓
+                    ARBITRATION
+                          ↓
+                MOTOR A + MOTOR B
+                          ↓
+                   PIOLÍN MOVEMENT
+```
+
+---
+
+# Current Development Status
+
+Phase 4 is the current architecture, but this does not mean every calibration parameter is permanently finished.
+
+The current Open system continues to refine areas such as:
+
+```text
+corner consistency
+
+initial acquisition
+
+course-event reliability
+
+parking behavior
+```
+
+The current Obstacle architecture continues development in:
+
+```text
+target relevance
+
+multi-block selection
+
+pillar avoidance
+
+pass confirmation
+
+recovery
+
+controller arbitration
+
+parking
+```
+
+These are treated as **Phase 4 development and calibration**, not as additional robot generations.
+
+A future Phase 5 should only be created if Piolín undergoes a significant architectural change.
+
+---
+
+# Recommended Reading Order
+
+For a complete understanding of Piolín's evolution:
+
+1. [Phase 1 — Initial EV3 Prototype](Phase1.md)
+2. [Phase 2 — Mechanical and Navigation Development](Phase2.md)
+3. [Phase 3 — Sensor, Vision, and Control Experimentation](Phase3.md)
+4. [Phase 4 — Current Competition Architecture](Phase4.md)
+
+The sequence should be read as:
+
+```text
+WHAT WE BUILT
+      ↓
+WHAT WE OBSERVED
+      ↓
+WHAT FAILED
+      ↓
+WHAT WE CHANGED
+      ↓
+WHY THE CURRENT DESIGN EXISTS
+```
+
+---
+
+# Final Evolution Principle
+
+Piolín's development demonstrates that engineering progress does not necessarily require replacing the entire platform.
+
+The EV3 remained at the center of every generation.
+
+What changed was the team's understanding of how the surrounding systems should interact.
+
+```text
+PHASE 1
+Learn to control the vehicle
+        ↓
+PHASE 2
+Understand mechanics and navigation
+        ↓
+PHASE 3
+Understand sensors, vision and controller interaction
+        ↓
+PHASE 4
+Assign clear responsibilities and integrate the complete system
+```
+
+The central principle of Piolín's evolution is:
+
+> **Each phase of Piolín was built from the lessons of the previous one. The current robot is not the result of replacing the original concept, but of progressively refining its mechanics, sensing, perception, control, and software architecture until each subsystem had a clear purpose within the complete autonomous vehicle.**
+
+---
+
+<div align="center">
+
+### [Phase 1](Phase1.md) · [Phase 2](Phase2.md) · [Phase 3](Phase3.md) · [Phase 4 — Current](Phase4.md)
+
+<br>
+
+### [← Back to PiolínTech Main README](../../README.md)
+
+</div>
