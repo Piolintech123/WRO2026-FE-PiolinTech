@@ -1,2674 +1,1661 @@
 # 5. Drivetrain
 
-Piolín uses a **rear-propulsion drivetrain** actuated by **Motor A**.
+<div align="center">
 
-The drivetrain is responsible for transforming rotational motion from the drive motor into longitudinal movement of the complete robot.
+<img
+  src="../../v-photos/v4/rear_drivetrain_top.jpg"
+  alt="Top view of Piolín's current rear drivetrain"
+  width="720"
+/>
 
-Its fundamental mechanical chain is:
+<br>
+
+<sub><b>Figure 5.1.</b> Current V4 rear drivetrain transferring Motor A rotation to Piolín's driven rear wheels.</sub>
+
+</div>
+
+Piolín uses a **rear-wheel propulsion drivetrain** powered by one LEGO Mindstorms EV3 Large Motor connected to **Motor Port A**. The drivetrain is responsible for converting Motor A rotation into longitudinal movement of the robot while the separate front steering system controls the direction of travel.
+
+The drivetrain architecture is intentionally simple:
 
 ```text
-LEGO EV3
-    ↓
+EV3
+ ↓
 Motor A
-    ↓
-Mechanical Drivetrain
-    ↓
-Rear Driven Wheels
-    ↓
-Tire–Track Interaction
-    ↓
-Vehicle Motion
+ ↓
+rear drivetrain
+ ↓
+rear wheels
+ ↓
+track surface
+ ↓
+vehicle movement
 ```
 
-The drivetrain does not determine Piolín's steering direction.
-
-That responsibility belongs to Motor B and the front Ackermann steering system.
-
-The final vehicle architecture therefore separates:
+This arrangement separates the two main vehicle functions:
 
 ```text
-PROPULSION
-     ↓
 Motor A
+→ propulsion
 
-
-STEERING
-     ↓
 Motor B
+→ steering
 ```
 
-and combines both at the vehicle level:
+The drivetrain therefore does not determine whether Piolín turns left or right. Its main responsibility is to provide controlled forward and reverse motion while the Ackermann-style front system establishes vehicle curvature.
 
-```text
-PROPULSION
-     +
-STEERING
-     ↓
-VEHICLE TRAJECTORY
-```
-
-This separation is one of the main characteristics of Piolín's car-like mobility architecture.
-
-For the complete vehicle motion model, see:
-
-[Robot Mobility](03_RMobility.md)
-
-[Steering System](04_steering.md)
+The same drivetrain is used during both the Open and Obstacle Challenges.
 
 ---
 
-## 5.1 Current Drivetrain Configuration
+## 5.1 Motor A as the Propulsion Source
 
-The confirmed current propulsion architecture is:
+<div align="center">
 
-| Element | Current Configuration | Function |
-| :--- | :--- | :--- |
-| **Main controller** | LEGO EV3 | Commands propulsion |
-| **Drive actuator** | Motor A | Generates drivetrain rotation |
-| **Driven region** | Rear drivetrain | Transfers propulsion |
-| **Rear wheels** | ~61.0 mm diameter | Convert drivetrain rotation into track motion |
-| **Front wheels** | 38.1 mm diameter | Primarily directional steering |
-| **Steering actuator** | Motor B | Controls front-wheel direction |
+<img
+  src="../../v-photos/v4/motor_a_large_drive.jpg"
+  alt="LEGO EV3 Large Motor A used as Piolín's propulsion motor"
+  width="660"
+/>
 
-The architecture can be represented as:
+<br>
+
+<sub><b>Figure 5.2.</b> EV3 Large Motor on Port A serves as the only propulsion actuator in the current vehicle.</sub>
+
+</div>
+
+Motor A provides the rotational input to the complete rear propulsion system.
+
+Its role can be summarized as:
 
 ```text
-                           FRONT
-                             ↑
-
-                  Front Steering Wheels
-                       /           \
-                      /             \
-                 Ackermann Steering
-                        Motor B
-
-
-                    [ LEGO EV3 ]
-
-
-                        Motor A
-                           │
-                           ▼
-                    Rear Drivetrain
-                      /          \
-                     /            \
-              Rear Wheel       Rear Wheel
-
-                             ↓
-                            REAR
+electrical command
+      ↓
+motor torque and rotation
+      ↓
+mechanical transmission
+      ↓
+rear-wheel rotation
+      ↓
+vehicle displacement
 ```
 
-This diagram represents subsystem relationships rather than an exact mechanical scale.
+Piolín does not use separate left and right propulsion motors.
+
+Instead, one dedicated drive motor supplies the rear drivetrain while Motor B independently controls steering.
+
+This keeps the actuator architecture compact and avoids requiring synchronization between multiple propulsion motors.
 
 ---
 
-# 5.2 Role of Motor A
+## 5.2 Why a Large Motor Was Used for Drive
 
-Motor A is dedicated to vehicle propulsion.
+The propulsion motor must move the mass of the complete vehicle and overcome several forms of mechanical resistance.
 
-Its job is to generate rotational mechanical output that the drivetrain transfers toward the rear driven wheel system.
-
-Conceptually:
+These include:
 
 ```text
-Electrical command
-       ↓
-Motor A
-       ↓
-Rotational mechanical output
-       ↓
-Drivetrain
-       ↓
-Rear-wheel motion
+rolling resistance
+
+drivetrain friction
+
+wheel deformation
+
+cornering resistance
+
+acceleration load
 ```
 
-Motor A can be commanded to rotate in either direction.
+The EV3 Large Motor is used because propulsion requires sustained rotational output rather than the shorter angular positioning movements required from the Medium Motor used for steering.
 
-Therefore, the drivetrain supports:
+The two motors therefore perform complementary roles:
 
 ```text
-Forward propulsion
+Large Motor A
+→ sustained vehicle movement
+
+Medium Motor B
+→ steering positioning
+```
+
+Using different actuator roles allows the mechanical architecture to remain simple while still providing independent control over vehicle speed and direction.
+
+---
+
+## 5.3 Motor A Mounting
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/drive_motor_mount.jpg"
+  alt="Piolín Motor A mounting and drivetrain connection"
+  width="680"
+/>
+
+<br>
+
+<sub><b>Figure 5.3.</b> Motor A mounting structure establishes the mechanical reference between the propulsion motor and the rear drivetrain.</sub>
+
+</div>
+
+The motor mount is part of drivetrain performance.
+
+If Motor A shifts relative to the rest of the drivetrain:
+
+```text
+alignment changes
+      ↓
+friction may increase
+      ↓
+rotation transfer becomes less consistent
+```
+
+A stable motor mount therefore helps preserve:
+
+```text
+axle alignment
+
+gear alignment
+
+drivetrain geometry
+
+repeatable encoder-to-motion behavior
+```
+
+This is why a propulsion problem should not immediately be treated as a software-speed problem.
+
+A loose mount or changed structural alignment can produce similar symptoms.
+
+---
+
+## 5.4 Rear Drivetrain Layout
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/rear_drivetrain_top.jpg"
+  alt="Top view of Piolín rear drivetrain and wheel support"
+  width="720"
+/>
+
+<br>
+
+<sub><b>Figure 5.4.</b> Top view of the complete rear propulsion structure.</sub>
+
+</div>
+
+The drivetrain connects the output of Motor A to the driven rear wheels through LEGO mechanical elements such as:
+
+```text
+axles
+
+gears
+
+bushings
+
+connectors
+
+wheel hubs
+
+structural supports
+```
+
+depending on the exact current V4 arrangement.
+
+The function of these components is to transmit rotation while keeping the rotating elements properly aligned.
+
+The drivetrain must therefore satisfy two competing requirements:
+
+```text
+sufficient structural support
 ```
 
 and:
 
 ```text
-Reverse propulsion
+low rotational resistance
 ```
 
-using the same mechanical architecture.
+Too little support can create movement and misalignment.
+
+Too much constraint can create friction.
 
 ---
 
-# 5.3 Propulsion and Steering Are Independent Functions
+## 5.5 Bottom Drivetrain View
 
-The rear drivetrain does not mechanically steer the vehicle.
+<div align="center">
 
-Similarly, the front steering mechanism is not responsible for generating Piolín's primary propulsion.
+<img
+  src="../../v-photos/v4/rear_drivetrain_bottom.jpg"
+  alt="Bottom view of Piolín rear drivetrain"
+  width="720"
+/>
 
-The responsibility split is:
+<br>
+
+<sub><b>Figure 5.5.</b> Bottom view showing the rear axles, wheel support, and surrounding chassis structure.</sub>
+
+</div>
+
+The underside provides a useful perspective for identifying:
 
 ```text
-Motor A
-=
-How Piolín moves longitudinally
+axle support
 
+wheel clearance
 
-Motor B
-=
-Where Piolín is directed
+structural interference
+
+alignment
+
+drivetrain symmetry
 ```
 
-The actual path appears only when these two actions are combined.
+A drivetrain can appear correctly assembled from above while still containing friction or misalignment underneath.
 
-For example:
+For this reason, mechanical inspection should include both sides of the assembly.
+
+---
+
+## 5.6 Rear-Wheel Drive
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/rear_wheels.jpg"
+  alt="Piolín rear driven wheels"
+  width="680"
+/>
+
+<br>
+
+<sub><b>Figure 5.6.</b> Rear wheels transfer drivetrain rotation into longitudinal force against the competition mat.</sub>
+
+</div>
+
+The rear wheels are the final mechanical stage of the propulsion system.
+
+The intended chain is:
 
 ```text
-Motor A forward
-+
-Motor B centered
-        ↓
-Approximately straight forward motion
+Motor A rotation
+      ↓
+drivetrain rotation
+      ↓
+rear-wheel rotation
+      ↓
+traction force
+      ↓
+Piolín moves
 ```
 
-while:
+The rear wheels therefore determine how effectively the motor's rotational output becomes real vehicle displacement.
+
+Their performance depends not only on motor command but also on interaction with the track surface.
+
+---
+
+## 5.7 Traction
+
+A rotating wheel only moves the robot effectively when sufficient traction exists between the tire and the mat.
+
+The ideal assumption is:
 
 ```text
-Motor A forward
-+
-Motor B turned
-        ↓
-Forward curved motion
+wheel rolls
+→ robot moves by the same corresponding distance
+```
+
+In practice:
+
+```text
+wheel slip
+
+tire deformation
+
+surface contamination
+
+cornering load
+
+rapid acceleration
+```
+
+can reduce the accuracy of that assumption.
+
+This distinction is important because the drivetrain encoder can report that the motor rotated correctly even if the vehicle did not travel the ideal calculated distance.
+
+Therefore:
+
+```text
+encoder rotation
 ```
 
 and:
 
 ```text
-Motor A reverse
-+
-Motor B turned
-        ↓
-Reverse curved motion
+physical displacement
 ```
 
-The drivetrain therefore provides the longitudinal component of every vehicle maneuver.
+should be treated as related but not identical quantities.
 
 ---
 
-# 5.4 Rear Propulsion Architecture
+## 5.8 Effective Wheel Diameter
 
-Piolín uses the rear section of the vehicle for propulsion.
+The effective driven-wheel diameter is important when converting encoder rotation into estimated distance.
 
-The basic mechanical path is:
-
-```text
-Motor A
-   ↓
-Transmission elements
-   ↓
-Rear driven assembly
-   ↓
-Rear wheels
-```
-
-This provides a car-like arrangement where:
+For an ideal wheel:
 
 ```text
-FRONT
-   ↓
-Directional steering
-
-
-REAR
-   ↓
-Propulsion
+circumference = π × D
 ```
 
-The exact individual gears or transmission ratio are not numerically specified in this document because a final confirmed drivetrain ratio has not been established in the current documentation.
+where:
 
-This avoids treating development-stage mechanical values as final measurements.
+```text
+D
+= effective wheel diameter
+```
+
+One complete wheel revolution would then correspond approximately to:
+
+```text
+distance = π × D
+```
+
+If the drivetrain contains a transmission ratio between Motor A and the wheel, that ratio must also be considered.
+
+The current V4 wheel diameter should be physically measured before a final numerical conversion factor is published.
+
+Earlier wheel dimensions should not automatically be reused.
 
 ---
 
-# 5.5 Rear Wheel Geometry
+## 5.9 Encoder-Based Distance
 
-The current rear wheel diameter is approximately:
+Motor A contains an encoder that provides a rotational reference.
 
-```text
-D_REAR ≈ 61.0 mm
-```
-
-The radius is therefore:
+A simple ideal-distance model can be written as:
 
 ```text
-R_REAR =
-D_REAR / 2
-```
-
-```text
-R_REAR ≈ 30.5 mm
+distance =
+wheel revolutions
+×
+wheel circumference
 ```
 
 or:
 
 ```text
-R_REAR ≈ 0.0305 m
-```
-
-The theoretical circumference is:
-
-```text
-C_REAR =
-PI × D_REAR
-```
-
-therefore:
-
-```text
-C_REAR ≈
-PI × 61.0 mm
-```
-
-```text
-C_REAR ≈ 191.5 mm
-```
-
-This value provides the basis for relating wheel rotation to theoretical linear travel.
-
----
-
-# 5.6 Wheel Rotation to Linear Motion
-
-For a wheel rolling without slip:
-
-```text
-1 complete rotation
-        ↓
-1 wheel circumference
-```
-
-For Piolín:
-
-```text
-360° rear-wheel rotation
-        ↓
-≈ 191.5 mm theoretical travel
-```
-
-The general relationship is:
-
-```text
-DISTANCE =
-(THETA_WHEEL / 360) × C_REAR
-```
-
-Therefore:
-
-```text
-DISTANCE ≈
-(THETA_WHEEL / 360) × 191.5 mm
-```
-
-where:
-
-```text
-THETA_WHEEL
-=
-Rear-wheel angular rotation
-```
-
-This equation represents an **ideal kinematic relationship**.
-
----
-
-# 5.7 Example Wheel Displacements
-
-Using:
-
-```text
-C_REAR ≈ 191.5 mm
-```
-
-the following ideal relationships can be obtained:
-
-| Rear-Wheel Rotation | Theoretical Linear Travel |
-| :---: | :---: |
-| **90°** | **~47.9 mm** |
-| **180°** | **~95.8 mm** |
-| **360°** | **~191.5 mm** |
-| **720°** | **~383.0 mm** |
-| **1080°** | **~574.5 mm** |
-
-These values assume that the listed angle refers to actual **wheel rotation**.
-
-If Motor A and the driven wheel do not rotate at a 1:1 relationship, the drivetrain ratio must also be considered.
-
----
-
-# 5.8 Motor Encoder Rotation vs. Wheel Rotation
-
-An important distinction is:
-
-```text
-MOTOR ROTATION
-      ≠
-Automatically
-WHEEL ROTATION
-```
-
-if mechanical gearing exists between Motor A and the rear wheels.
-
-A general drivetrain ratio can be defined as:
-
-```text
-G =
-THETA_MOTOR / THETA_WHEEL
-```
-
-Therefore:
-
-```text
-THETA_WHEEL =
-THETA_MOTOR / G
-```
-
-and the theoretical linear displacement becomes:
-
-```text
-DISTANCE =
-(THETA_MOTOR / (360 × G))
+distance =
+(θ_wheel / 360°)
 ×
-C_REAR
-```
-
-or:
-
-```text
-DISTANCE ≈
-(THETA_MOTOR / (360 × G))
-×
-191.5 mm
-```
-
-If:
-
-```text
-G = 1
-```
-
-then motor and wheel rotation are equal.
-
-If a different transmission ratio is used, the corresponding ratio must be included.
-
-No final numerical value of `G` is claimed here because it has not been confirmed as a final drivetrain measurement.
-
----
-
-# 5.9 Why Encoder Distance Is Not Exact Odometry
-
-Even if the transmission ratio is known, encoder-based travel remains an estimate of real track displacement.
-
-The encoder measures:
-
-```text
-Motor / wheel rotation
-```
-
-not:
-
-```text
-Actual robot position on the track
-```
-
-Differences can appear because of:
-
-```text
-Wheel slip
-
-Tire deformation
-
-Turning motion
-
-Surface irregularities
-
-Mechanical losses
-
-Collisions
-
-Wheel unloading
-```
-
-Therefore:
-
-```text
-ENCODER DISTANCE
-      ≈
-THEORETICAL MOTION REFERENCE
-```
-
-rather than:
-
-```text
-ENCODER DISTANCE
-      =
-GUARANTEED PHYSICAL POSITION
-```
-
-This distinction is especially important during curves and obstacle maneuvers.
-
----
-
-# 5.10 Straight-Line Drivetrain Motion
-
-During approximately straight movement:
-
-```text
-Motor B ≈ steering center
-```
-
-while:
-
-```text
-Motor A → forward propulsion
-```
-
-The rear wheels then attempt to move the chassis longitudinally.
-
-Conceptually:
-
-```text
-                 FRONT
-                   ↑
-                   │
-                   │
-              [ PIOLÍN ]
-                   │
-                   │
-             Rear Wheels
-               ↻     ↺
-                   │
-                   ↑
-                Traction
-```
-
-If steering alignment and wheel geometry are correct, the resulting vehicle motion is approximately straight.
-
-However, the drivetrain alone does not guarantee straight movement.
-
----
-
-# 5.11 Why Propulsion Alone Does Not Guarantee Straight Travel
-
-Even with identical Motor A commands, Piolín can deviate because of:
-
-```text
-Front steering misalignment
-
-Wheel alignment
-
-Mechanical resistance
-
-Surface differences
-
-Uneven tire interaction
-
-Chassis geometry
-```
-
-Therefore, the complete straight-line system is:
-
-```text
-Motor A propulsion
-        +
-Motor B steering correction
-        +
-Ultrasonic feedback
-        ↓
-Controlled straight navigation
-```
-
-This is why propulsion and navigation cannot be considered independently.
-
----
-
-# 5.12 Rotational Speed
-
-The rear-wheel angular velocity can be represented as:
-
-```text
-OMEGA =
-DELTA_THETA / DELTA_T
+πD
 ```
 
 where:
 
 ```text
-OMEGA
-=
-Angular velocity
-
-
-DELTA_THETA
-=
-Angular displacement
-
-
-DELTA_T
-=
-Elapsed time
+θ_wheel
+= wheel rotation in degrees
 ```
 
-When expressed in radians per second, the ideal tangential wheel speed is:
+If Motor A rotation differs from wheel rotation because of gearing:
 
 ```text
-V =
-OMEGA × R_REAR
+θ_wheel =
+θ_motor × transmission factor
 ```
 
-with:
+The exact transmission factor must come from the final physical drivetrain.
+
+This approach can support:
 
 ```text
-R_REAR ≈ 0.0305 m
+controlled forward movement
+
+reverse movement
+
+parking displacement
+
+relative distance testing
 ```
 
-Therefore:
-
-```text
-V ≈
-OMEGA × 0.0305
-```
-
-This provides the ideal relationship between wheel angular speed and longitudinal vehicle velocity.
+but it should not be presented as perfect global odometry.
 
 ---
 
-# 5.13 Rotations Per Second
+## 5.10 Why Encoder Distance Is an Estimate
 
-If the wheel rotates at:
+Encoder-based distance can contain error even when the motor encoder itself is accurate.
 
-```text
-N revolutions per second
-```
-
-then ideal longitudinal speed can also be calculated as:
+Sources include:
 
 ```text
-V =
-N × C_REAR
+wheel slip
+
+effective tire radius
+
+mechanical backlash
+
+drivetrain play
+
+turning motion
+
+surface variation
 ```
 
-For Piolín:
+During a straight section, the relationship between wheel rotation and vehicle displacement is relatively simple.
 
-```text
-V ≈
-N × 0.1915 m/s
-```
+During a turn, the vehicle follows an arc and the wheels travel different geometric paths.
 
-For example, theoretically:
-
-```text
-1 wheel revolution / second
-        ↓
-≈ 0.1915 m/s
-```
-
-assuming rolling without slip.
-
-This example explains the relationship between wheel speed and vehicle speed but is not presented as a measured final Piolín velocity.
+Therefore an encoder-only distance model becomes less representative of complete vehicle position during strong steering.
 
 ---
 
-# 5.14 Motor Speed vs. Vehicle Speed
+## 5.11 Transmission Ratio
 
-The EV3 can command a motor speed, but:
-
-```text
-MOTOR SPEED
-      ≠
-Automatically
-VEHICLE SPEED
-```
-
-Vehicle speed also depends on:
+A gear ratio changes the relationship between:
 
 ```text
-Transmission ratio
-
-Wheel diameter
-
-Track interaction
-
-Mechanical losses
-
-Current steering angle
-
-Vehicle load
-```
-
-The drivetrain converts rotational motion into translation through several physical stages.
-
-Therefore:
-
-```text
-Motor command
-      ↓
-Motor rotation
-      ↓
-Transmission
-      ↓
-Wheel rotation
-      ↓
-Track interaction
-      ↓
-Vehicle speed
-```
-
----
-
-# 5.15 Drive Torque
-
-Motor A generates torque.
-
-Torque describes rotational effort:
-
-```text
-TAU
-=
-Rotational force effect
-```
-
-The drivetrain transfers this rotational effort toward the driven wheels.
-
-At the wheel, ideal tangential force is related to wheel torque by:
-
-```text
-F =
-TAU_WHEEL / R_WHEEL
-```
-
-For Piolín's rear wheel:
-
-```text
-F ≈
-TAU_WHEEL / 0.0305
-```
-
-where:
-
-```text
-TAU_WHEEL
-=
-Torque available at driven wheel
-
-
-F
-=
-Ideal tangential force
-```
-
-This is a theoretical mechanical relationship.
-
----
-
-# 5.16 Effect of Wheel Radius on Force
-
-For the same wheel torque:
-
-```text
-F =
-TAU / R
-```
-
-therefore:
-
-```text
-Smaller radius
-      ↓
-Greater tangential force
+Motor A rotation
 ```
 
 and:
 
 ```text
-Larger radius
-      ↓
-Lower tangential force
-but greater distance per rotation
+rear-wheel rotation
 ```
 
-This illustrates an important drivetrain trade-off:
-
-```text
-Wheel radius
-      affects both
-Force and Distance
-```
-
-Piolín's rear wheel radius is approximately:
-
-```text
-30.5 mm
-```
-
-and its circumference is approximately:
-
-```text
-191.5 mm
-```
-
-so the selected rear wheel geometry influences both propulsion force and motion per revolution.
-
----
-
-# 5.17 Transmission Ratio
-
-A drivetrain can trade rotational speed for torque through its transmission.
-
-Using the general ratio:
+A conceptual ratio can be written as:
 
 ```text
 G =
-OMEGA_MOTOR / OMEGA_WHEEL
+motor rotation
+/
+wheel rotation
 ```
 
-an ideal reduction can increase wheel torque while reducing wheel speed.
+Depending on the mechanical arrangement, gearing can trade:
+
+```text
+wheel speed
+```
+
+against:
+
+```text
+available torque
+```
+
+A higher wheel-speed arrangement can increase theoretical travel speed but may reduce mechanical advantage.
+
+A torque-oriented arrangement can provide greater mechanical advantage but reduce wheel rotational speed.
+
+The current V4 ratio should only be documented after directly verifying the gear arrangement installed on Piolín.
+
+---
+
+## 5.12 Speed vs. Torque Trade-Off
+
+The drivetrain cannot maximize every performance characteristic simultaneously.
 
 Conceptually:
 
 ```text
-Higher speed at motor
-        ↓
-Mechanical reduction
-        ↓
-Lower wheel speed
-        +
-Higher wheel torque
+more wheel speed
+↔
+less mechanical advantage
 ```
 
-The opposite relationship can favor wheel speed at the expense of torque.
+while:
 
-This is a fundamental drivetrain design trade-off.
+```text
+more mechanical advantage
+↔
+less wheel speed
+```
 
-Because Piolín's final numerical gear ratio is not confirmed here, no specific reduction or multiplication ratio is claimed.
+The useful choice depends on the requirements of the course.
+
+Piolín needs enough propulsion to complete the course efficiently, but also enough controllability for:
+
+```text
+corner entry
+
+obstacle reaction
+
+reverse recovery
+
+parking
+```
+
+A drivetrain designed only for maximum speed would make the steering controller's task harder.
+
+The objective is therefore not maximum theoretical velocity but **usable autonomous vehicle performance**.
 
 ---
 
-# 5.18 Mechanical Power
+## 5.13 Drivetrain Friction
 
-Mechanical rotational power can be expressed as:
+Internal friction reduces the amount of Motor A output available for vehicle movement.
 
-```text
-P =
-TAU × OMEGA
-```
-
-where:
+Possible sources include:
 
 ```text
-P
-=
-Mechanical power
+misaligned axle supports
 
+bushings pressed too tightly
 
-TAU
-=
-Torque
+gear contact
 
+wheel rubbing
 
-OMEGA
-=
-Angular velocity
+bent structural alignment
+
+axle side-loading
 ```
 
-At the vehicle level, ideal linear mechanical power can also be represented as:
+A change in drivetrain friction can produce symptoms such as:
 
 ```text
-P =
-F × V
+slower acceleration
+
+reduced top speed
+
+different reverse displacement
+
+longer run time
 ```
 
-These relationships connect drivetrain torque and speed with vehicle force and velocity.
+even though the software has not changed.
 
-In a real system:
-
-```text
-Input mechanical power
-      >
-Useful track power
-```
-
-because some energy is lost through mechanical inefficiencies.
+This makes drivetrain friction an important controlled variable during software testing.
 
 ---
 
-# 5.19 Drivetrain Losses
+## 5.14 Manual Friction Inspection
 
-No drivetrain is perfectly efficient.
+One simple mechanical diagnostic is to inspect the drivetrain with the robot powered off.
 
-Possible losses include:
-
-```text
-Axle friction
-
-Gear friction
-
-Bearing friction
-
-Tire deformation
-
-Structural misalignment
-
-Wheel slip
-```
-
-The mechanical energy path is:
+The rear drivetrain can be checked for:
 
 ```text
-Motor output
-     ↓
-Drivetrain transmission
-     ↓
-Losses occur
-     ↓
-Wheel output
-     ↓
-Track motion
+unexpected resistance
+
+wheel rubbing
+
+gear binding
+
+unequal left/right motion
+
+axle movement
 ```
 
-Therefore, theoretical torque, speed, and distance equations provide useful engineering models but not exact real-world outputs.
-
----
-
-# 5.20 Drivetrain Alignment
-
-Mechanical alignment is critical to efficient propulsion.
-
-The drivetrain relies on the chassis to keep:
-
-```text
-Motor A
-
-Transmission components
-
-Axles
-
-Rear wheel supports
-```
-
-correctly positioned relative to one another.
-
-Misalignment can cause:
-
-```text
-Additional friction
-
-Binding
-
-Reduced wheel speed
-
-Higher motor load
-
-Uneven motion
-```
-
-The relationship is:
-
-```text
-Good structural alignment
-        ↓
-Lower unnecessary resistance
-        ↓
-More consistent propulsion
-```
-
-This is one reason drivetrain design and chassis design are closely connected.
-
----
-
-# 5.21 Axle Support
-
-Rotating drivetrain elements require stable structural support.
-
-An axle should rotate while its support geometry remains fixed.
-
-Conceptually:
-
-```text
-FIXED CHASSIS
-      ↓
-Axle support
-      ↓
-ROTATING AXLE
-      ↓
-Wheel
-```
-
-If the axle support moves significantly:
-
-```text
-Alignment changes
-      ↓
-Mechanical resistance changes
-      ↓
-Propulsion behavior changes
-```
-
-The chassis therefore provides the reference structure for drivetrain rotation.
-
----
-
-# 5.22 Friction in the Drivetrain
+The objective is not necessarily to achieve completely resistance-free motion.
 
 Some friction is unavoidable.
 
-The objective is not:
-
-```text
-ZERO FRICTION
-```
-
-which is physically unrealistic.
-
-Instead, the design aims to avoid unnecessary resistance.
-
-Sources of internal drivetrain resistance can include:
-
-```text
-Axle contact
-
-Gear contact
-
-Misaligned elements
-
-Components pressed too tightly together
-
-Structural deformation
-```
-
-Excessive internal friction reduces the amount of Motor A output available for useful propulsion.
+The purpose is to detect a significant change from the robot's normal mechanical condition before attempting to compensate in software.
 
 ---
 
-# 5.23 Tire–Track Interaction
+## 5.15 Axle Alignment
 
-The drivetrain only produces useful vehicle motion if the driven wheels can transfer force to the track surface.
+Axles should remain aligned with their intended rotational path.
 
-The complete chain is:
-
-```text
-Motor A
-   ↓
-Wheel torque
-   ↓
-Rear tire
-   ↓
-Track contact
-   ↓
-Tangential reaction force
-   ↓
-Vehicle acceleration
-```
-
-Without sufficient tire-track interaction:
+If an axle is forced sideways:
 
 ```text
-Wheel rotates
-      ↓
-Slip occurs
-      ↓
-Actual displacement is reduced
+friction increases
 ```
 
-This is why theoretical encoder distance and actual movement can differ.
+and if its supports are not sufficiently constrained:
+
+```text
+mechanical movement increases
+```
+
+A well-supported axle therefore needs:
+
+```text
+alignment
+
+controlled axial position
+
+freedom to rotate
+```
+
+at the same time.
+
+This is another example of the mechanical balance between rigidity and freedom of movement.
 
 ---
 
-# 5.24 Traction Limit
+## 5.16 Bushings and Axial Position
 
-The maximum useful propulsion force is limited by available traction.
+Bushings and axle restraints help prevent drivetrain elements from sliding out of their intended positions.
 
-A simplified friction limit can be represented as:
+Without adequate restraint:
 
 ```text
-F_TRACTION_MAX
-≈
-MU × N
+gear spacing can change
+
+wheel position can shift
+
+axle alignment can change
 ```
 
-where:
+However, excessive compression can also increase friction.
+
+The goal is:
 
 ```text
-MU
-=
-Effective coefficient of friction
-
-
-N
-=
-Normal force on driven wheels
-```
-
-No numerical value of `MU` is assumed here because the track/tire friction coefficient has not been established as a confirmed current measurement.
-
-Similarly, the exact rear-axle normal load is not claimed because the current center-of-mass position has not been numerically established.
-
----
-
-# 5.25 Robot Weight
-
-Piolín's confirmed mass is:
-
-```text
-m = 0.80476 kg
-```
-
-Using:
-
-```text
-g = 9.81 m/s²
-```
-
-the total approximate gravitational force is:
-
-```text
-P =
-m × g
-```
-
-```text
-P =
-0.80476 × 9.81
-```
-
-```text
-P ≈ 7.89 N
-```
-
-On a level surface, the total wheel normal reactions together are approximately equal in magnitude to this weight under static conditions.
-
-However, this total load is not necessarily distributed equally between the front and rear wheels.
-
----
-
-# 5.26 Weight Distribution and Rear Traction
-
-Because Piolín is rear-driven, the amount of normal load supported by the rear wheels influences available traction.
-
-Conceptually:
-
-```text
-More useful rear normal load
-        ↓
-Potential for greater rear traction
-```
-
-but vehicle balance also affects steering response.
-
-Therefore, mass placement cannot be optimized only for propulsion.
-
-The complete robot requires a balance between:
-
-```text
-Rear-wheel traction
-
-Front steering effectiveness
-
-Structural stability
-
-Sensor positioning
-```
-
-The exact current front/rear load distribution has not been measured as a final documented value.
-
----
-
-# 5.27 Longitudinal Force and Acceleration
-
-From Newton's second law:
-
-```text
-F_NET =
-m × a
-```
-
-so:
-
-```text
-a =
-F_NET / m
-```
-
-Using Piolín's measured mass:
-
-```text
-a =
-F_NET / 0.80476
-```
-
-The available longitudinal acceleration therefore depends on the net propulsion force after considering opposing effects such as:
-
-```text
-Mechanical resistance
-
-Rolling resistance
-
-Tire slip
-```
-
-This relationship explains why drivetrain efficiency influences how quickly Piolín changes speed.
-
----
-
-# 5.28 Acceleration Is Not Instantaneous
-
-A motor command change does not instantly create the final vehicle velocity.
-
-The progression is:
-
-```text
-EV3 changes Motor A command
-        ↓
-Motor torque changes
-        ↓
-Wheel torque changes
-        ↓
-Net longitudinal force changes
-        ↓
-Vehicle accelerates
-        ↓
-Velocity changes over time
-```
-
-This is why:
-
-```text
-Commanded speed
-      ≠
-Immediate physical speed
-```
-
-Vehicle inertia must always be considered.
-
----
-
-# 5.29 Momentum
-
-Piolín's linear momentum is:
-
-```text
-p =
-m × v
-```
-
-with:
-
-```text
-m = 0.80476 kg
-```
-
-As vehicle speed increases:
-
-```text
-Momentum increases
-```
-
-which affects how quickly the robot can:
-
-```text
-Stop
-
-Change trajectory
-
-Reverse direction
-
-Recover after a maneuver
-```
-
-The drivetrain therefore influences not only top speed but also the dynamic behavior of the entire robot.
-
----
-
-# 5.30 Stopping Behavior
-
-Stopping a motor does not necessarily make the physical robot stop at exactly the same instant.
-
-The sequence is:
-
-```text
-Drive command reduced
-        ↓
-Motor output changes
-        ↓
-Wheel propulsion decreases
-        ↓
-Vehicle still has momentum
-        ↓
-Robot decelerates
-        ↓
-Physical stop
-```
-
-The resulting stopping distance depends on:
-
-```text
-Vehicle velocity
-
-Vehicle mass
-
-Motor behavior
-
-Track friction
-
-Wheel traction
-```
-
-No final stopping-distance value is claimed here because it belongs to empirical testing rather than the drivetrain architecture itself.
-
----
-
-# 5.31 Forward Mobility
-
-During normal forward movement:
-
-```text
-Motor A
-    ↓
-Forward wheel rotation
-    ↓
-Rear tire forces
-    ↓
-Vehicle moves forward
-```
-
-At the same time, Motor B may make small steering changes.
-
-Therefore:
-
-```text
-FORWARD
-```
-
-does not necessarily mean:
-
-```text
-PERFECTLY STRAIGHT
-```
-
-Piolín can move forward while continuously adjusting its heading through shallow steering changes.
-
----
-
-# 5.32 Reverse Mobility
-
-Motor A also supports reverse movement.
-
-The drivetrain remains mechanically the same:
-
-```text
-Motor A reverses
-      ↓
-Rear wheels reverse
-      ↓
-Vehicle velocity changes direction
-```
-
-This capability is useful for:
-
-```text
-Repositioning
-
-Frontal recovery
-
-Parking maneuvers
-
-Controlled backing movement
-```
-
-The steering system remains active during reverse motion, so Piolín continues behaving as a car-like vehicle.
-
----
-
-# 5.33 Direction Reversal and Inertia
-
-Changing directly from forward propulsion to reverse propulsion requires the drivetrain to reverse rotational direction.
-
-The physical progression is:
-
-```text
-Forward velocity
-       ↓
-Motor command changes
-       ↓
-Vehicle decelerates
-       ↓
-Velocity approaches zero
-       ↓
-Reverse force dominates
-       ↓
-Vehicle moves backward
-```
-
-The robot cannot instantaneously change physical velocity from positive to negative.
-
-This is another consequence of inertia.
-
----
-
-# 5.34 Reverse Motion and Steering
-
-The front steering geometry does not change fundamentally when the drivetrain reverses.
-
-However, the direction of vehicle velocity changes.
-
-Therefore:
-
-```text
-Same wheel steering angle
-      +
-Forward motion
-```
-
-and:
-
-```text
-Same wheel steering angle
-      +
-Reverse motion
-```
-
-produce different vehicle trajectories.
-
-This property allows Piolín to perform parking-style repositioning using the same Motor B steering mechanism.
-
----
-
-# 5.35 Drivetrain During Wall Following
-
-During normal wall following, Motor A provides relatively continuous propulsion while Motor B performs steering corrections.
-
-Conceptually:
-
-```text
-Motor A
-   ↓
-Maintains vehicle movement
-
+secure positioning
 +
+free rotation
+```
+
+rather than maximum physical compression.
+
+---
+
+## 5.17 Gear Alignment
+
+Where gears are used, alignment strongly affects drivetrain efficiency.
+
+Poor meshing can cause:
+
+```text
+excessive friction
+
+noise
+
+uneven rotation
+
+tooth loading
+
+increased Motor A effort
+```
+
+A gear pair should remain engaged sufficiently to transfer rotation without being forced tightly against each other.
+
+Changes to nearby chassis elements should therefore be followed by a drivetrain inspection.
+
+A structural modification can unintentionally alter gear alignment.
+
+---
+
+## 5.18 Mechanical Backlash
+
+Clearance between gears, axles, and connections can create drivetrain backlash.
+
+This effect becomes more visible when Motor A changes direction.
+
+For example:
+
+```text
+forward rotation
+      ↓
+reverse command
+      ↓
+motor reverses
+      ↓
+mechanical clearance is taken up
+      ↓
+rear wheels begin reversing
+```
+
+The software command changes immediately, but the physical direction change can have a short mechanical delay.
+
+This is important for precise:
+
+```text
+reverse movement
+
+parking
+
+small recovery maneuvers
+```
+
+where the commanded displacement may be relatively short.
+
+---
+
+## 5.19 Forward Motion
+
+Most of Piolín's autonomous course is completed in forward motion.
+
+During a stable straight:
+
+```text
+Motor A
+→ provides propulsion
 
 Motor B
-   ↓
-Corrects trajectory
-
-+
-
-Ultrasonics
-   ↓
-Provide wall feedback
+→ remains close to center with corrections
 ```
 
-The drivetrain must therefore provide sufficiently consistent movement for the steering controller to have time to react to changes in wall geometry.
+Motor A speed should provide enough forward progress while leaving the steering system enough time to react to sensor information.
+
+Increasing speed also increases the distance Piolín travels during:
+
+```text
+sensor processing
+
+steering response
+
+corner detection
+
+obstacle reaction
+```
+
+Therefore Motor A speed is not simply a performance setting.
+
+It directly affects navigation geometry.
 
 ---
 
-# 5.36 Why Drive Speed Affects Wall Following
+## 5.20 Reverse Motion
 
-At higher speed:
+Motor A can also be commanded in the opposite rotational direction.
+
+This allows Piolín to move backward for:
 
 ```text
-Robot travels farther
-between sensor updates
+repositioning
+
+recovery
+
+obstacle maneuver support
+
+parking
 ```
 
-and:
+A reverse maneuver can be defined using:
 
 ```text
-Less physical distance remains
-for corrections
-```
-
-Therefore:
-
-```text
-Higher drive speed
-        ↓
-Greater steering demand
-        ↓
-Potentially more oscillation
-```
-
-if the controller is not adjusted accordingly.
-
-The drivetrain speed is therefore part of wall-following behavior even though Motor A does not directly calculate steering.
-
----
-
-# 5.37 Drivetrain During Corner Entry
-
-A corner combines propulsion and steering.
-
-The mechanical sequence is:
-
-```text
-Motor A continues propulsion
-        ↓
-Corner condition detected
-        ↓
-Motor B increases steering
-        ↓
-Vehicle curvature increases
-        ↓
-Piolín enters corner
-```
-
-The drive speed influences how quickly the robot advances while the steering mechanism reaches the required position.
-
-Therefore, corner entry depends on coordination between both motors.
-
----
-
-# 5.38 Drivetrain During Cornering
-
-During a curve, the rear drivetrain continues pushing the vehicle along the path defined by the front steering geometry.
-
-Conceptually:
-
-```text
-Rear wheels
-    ↓
-Generate forward force
-
-Front wheels
-    ↓
-Define directional geometry
-
-Combined
-    ↓
-Curved trajectory
-```
-
-The rear wheels do not need to independently steer.
-
-They follow the chassis trajectory created by the steering geometry.
-
----
-
-# 5.39 Inner and Outer Rear Wheel Paths
-
-During a turn, the left and right rear wheels follow different path radii.
-
-```text
-TURN CENTER
-     ●
-
-
-Rear inner wheel
-      ↓
-Smaller-radius path
-
-
-Rear outer wheel
-      ↓
-Larger-radius path
-```
-
-This is part of normal car-like motion.
-
-The specific way the rear drivetrain accommodates the different wheel paths depends on the physical transmission arrangement.
-
-Because the final internal rear-drive distribution has not been fully documented numerically here, no unconfirmed differential behavior is claimed.
-
----
-
-# 5.40 Drivetrain During Corner Exit
-
-At corner exit:
-
-```text
-Motor B reduces steering
-        ↓
-Turning radius increases
-        ↓
-Motor A continues propulsion
-        ↓
-Vehicle transitions toward straight motion
-```
-
-If propulsion is too aggressive while the steering system is still recovering:
-
-```text
-Robot can travel too far
-before stabilization
-```
-
-This is another reason drive and steering behavior must be tuned together.
-
----
-
-# 5.41 Drivetrain During Obstacle Avoidance
-
-During obstacle avoidance, the drivetrain provides the forward motion needed for Piolín to move around a pillar.
-
-The sequence is:
-
-```text
-Pillar detected
-      ↓
-Passing side selected
-      ↓
-Motor B changes steering
-      ↓
-Motor A continues controlled propulsion
-      ↓
-Vehicle follows avoidance trajectory
-```
-
-The camera alone cannot produce a bypass.
-
-Without drivetrain movement:
-
-```text
-Steering angle changes
-      ↓
-Vehicle remains approximately in place
-```
-
-Therefore:
-
-```text
-Obstacle trajectory
-=
-Propulsion + steering
-```
-
----
-
-# 5.42 Drive Speed and Obstacle Reaction Time
-
-Drive speed strongly influences obstacle avoidance.
-
-At greater speed:
-
-```text
-Pillar enters view
-      ↓
-Less time before arrival
-      ↓
-Less available distance
-for steering response
-```
-
-At a lower speed:
-
-```text
-More physical time
-is available
-for detection and maneuver
-```
-
-This creates a trade-off between:
-
-```text
-Competition speed
-```
-
-and:
-
-```text
-Available reaction distance
-```
-
-The drivetrain therefore influences vision-system effectiveness indirectly.
-
----
-
-# 5.43 Post-Obstacle Recovery
-
-After Piolín has passed a pillar, Motor A continues moving the vehicle while Motor B produces a recovery curve.
-
-```text
-Pillar cleared
-      ↓
-Recovery steering
-      +
-Forward propulsion
-      ↓
-Vehicle gradually returns
-toward useful track position
-```
-
-The recovery cannot occur if the robot simply centers the steering wheels without continuing to move.
-
-Because Piolín is non-holonomic:
-
-```text
-Position correction
-      requires
-Vehicle travel
-```
-
-The drivetrain supplies that travel.
-
----
-
-# 5.44 Frontal Safety Interaction
-
-The S1 front ultrasonic sensor can influence whether normal forward propulsion should continue.
-
-Conceptually:
-
-```text
-Motor A forward request
-        ↓
-Front safety condition checked
-        ↓
-Safe?
-   ┌────┴────┐
-   │         │
-  YES        NO
-   │         │
-   ▼         ▼
-Continue   Modify /
-           interrupt propulsion
-```
-
-The front ultrasonic sensor does not mechanically control the drivetrain.
-
-It provides information to the EV3, which can then alter the Motor A command.
-
----
-
-# 5.45 Lateral Wall Safety and Propulsion
-
-Lateral ultrasonic information also affects how aggressively Piolín should continue a maneuver.
-
-For example:
-
-```text
-Obstacle steering
-      ↓
-Robot moves toward side wall
-      ↓
-Lateral distance decreases
-```
-
-The EV3 can adjust the motion strategy before the trajectory becomes unsafe.
-
-This demonstrates the interaction:
-
-```text
-DISTANCE SENSING
-      ↓
-CONTROL DECISION
-      ↓
-DRIVE + STEERING
-```
-
-rather than treating the drivetrain as an isolated open-loop subsystem.
-
----
-
-# 5.46 Color Sensor and Drivetrain State
-
-The color sensor does not directly power the drivetrain.
-
-Instead:
-
-```text
-Floor marking
-      ↓
-Color sensor
-      ↓
-Course event
-      ↓
-EV3 navigation state
-      ↓
-Motor A behavior may change
-```
-
-Examples include:
-
-```text
-Determining initial direction
-
-Tracking course progression
-
-Triggering later run states
-
-Supporting final parking behavior
-```
-
-Therefore, the color sensor influences **when and why** the drivetrain changes behavior without being part of the drivetrain mechanically.
-
----
-
-# 5.47 Parking and the Drivetrain
-
-Parking requires precise use of both forward and reverse propulsion.
-
-A conceptual sequence is:
-
-```text
-Approach parking region
-        ↓
-Control forward motion
-        ↓
-Change steering
-        ↓
-Reverse propulsion
-        ↓
-Reposition chassis
-        ↓
-Final correction
-        ↓
-Stop
-```
-
-Because Piolín uses Ackermann steering:
-
-```text
-Parking
-=
-Coordinated drive direction
-+
-Steering position
-```
-
-rather than an in-place rotation.
-
-Detailed parking logic is documented in:
-
-[Parking Overview](../software_obstacles_strategy/parking/01_ParkingOverview.md)
-
----
-
-# 5.48 Drivetrain and Course Progress
-
-Motor A physically moves the color sensor across the floor markings.
-
-Therefore:
-
-```text
-Drivetrain displacement
-        ↓
-Color sensor reaches new marking
-        ↓
-Course event detected
-```
-
-The relationship is cyclical:
-
-```text
-Navigation state
-     ↓
-Motor A moves robot
-     ↓
-Robot reaches course event
-     ↓
-Sensor updates navigation state
-```
-
-This is another example of mechanics and software interacting through physical motion.
-
----
-
-# 5.49 Drivetrain and Sensor Timing
-
-Increasing drivetrain speed changes how quickly physical features move relative to the sensors.
-
-For example:
-
-```text
-Higher velocity
-      ↓
-Wall transition occurs faster
-
-Floor marking passes faster
-
-Pillar distance closes faster
-```
-
-This means propulsion speed affects:
-
-```text
-Sensor reaction time
-
-Color detection duration
-
-Corner transition timing
-
-Obstacle response distance
-```
-
-The drivetrain therefore affects nearly every autonomous subsystem through vehicle speed.
-
----
-
-# 5.50 Mechanical Load During Steering
-
-When Piolín turns, the drivetrain may experience greater resistance than during straight movement.
-
-Possible contributors include:
-
-```text
-Tire scrub
-
-Different wheel path radii
-
-Lateral tire forces
-
-Steering geometry
-
-Surface friction
-```
-
-Therefore:
-
-```text
-Same Motor A command
-```
-
-may not produce exactly the same physical velocity during:
-
-```text
-Straight motion
-```
-
-and:
-
-```text
-Sharp turning
-```
-
-This is expected in a real mechanical vehicle.
-
----
-
-# 5.51 Mechanical Load During Obstacle Maneuvers
-
-Obstacle maneuvers can involve:
-
-```text
-Large steering angles
-
-Rapid steering transitions
-
-Position recovery
-```
-
-which can increase drivetrain demand.
-
-The complete mechanical system must simultaneously provide:
-
-```text
-Longitudinal force
-        +
-Lateral trajectory change
-```
-
-through tire-track interaction.
-
-This is another reason obstacle performance depends on both propulsion and steering.
-
----
-
-# 5.52 Drivetrain and Battery State
-
-Motor A receives its electrical energy through the EV3 vehicle-control power system.
-
-The mechanical output of the motor ultimately depends on available electrical conditions.
-
-Conceptually:
-
-```text
-EV3 battery
-     ↓
-EV3
-     ↓
-Motor A
-     ↓
-Mechanical output
-```
-
-The battery architecture is documented separately in:
-
-[Battery](../components/08_Battery.md)
-
-[Power Distribution](../components/09_PowerDistribution.md)
-
-No current-specific numerical voltage-drop or drivetrain-current claims are made in this mechanical document.
-
----
-
-# 5.53 Drivetrain and Structural Load
-
-Motor torque produces an equal and opposite reaction on the motor mounting structure.
-
-Therefore:
-
-```text
-Motor A rotates drivetrain
-        ↓
-Drivetrain resists
-        ↓
-Reaction load reaches chassis
-```
-
-This means the drivetrain depends on strong structural integration.
-
-If the motor or axle supports move under load:
-
-```text
-Transmission alignment changes
-        ↓
-Mechanical efficiency changes
-```
-
-The drivetrain and chassis are therefore mechanically interdependent.
-
----
-
-# 5.54 Mechanical Consistency
-
-Autonomous navigation benefits when similar propulsion commands produce similar physical results.
-
-The desired relationship is:
-
-```text
-Similar Motor A command
-        +
-Similar conditions
-        ↓
-Similar vehicle response
-```
-
-Variability can be introduced by:
-
-```text
-Loose axle support
-
-Wheel movement
-
-Drivetrain resistance
-
-Tire contamination
-
-Mechanical binding
-```
-
-Mechanical consistency therefore contributes directly to repeatable software behavior.
-
----
-
-# 5.55 Drivetrain Faults Can Appear as Software Problems
-
-A propulsion problem can change sensor behavior even when the sensors and software are working correctly.
-
-Example:
-
-```text
-Increased drivetrain friction
-        ↓
-Robot moves slower than expected
-        ↓
-Corner timing changes
-        ↓
-Sensor transitions occur differently
-        ↓
-Software appears mistuned
-```
-
-Another example:
-
-```text
-Wheel slip
-        ↓
-Encoder rotates normally
-        ↓
-Robot travels less distance
-        ↓
-Encoder-based movement appears incorrect
-```
-
-The drivetrain should therefore be considered whenever movement behavior becomes inconsistent.
-
----
-
-# 5.56 Drivetrain Fault Propagation
-
-A mechanical drivetrain issue can propagate through several systems:
-
-```text
-Mechanical resistance
-        ↓
-Reduced vehicle speed
-        ↓
-Different sensor timing
-        ↓
-Navigation response changes
-        ↓
-Different trajectory
+time
 ```
 
 or:
 
 ```text
-Wheel slip
-        ↓
-Reduced real displacement
-        ↓
-Course position differs
-        ↓
-Color / corner events occur later
+encoder displacement
 ```
 
-This illustrates why system-level troubleshooting is necessary.
+A timed reverse is easy to implement but depends more heavily on practical motor speed.
+
+An encoder-defined reverse provides a rotational reference but still remains affected by:
+
+```text
+traction
+
+backlash
+
+wheel geometry
+```
+
+The appropriate method depends on how precise the physical maneuver must be.
 
 ---
 
-# 5.57 Rear Wheel Circumference as a Motion Reference
+## 5.21 Direction Reversal
 
-The confirmed rear wheel circumference:
+Changing directly from forward to reverse places different demands on the drivetrain than steady-state motion.
 
-```text
-C_REAR ≈ 191.5 mm
-```
-
-is useful because it creates a physical scale for drivetrain motion.
-
-The basic relationship:
+The physical sequence is approximately:
 
 ```text
-Wheel rotations
+forward vehicle movement
       ↓
-Approximate displacement
+Motor A slows
+      ↓
+rotation reaches zero
+      ↓
+Motor A reverses
+      ↓
+drivetrain backlash changes side
+      ↓
+rear wheels reverse
+      ↓
+vehicle begins moving backward
 ```
 
-provides a bridge between:
+The vehicle therefore does not reverse instantaneously at the exact moment the software command changes.
 
-```text
-Software encoder values
-```
-
-and:
-
-```text
-Physical robot movement
-```
-
-Even when real displacement differs slightly, the theoretical model is valuable for understanding the system.
+This should be considered when short recovery maneuvers are calibrated.
 
 ---
 
-# 5.58 Distance per Degree of Wheel Rotation
+## 5.22 Drivetrain and Steering Interaction
 
-Using:
+Although the drivetrain does not mechanically steer Piolín, propulsion strongly affects the result of every steering command.
 
-```text
-C_REAR ≈ 191.5 mm
-```
+The same front-wheel angle combined with different Motor A speeds produces different physical behavior.
 
-the theoretical distance per degree of rear-wheel rotation is:
+At low speed:
 
 ```text
-DISTANCE_PER_DEGREE =
-191.5 / 360
+steering has more time
+to alter trajectory
+over a short distance
 ```
 
+At high speed:
+
 ```text
-DISTANCE_PER_DEGREE ≈ 0.532 mm/°
+Piolín travels farther
+before the same steering response develops
 ```
+
+The drivetrain and steering system must therefore be tuned together.
+
+---
+
+## 5.23 Drivetrain During Open Challenge
+
+During Open, Motor A provides relatively continuous propulsion while the steering controller responds to:
+
+```text
+gyro orientation
+
+left/right ultrasonic geometry
+
+floor-state information
+```
+
+The drivetrain itself does not change according to clockwise or counterclockwise direction.
+
+Only the steering and sensor interpretation changes.
+
+The propulsion path remains:
+
+```text
+Motor A
+→ rear drivetrain
+→ rear wheels
+```
+
+throughout the complete three-lap run.
+
+---
+
+## 5.24 Cornering Load
+
+A vehicle experiences different resistance during a turn than during a straight.
+
+When the front wheels are strongly steered:
+
+```text
+tire scrub can increase
+
+rolling resistance can change
+
+vehicle load shifts dynamically
+```
+
+Motor A must continue producing enough propulsion for the robot to complete the corner without stalling or becoming excessively slow.
+
+This is one reason a motor command that seems adequate during a straight should also be tested during representative corners.
+
+---
+
+## 5.25 Drivetrain During Obstacle Challenge
+
+The same drivetrain is retained during Obstacles.
+
+The major difference is that Motor B may make faster or stronger steering changes in response to pillars.
+
+Motor A continues propelling the robot while:
+
+```text
+Pixy detects target
+
+EV3 selects maneuver
+
+Motor B steers
+
+Piolín moves around pillar
+```
+
+The propulsion speed therefore affects the amount of reaction time available to the obstacle controller.
+
+A faster drivetrain setting can make an otherwise correct visual reaction occur too late in physical space.
+
+---
+
+## 5.26 Obstacle Reaction Distance
+
+Consider the sequence:
+
+```text
+pillar becomes relevant
+      ↓
+Pixy detects
+      ↓
+EV3 processes target
+      ↓
+Motor B begins steering
+      ↓
+vehicle trajectory changes
+```
+
+Motor A continues moving Piolín throughout much of this sequence.
 
 Therefore:
 
 ```text
-1° wheel rotation
-≈
-0.532 mm ideal travel
+higher vehicle speed
+→ greater distance traveled before avoidance develops
+```
+
+This is why obstacle performance cannot be tuned by camera thresholds or steering alone.
+
+Propulsion speed forms part of the obstacle trajectory.
+
+---
+
+## 5.27 Drivetrain and Countersteering
+
+During post-pillar recovery, Motor A continues providing longitudinal motion while Motor B countersteers.
+
+The resulting path depends on both:
+
+```text
+how strongly Motor B reverses steering
 ```
 
 and:
 
 ```text
-10°
-≈
-5.32 mm
+how far Motor A moves the robot during that time
 ```
 
-provided that the angle refers to actual rear-wheel rotation and slip is neglected.
+If propulsion is too high for the calibrated recovery timing:
+
+```text
+Piolín may travel too far laterally
+before the heading is recovered
+```
+
+If it is too low:
+
+```text
+the maneuver may become unnecessarily slow
+```
+
+Again, the drivetrain and steering must be treated as a combined vehicle-control system.
 
 ---
 
-# 5.59 Wheel Rotation Required for a Desired Distance
+## 5.28 Parking and Drivetrain Precision
 
-The inverse relationship is:
+Parking places greater emphasis on controlled displacement.
 
-```text
-THETA_WHEEL =
-(DISTANCE / C_REAR) × 360
-```
-
-Using Piolín's rear wheel circumference:
+The final vehicle position can depend on:
 
 ```text
-THETA_WHEEL ≈
-(DISTANCE / 191.5) × 360
+approach speed
+
+forward movement
+
+reverse movement
+
+encoder reference
+
+traction
+
+steering angle
+
+final stop timing
 ```
 
-For example, an ideal theoretical travel of:
+A purely timed propulsion command assumes that vehicle speed remains sufficiently constant.
 
-```text
-100 mm
-```
+An encoder-based movement uses a better internal reference but still cannot completely eliminate slip or mechanical variation.
 
-would correspond to:
-
-```text
-THETA_WHEEL ≈
-(100 / 191.5) × 360
-```
-
-```text
-THETA_WHEEL ≈ 188°
-```
-
-approximately.
-
-Again, this represents a theoretical wheel-rotation reference rather than guaranteed track displacement.
+The final parking solution should therefore combine drivetrain information with the relevant environmental and course-state sensors rather than relying on Motor A timing alone.
 
 ---
 
-# 5.60 General Motor Encoder Distance Equation
+## 5.29 Stopping Behavior
 
-If the drive transmission ratio is represented by `G`:
+Stopping also involves mechanical dynamics.
 
-```text
-G =
-THETA_MOTOR / THETA_WHEEL
-```
-
-then:
+When Motor A is commanded to stop:
 
 ```text
-THETA_WHEEL =
-THETA_MOTOR / G
+motor command changes
+      ↓
+wheel torque changes
+      ↓
+vehicle decelerates
+      ↓
+vehicle reaches rest
 ```
 
-and:
+The vehicle does not necessarily stop at the exact physical point where the software issued the command.
+
+The final stopping distance can depend on:
 
 ```text
-DISTANCE =
-(THETA_MOTOR / G)
-×
-(C_REAR / 360)
+vehicle speed
+
+motor control mode
+
+traction
+
+vehicle mass
+
+track surface
 ```
 
-For Piolín:
+This is especially relevant near:
 
 ```text
-DISTANCE ≈
-(THETA_MOTOR / G)
-×
-0.532 mm
+parking target
+
+walls
+
+obstacles
 ```
 
-This formula remains valid for any confirmed transmission ratio once `G` is known.
-
-It prevents the documentation from incorrectly assuming a 1:1 transmission when that value has not been confirmed.
+where positional margin is smaller.
 
 ---
 
-# 5.61 Drivetrain Trade-Offs
+## 5.30 Rear Chassis Integration
 
-A drivetrain must balance several competing requirements:
+<div align="center">
+
+<img
+  src="../../v-photos/v4/chassis_rear.jpg"
+  alt="Rear view of Piolín chassis and drivetrain integration"
+  width="690"
+/>
+
+<br>
+
+<sub><b>Figure 5.7.</b> Rear chassis structure supporting the propulsion drivetrain and driven-wheel assembly.</sub>
+
+</div>
+
+The drivetrain cannot be treated independently from the surrounding chassis.
+
+The rear structure must preserve:
 
 ```text
-Speed
+Motor A position
 
-Torque
+axle position
 
-Mechanical simplicity
+wheel alignment
 
-Mass
-
-Efficiency
-
-Reliability
-
-Available space
+drivetrain geometry
 ```
+
+while also resisting the forces generated during acceleration and turning.
+
+If the structure moves under load, drivetrain alignment can change dynamically.
+
+This can reduce repeatability even if the robot appears mechanically correct while stationary.
+
+---
+
+## 5.31 Bottom Vehicle Integration
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/piolin_bottom.jpg"
+  alt="Bottom view of Piolín complete drivetrain and vehicle structure"
+  width="720"
+/>
+
+<br>
+
+<sub><b>Figure 5.8.</b> Bottom view showing how the rear drivetrain is integrated into the complete vehicle chassis.</sub>
+
+</div>
+
+This view demonstrates that the drivetrain shares the same physical platform with:
+
+```text
+steering structure
+
+Color Sensor
+
+wheel supports
+
+main chassis
+```
+
+A mechanical change to one subsystem can therefore indirectly affect another.
+
+For example, reinforcing the chassis can alter axle support geometry if the connection points change.
+
+Mechanical revisions should therefore be followed by another drivetrain inspection.
+
+---
+
+## 5.32 Drivetrain and Vehicle Alignment
+
+A drivetrain can influence straight-line behavior even though steering is handled at the front.
+
+Possible causes of propulsion-induced drift include:
+
+```text
+rear axle not perpendicular to vehicle centerline
+
+unequal wheel condition
+
+wheel rubbing on one side
+
+structural misalignment
+```
+
+If Piolín consistently drifts while the front wheels are correctly centered, the rear drivetrain should also be inspected before software correction is increased.
+
+Straight-line behavior depends on the complete vehicle geometry.
+
+---
+
+## 5.33 Drivetrain and Battery Condition
+
+The drivetrain converts electrical motor output into physical movement.
+
+If battery condition changes, practical motor response may also change.
+
+Likewise, a mechanically inefficient drivetrain can create symptoms similar to reduced available electrical output.
 
 For example:
 
 ```text
-More torque
+Piolín becomes slower
 ```
 
-can be obtained through mechanical reduction, but this can also reduce:
+could result from:
 
 ```text
-Wheel rotational speed
+battery condition
+
+drivetrain friction
+
+wheel rubbing
+
+software motor command
 ```
 
-Similarly:
-
-```text
-Larger wheels
-```
-
-increase travel distance per rotation but reduce ideal tangential force for the same wheel torque.
-
-The drivetrain therefore represents an engineering compromise rather than a single-variable optimization.
+The cause should be identified before changing navigation values.
 
 ---
 
-# 5.62 Why Maximum Speed Is Not the Only Objective
+## 5.34 Why Maximum Motor Command Is Not Always Better
 
-The fastest possible drivetrain is not necessarily the best drivetrain for autonomous navigation.
+A higher Motor A command can increase vehicle speed, but autonomous performance does not necessarily improve.
 
-Higher vehicle speed can reduce:
-
-```text
-Reaction time
-
-Cornering margin
-
-Obstacle avoidance time
-
-Stopping margin
-```
-
-while increasing:
+Greater speed reduces the distance margin available for:
 
 ```text
-Momentum
+corner detection
 
-Lateral acceleration
+steering movement
 
-Dynamic sensitivity
+visual obstacle reaction
+
+countersteering
+
+parking
 ```
 
-Therefore, useful competition performance depends on:
+It can also increase:
 
 ```text
-CONTROLLED SPEED
-      +
-REPEATABLE PROPULSION
-      +
-RELIABLE STEERING
+wheel slip
+
+cornering load
+
+mechanical stress
 ```
 
-rather than maximum Motor A speed alone.
+The useful propulsion setting is therefore the fastest condition that remains sufficiently controllable and repeatable for the active challenge.
+
+This may differ between Open and Obstacles.
 
 ---
 
-# 5.63 Drivetrain and WRO Track Demands
+## 5.35 Mechanical Efficiency vs. Software Compensation
 
-The WRO Future Engineers course requires the drivetrain to support multiple types of movement:
+If Piolín becomes slower because the drivetrain develops excessive friction, one possible response is to increase Motor A power.
 
-```text
-Long straight sections
+That may temporarily restore speed.
 
-Repeated cornering
+However, it does not solve the mechanical cause.
 
-Obstacle bypasses
-
-Recovery trajectories
-
-Reverse repositioning
-
-Parking
-```
-
-A useful drivetrain must therefore operate across:
+The preferred engineering process is:
 
 ```text
-Different speeds
-
-Different steering conditions
-
-Different movement directions
+detect performance change
+      ↓
+inspect mechanical drivetrain
+      ↓
+correct friction / alignment problem
+      ↓
+retest
+      ↓
+only then adjust software if required
 ```
 
-without requiring a different mechanical propulsion system for each stage.
-
-Piolín uses the same Motor A rear-drive architecture throughout the run.
+This keeps software tuning tied to a stable physical platform.
 
 ---
 
-# 5.64 Current Drivetrain vs. Legacy Architectures
+## 5.36 Drivetrain Failure Modes
 
-The current Piolín propulsion architecture should not be confused with earlier development-stage systems.
-
-The final architecture is:
-
-```text
-LEGO EV3
-    ↓
-Motor A
-    ↓
-Rear drivetrain
-    ↓
-Rear propulsion
-```
-
-The current robot does **not** use:
-
-```text
-Two independent drive motors
-
-Raspberry Pi motor control
-
-Arduino Mega as the primary vehicle controller
-
-External DC drive architecture
-```
-
-as part of its final documented system.
-
-Historical configurations belong to:
-
-[Legacy Documentation](../legacy/00_LEGACY_NOTICE.md)
-
----
-
-# 5.65 Confirmed Drivetrain Specifications
-
-The currently confirmed drivetrain-related values are:
-
-| Parameter | Confirmed Value |
-| :--- | :---: |
-| **Drive actuator** | **Motor A** |
-| **Propulsion location** | **Rear** |
-| **Rear wheel diameter** | **~61.0 mm** |
-| **Rear wheel radius** | **~30.5 mm** |
-| **Rear wheel circumference** | **~191.5 mm** |
-| **Ideal distance per wheel degree** | **~0.532 mm/°** |
-| **Robot mass** | **0.80476 kg** |
-| **Approximate robot weight** | **~7.89 N** |
-| **Main controller** | **LEGO EV3** |
-| **Steering actuator** | **Motor B** |
-
-The following are intentionally **not claimed as final values** in this document:
-
-```text
-Final gear ratio
-
-Motor-to-wheel ratio
-
-Maximum drivetrain speed
-
-Measured maximum acceleration
-
-Measured wheel torque
-
-Measured tractive force
-
-Front/rear weight distribution
-
-Coefficient of friction
-
-Measured drivetrain efficiency
-
-Measured stopping distance
-```
-
-These values should only be introduced if supported by confirmed current measurements.
-
----
-
-# 5.66 Drivetrain Responsibility Matrix
-
-| Requirement | Primary Element |
+| Observed Behavior | Possible Drivetrain Cause |
 | :--- | :--- |
-| **Generate rotational propulsion** | Motor A |
-| **Transfer rotation** | Rear drivetrain |
-| **Apply force to track** | Rear wheels |
-| **Control movement direction** | Motor A direction |
-| **Determine steering direction** | Motor B, not drivetrain |
-| **Provide approximate displacement reference** | Wheel/encoder rotation |
-| **Forward movement** | Motor A + rear wheels |
-| **Reverse movement** | Motor A + rear wheels |
-| **Corner propulsion** | Motor A while Motor B steers |
-| **Obstacle movement** | Motor A + steering coordination |
-| **Recovery movement** | Motor A + wall-guided steering |
-| **Parking propulsion** | Forward/reverse Motor A commands |
+| Motor A runs but Piolín barely moves | Gear/axle disconnect, severe friction, wheel issue |
+| Vehicle is slower than usual | Friction, battery condition, wheel rubbing |
+| Robot jerks during propulsion | Gear engagement, axle movement, control command |
+| Reverse begins with a delay | Mechanical backlash or motor transition |
+| Encoder distance does not match physical distance | Slip, wheel diameter assumption, transmission ratio |
+| Vehicle drifts despite centered steering | Rear alignment or unequal resistance |
+| One wheel appears to bind | Axle support, bushing, wheel contact |
+| Motor A sounds loaded | Excessive friction or mechanical interference |
+| Speed changes after chassis work | Drivetrain alignment may have changed |
+| Parking displacement varies | Traction, backlash, encoder model, battery condition |
+
+The purpose of this table is to prevent every motion error from being treated as a control-code problem.
 
 ---
 
-# 5.67 Drivetrain as Part of the Closed Control Loop
+## 5.37 Drivetrain Diagnostic Order
 
-Piolín's drivetrain participates in a continuous autonomous feedback loop.
+A useful drivetrain diagnostic sequence is:
 
 ```text
-                 TRACK ENVIRONMENT
-                        ↓
-                      SENSORS
-                        ↓
-                     LEGO EV3
-                        ↓
-                Navigation Decision
-                        ↓
-              ┌─────────┴─────────┐
-              ▼                   ▼
-           Motor A             Motor B
-              ↓                   ↓
-        DRIVETRAIN            STEERING
-              ↓                   ↓
-              └─────────┬─────────┘
-                        ↓
-                VEHICLE MOTION
-                        ↓
-                 New Position
-                        ↓
-                 New Sensor Data
-                        ↓
-                       ...
+1. Check rear wheels.
+
+2. Check axles.
+
+3. Check bushings and restraints.
+
+4. Check Motor A mount.
+
+5. Inspect gear alignment.
+
+6. Rotate drivetrain manually.
+
+7. Verify no wheel rub.
+
+8. Test Motor A at low power.
+
+9. Observe encoder movement.
+
+10. Test forward and reverse.
+
+11. Only then perform full navigation testing.
 ```
 
-The drivetrain is the part of this loop responsible for creating the translational movement that changes Piolín's physical position.
+This sequence moves from simple physical checks toward complete autonomous testing.
 
 ---
 
-# 5.68 Mechanical Energy Flow
+## 5.38 Pre-Run Drivetrain Inspection
 
-The propulsion system can also be represented as an energy-conversion chain:
+Before an important run, the propulsion system should be inspected for:
 
 ```text
-Battery Energy
-      ↓
-EV3 Electrical System
-      ↓
+Motor A secure
+
+rear wheels secure
+
+axles fully seated
+
+gears aligned
+
+no visible rubbing
+
+free manual rotation
+
+no unexpected structural movement
+```
+
+This process is quick but can prevent a mechanical fault from affecting an entire run.
+
+---
+
+## 5.39 Drivetrain Alternatives
+
+Several propulsion architectures could theoretically be used.
+
+| Architecture | Advantage | Limitation for Piolín |
+| :--- | :--- | :--- |
+| Two independent rear drive motors | Independent left/right propulsion | Requires synchronization and additional actuator |
+| Four-wheel drive | Greater driven-wheel traction | More drivetrain complexity |
+| Front-wheel drive | Compact alternative layout | Competes spatially with steering mechanism |
+| Differential drive | Steering can be produced by wheel speed | Changes complete vehicle architecture |
+| **Single Motor A rear drivetrain** | **Simple propulsion path and only one drive actuator** | **Relies on mechanical transmission and front steering for direction** |
+
+Piolín's design keeps propulsion mechanically simple and leaves directional control to the dedicated steering system.
+
+---
+
+## 5.40 Why Two Drive Motors Were Not Required
+
+Using two propulsion motors could provide:
+
+```text
+additional drive power
+
+independent left/right control
+```
+
+but it would also introduce:
+
+```text
+another motor
+
+additional structure
+
+motor synchronization
+
+more electrical demand
+
+different control architecture
+```
+
+Piolín already has a dedicated steering mechanism.
+
+Therefore independent left/right propulsion is not required for direction control.
+
+The single-drive architecture allows the second motor to be dedicated entirely to front steering.
+
+---
+
+## 5.41 Why Four-Wheel Drive Was Not Required
+
+Four-wheel drive can improve traction in systems that require high propulsion force or difficult terrain capability.
+
+The WRO Future Engineers course uses a relatively controlled flat surface.
+
+Piolín's primary challenge is not climbing or off-road traction.
+
+It is:
+
+```text
+accurate autonomous trajectory control
+```
+
+Adding a second driven axle would increase drivetrain complexity without a currently demonstrated navigation requirement.
+
+The rear-wheel-drive configuration was therefore retained.
+
+---
+
+## 5.42 Same Drivetrain in Both Rounds
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/piolin_open_rear.jpg"
+  alt="Rear view of Piolín showing the drivetrain in the Open configuration"
+  width="700"
+/>
+
+<br>
+
+<sub><b>Figure 5.9.</b> Rear propulsion architecture remains unchanged between competition rounds.</sub>
+
+</div>
+
+The following drivetrain components remain common during both Open and Obstacles:
+
+```text
 Motor A
-      ↓
-Rotational Mechanical Energy
-      ↓
-Drivetrain
-      ↓
-Rear-Wheel Mechanical Energy
-      ↓
-Tire–Track Interaction
-      ↓
-Vehicle Kinetic Energy
+
+Motor A mount
+
+rear drivetrain
+
+rear axles
+
+rear wheels
+
+chassis support
 ```
 
-Losses may occur at several stages.
+The sensor configuration changes between rounds, but the propulsion architecture does not.
 
-This makes drivetrain performance a combination of:
-
-```text
-Electrical input
-
-Motor behavior
-
-Mechanical transmission
-
-Wheel geometry
-
-Track interaction
-```
-
-rather than a property of Motor A alone.
+This improves mechanical reproducibility because propulsion calibration does not require rebuilding a second drivetrain.
 
 ---
 
-# 5.69 Engineering Significance
+## 5.43 Current vs. Earlier Drivetrain Versions
 
-The drivetrain is one of Piolín's core mechanical systems because every autonomous maneuver requires controlled physical displacement.
+Piolín's mechanical design has changed through development.
 
-Without propulsion:
-
-```text
-Sensors can observe
-
-EV3 can calculate
-
-Steering can rotate
-```
-
-but:
+Older configurations may contain:
 
 ```text
-Piolín does not navigate the track
+different wheel arrangement
+
+different chassis geometry
+
+different structural reinforcement
+
+different drivetrain details
 ```
 
-The drivetrain converts the robot's decisions into movement through the environment.
+Those historical versions remain valuable evidence of engineering evolution.
 
-It also determines how quickly new environmental information reaches the sensors.
+However, current numerical drivetrain specifications should come from the V4 assembly shown in this document.
 
-Therefore:
-
-```text
-DRIVETRAIN
-      affects
-MOTION
-      affects
-SENSOR TIMING
-      affects
-CONTROL
-      affects
-NEXT DRIVETRAIN COMMAND
-```
-
-This makes propulsion an integral part of the autonomous control system.
+Old measurements should not be assumed to remain valid.
 
 ---
 
-# 5.70 Final Drivetrain Architecture
+## 5.44 Values Intentionally Not Claimed as Final
 
-Piolín's final drivetrain can be summarized as:
-
-```text
-                     LEGO EV3
-                         │
-                         ▼
-                       Motor A
-                         │
-                         ▼
-                 Rear Drivetrain
-                         │
-                         ▼
-                 Rear Driven Wheels
-                         │
-                         ▼
-                Tire–Track Interaction
-                         │
-                         ▼
-               LONGITUDINAL MOTION
-                         │
-                         │
-                         ├──────────────┐
-                         │              │
-                         ▼              ▼
-                    Motor B         Sensor Feedback
-                         │              │
-                         ▼              │
-                    Steering           │
-                         │              │
-                         └──────┬───────┘
-                                ▼
-                        VEHICLE TRAJECTORY
-```
-
-The drivetrain provides:
+The following drivetrain parameters should be physically measured or verified before being published as final values:
 
 ```text
-Forward propulsion
+rear wheel diameter
 
-Reverse propulsion
+effective rear wheel circumference
 
-Corner movement
+current drivetrain gear ratio
 
-Obstacle bypass motion
+Motor A-to-wheel rotation ratio
 
-Post-obstacle recovery
+drivetrain mechanical efficiency
 
-Parking movement
+maximum validated vehicle speed
+
+maximum useful Motor A command
+
+acceleration
+
+stopping distance
+
+forward encoder scale
+
+reverse encoder scale
+
+measured wheel slip
+
+drivetrain backlash
+
+full robot mass
+
+current draw under propulsion
 ```
 
-while Motor B independently controls front-wheel steering.
-
-The confirmed rear wheel geometry provides the principal theoretical motion relationship:
-
-```text
-D_REAR ≈ 61.0 mm
-
-R_REAR ≈ 30.5 mm
-
-C_REAR ≈ 191.5 mm
-```
-
-and therefore:
-
-```text
-Ideal distance per wheel degree
-≈
-0.532 mm/°
-```
-
-The drivetrain should ultimately be understood as the physical link between:
-
-```text
-MOTOR ROTATION
-       ↓
-WHEEL ROTATION
-       ↓
-TRACK FORCE
-       ↓
-VEHICLE DISPLACEMENT
-```
-
-Its effectiveness depends not only on Motor A, but also on drivetrain alignment, wheel geometry, traction, vehicle mass, steering state, and the mechanical integrity of the chassis.
-
-Together with Piolín's Ackermann steering system, the rear drivetrain forms the complete mobility platform used throughout the WRO Future Engineers 2026 course.
+The drivetrain architecture can be documented accurately without fabricating these numbers.
 
 ---
 
-## Continue Reading
+## 5.45 Recommended Drivetrain Characterization
 
-[Mechanical Testing](06_testing.md)
+A complete V4 drivetrain characterization can be built from several simple experiments.
 
-Return to:
+### Encoder-to-distance test
 
-[Mechanical Architecture](01_mecharchitecture.md)
+Command a known Motor A encoder movement and physically measure the resulting straight-line displacement.
 
-[Chassis Design](02_chassis.md)
+Repeat the experiment several times.
 
-[Robot Mobility](03_RMobility.md)
+This helps estimate:
 
-[Steering System](04_steering.md)
+```text
+effective distance per motor degree
+```
 
-Related documentation:
+under real track conditions.
 
-[Motors](../components/03_Motors.md)
+### Forward repeatability test
 
-[Battery](../components/08_Battery.md)
+Use:
 
-[Power Distribution](../components/09_PowerDistribution.md)
+```text
+same start position
 
-[Wall Following](../software_obstacles_strategy/03_wallfollowing.md)
+same Motor A command
 
-[Corner Handling](../software_obstacles_strategy/04_cornerhandling.md)
+same encoder target
+```
 
-[Obstacle Strategy](../software_obstacles_strategy/06_obstaclestrateg.md)
+and compare final displacement across several trials.
 
-[Parking Overview](../software_obstacles_strategy/parking/01_ParkingOverview.md)
+### Reverse repeatability test
+
+Repeat the same process while moving backward.
+
+This helps identify differences caused by backlash or traction.
+
+### Friction comparison
+
+Compare drivetrain behavior before and after mechanical modifications to identify whether structural changes introduced additional resistance.
+
+### Speed test
+
+Measure physical travel time over a fixed distance for several Motor A commands.
+
+All values should be recorded using the current V4 robot.
+
+---
+
+## 5.46 Full Drivetrain Chain
+
+The complete propulsion system can be summarized as:
+
+```text
+                 EV3 BATTERY
+                     │
+                     ▼
+                    EV3
+                     │
+                     ▼
+                  MOTOR A
+                     │
+                     ▼
+              MOTOR MOUNT
+                     │
+                     ▼
+             REAR DRIVETRAIN
+                     │
+                     ▼
+               REAR AXLES
+                     │
+                     ▼
+               REAR WHEELS
+                     │
+                     ▼
+            TIRE / TRACK FORCE
+                     │
+                     ▼
+             VEHICLE MOVEMENT
+                     │
+                     ▼
+            NEW SENSOR GEOMETRY
+                     │
+                     └────────→ EV3
+```
+
+This demonstrates that propulsion is not an isolated motor function.
+
+Motor A changes vehicle position, and that movement immediately changes what the navigation sensors observe.
+
+The drivetrain therefore forms part of the robot's closed-loop control system.
+
+---
+
+## 5.47 Final Engineering Assessment
+
+Piolín's drivetrain uses a single EV3 Large Motor on Port A to provide rear-wheel propulsion for both WRO Future Engineers challenges.
+
+The design was selected to keep the propulsion system mechanically and electrically simple while allowing the separate front Ackermann steering mechanism to control direction.
+
+The drivetrain consists of more than Motor A alone.
+
+Its behavior depends on:
+
+```text
+motor mounting
+
+gear and axle geometry
+
+mechanical friction
+
+rear wheel alignment
+
+traction
+
+effective wheel size
+
+backlash
+
+vehicle speed
+
+battery condition
+```
+
+The system supports:
+
+```text
+forward movement
+
+reverse movement
+
+Open straight sections
+
+Open corners
+
+Obstacle Challenge approaches
+
+pillar avoidance
+
+countersteering recovery
+
+parking displacement
+```
+
+without changing mechanical configuration between rounds.
+
+The most important engineering principle is:
+
+> **A drivetrain should convert motor rotation into repeatable vehicle displacement with as little unnecessary mechanical complexity and resistance as possible.**
+
+For this reason, Piolín's propulsion system is evaluated not only through motor commands but through the complete mechanical chain from Motor A to the competition surface.
+
+The final drivetrain is therefore treated as a **mechatronic subsystem** whose mechanical condition directly affects autonomous navigation accuracy and repeatability.
+
+---
+
+<div align="center">
+
+### [← Back to PiolínTech Main README](../../README.md)
+
+</div>
