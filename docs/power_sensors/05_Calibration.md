@@ -1,2929 +1,1908 @@
 # 5. Sensor Calibration
 
-Piolín's sensors must be calibrated as part of the **complete installed robot**, not as isolated electronic components.
+<div align="center">
 
-A sensor can operate correctly electrically while still producing poor navigation information if:
+<img
+  src="../../v-photos/v4/piolin_open_top.jpg"
+  alt="Top view of Piolín in the Open Challenge configuration"
+  width="720"
+/>
 
-```text
-Its mounting position changed
+<br>
 
-Its orientation changed
+<sub><b>Figure 5.1.</b> Calibration is performed on the complete physical robot because sensor behavior depends on mounting, orientation, surrounding structure, and the current competition configuration.</sub>
 
-The track environment changed
+</div>
 
-Its thresholds were copied from an older robot version
+Calibration is the process that connects Piolín's **raw sensor measurements** with meaningful physical information that the navigation software can use.
 
-Its software interpretation no longer matches the hardware
-```
-
-For this reason, calibration connects:
-
-```text
-PHYSICAL ROBOT
-      +
-SENSOR DATA
-      +
-SOFTWARE CONSTANTS
-      ↓
-USABLE NAVIGATION INFORMATION
-```
-
-The current Piolín sensing architecture includes:
+The purpose is not simply to find numbers that make one test work. A useful calibration should establish a repeatable relationship between:
 
 ```text
-S1 → Front Ultrasonic
-
-S2 → Right Ultrasonic
-
-S3 → Left Ultrasonic
-
-S4 → Downward Color Sensor
-
-HuskyLens
- ↓
-Arduino Nano
- ↓
-USB
- ↓
-LEGO EV3
+physical environment
+        ↓
+sensor installation
+        ↓
+sensor measurement
+        ↓
+software interpretation
+        ↓
+vehicle response
 ```
 
-Each subsystem requires a different type of calibration because each measures a different property of the environment.
+Piolín uses different specialized sensing configurations for the two WRO Future Engineers challenges, so calibration is also round-specific.
 
-The purpose of this document is to describe the **calibration model, variables, reasoning, and validation criteria** used by Piolín.
+The current architectures are:
 
-For a reproducible step-by-step calibration sequence, see:
+```text
+OPEN CHALLENGE
 
-[How to Calibrate Piolín](../reproducibility/06_HowToCalibrate.md)
+S1 → Gyro
+S2 → Left Ultrasonic
+S3 → Right Ultrasonic
+S4 → Color Sensor
+```
+
+and:
+
+```text
+OBSTACLE CHALLENGE
+
+S1 → Pixy2.1
+S2 → Left Ultrasonic
+S3 → Right Ultrasonic
+S4 → Color Sensor
+```
+
+The Gyro and Pixy2.1 are never active simultaneously.
+
+Three sensor systems remain especially important to calibration:
+
+```text
+lateral ultrasonic geometry
+
+floor-color recognition
+
+round-specific S1 sensing
+```
+
+In the Open Challenge, S1 calibration concerns the Gyro Sensor.
+
+In the Obstacle Challenge, S1 calibration concerns Pixy2.1 and its trained visual signatures.
 
 ---
 
-## 5.1 Calibration Philosophy
+## 5.1 Calibration Is a Physical Process
 
-Calibration should answer:
+A software threshold is only valid for the physical sensor configuration under which it was measured.
 
-> What does this sensor output mean on the current physical Piolín robot?
+If a sensor is moved, tilted, remounted, or surrounded by a different structure, its previous calibration may no longer represent the same physical conditions.
 
-It should not simply answer:
-
-> What value did an older program use?
-
-The preferred engineering process is:
+For Piolín, important calibration variables include:
 
 ```text
-CURRENT HARDWARE
-      ↓
-MEASURE REAL ENVIRONMENT
-      ↓
-RECORD SENSOR OUTPUT
-      ↓
-IDENTIFY USEFUL RANGES
-      ↓
-SELECT CALIBRATION CONSTANTS
-      ↓
-TEST IN MOTION
-      ↓
-CONFIRM REPEATABILITY
+ultrasonic orientation
+
+ultrasonic mounting position
+
+Color Sensor height
+
+Color Sensor casing
+
+Gyro orientation
+
+Pixy2.1 position
+
+Pixy2.1 orientation
+
+Pixy2.1 3D-printed casing
+
+vehicle mechanical configuration
 ```
 
-This prevents historical development constants from becoming permanent assumptions.
+This leads to one of Piolín's main calibration principles:
+
+> **Calibrate the complete installed sensor system, not the sensor as an isolated electronic component.**
+
+The same EV3 sensor can behave differently after a mechanical change because the geometry around it has changed.
 
 ---
 
-# 5.2 Calibration vs. Tuning
+## 5.2 Calibration Before Software Tuning
 
-Calibration and control tuning are related but different.
+Sensor calibration should occur before major navigation constants are tuned.
 
-### Calibration
-
-Calibration defines how sensor measurements correspond to the physical environment.
-
-Examples:
+The preferred order is:
 
 ```text
-What ultrasonic distance represents
-the desired wall relationship?
-
-
-What RGB measurements represent BLUE?
-
-
-What RGB measurements represent ORANGE?
-
-
-Which HuskyLens ID represents GREEN?
-```
-
-### Tuning
-
-Tuning determines how strongly the robot reacts to the calibrated information.
-
-Examples:
-
-```text
-How much steering should be applied?
-
-
-How fast should Motor A run?
-
-
-How aggressive should obstacle recovery be?
-```
-
-Therefore:
-
-```text
-CALIBRATION
+VERIFY HARDWARE
       ↓
-Defines measurement meaning
-
-
-TUNING
+VERIFY SENSOR MOUNTING
       ↓
-Defines control response
+READ RAW VALUES
+      ↓
+CHARACTERIZE SENSOR
+      ↓
+DEFINE CLASSIFICATION / GEOMETRY
+      ↓
+TEST DYNAMICALLY
+      ↓
+TUNE CONTROLLER
 ```
 
-Control gains should not be used to compensate for incorrectly calibrated sensors.
+Skipping the first stages creates a common problem:
+
+```text
+bad physical measurement
+      ↓
+software correction added
+      ↓
+hardware changes slightly
+      ↓
+software becomes wrong again
+```
+
+A stable calibration reduces the amount of software compensation required later.
 
 ---
 
-# 5.3 Calibration vs. Validation
+# 5.3 Pre-Calibration Hardware Check
 
-Another important distinction is:
+Before collecting values, Piolín should be checked mechanically.
 
-### Calibration
+The minimum inspection is:
 
 ```text
-Determine the values
-the system should use
+S2 physically LEFT?
+
+S3 physically RIGHT?
+
+Ultrasonic sensors aligned?
+
+Color Sensor facing floor?
+
+Color Sensor casing secure?
+
+Gyro correctly oriented for Open?
+
+Pixy2.1 correctly installed for Obstacles?
+
+Pixy2.1 3D casing secure?
+
+Sensor cables fully connected?
+
+Correct S1 device installed for active round?
 ```
 
-### Validation
+The sensor ports must match the documentation and source code.
+
+The permanent convention is:
 
 ```text
-Verify those values still work
-under representative conditions
-```
+S2 = LEFT
 
-For example:
-
-```text
-Calibrate BLUE range
-        ↓
-Run robot repeatedly over BLUE marking
-        ↓
-Verify consistent detection
-```
-
-A calibration value should not be considered final merely because it works once.
-
----
-
-# 5.4 Current Sensor Calibration Responsibilities
-
-| Sensor / System | Calibration Purpose |
-| :--- | :--- |
-| **S1 Front Ultrasonic** | Determine useful frontal safety interpretation |
-| **S2 Right Ultrasonic** | Establish right-side distance behavior |
-| **S3 Left Ultrasonic** | Establish left-side distance behavior |
-| **S2 + S3 together** | Establish wall-following and corridor geometry |
-| **S4 Color Sensor** | Distinguish Blue, Orange, and ordinary floor |
-| **HuskyLens** | Confirm pillar IDs and reliable target recognition |
-| **Nano → EV3 communication** | Confirm that vision identity reaches EV3 correctly |
-
-These calibration tasks should remain separate because a correct value for one sensor does not validate another.
-
----
-
-# 5.5 Calibration Dependency Chain
-
-Piolín's calibration is hierarchical.
-
-```text
-MECHANICAL GEOMETRY
-        ↓
-SENSOR POSITION
-        ↓
-RAW MEASUREMENT
-        ↓
-FILTERING
-        ↓
-CLASSIFICATION / INTERPRETATION
-        ↓
-NAVIGATION STATE
-        ↓
-CONTROL
-```
-
-A change near the beginning of this chain can invalidate everything after it.
-
-For example:
-
-```text
-Ultrasonic mount changes
-        ↓
-Measured wall distance changes
-        ↓
-Old D_TARGET becomes inaccurate
-```
-
-or:
-
-```text
-Color sensor height changes
-        ↓
-RGB values shift
-        ↓
-Old color thresholds become unreliable
-```
-
-For this reason, mechanical configuration should be stabilized before final sensor calibration.
-
----
-
-# 5.6 Current Physical Calibration Baseline
-
-The confirmed current robot configuration includes:
-
-| Parameter | Current Value |
-| :--- | :---: |
-| **Robot length** | 210 mm |
-| **Robot width** | 150 mm |
-| **Robot height** | 230 mm |
-| **Robot mass** | 0.80476 kg |
-| **Lateral ultrasonic mounting height** | ~43.2 mm |
-| **S1** | Front Ultrasonic |
-| **S2** | Right Ultrasonic |
-| **S3** | Left Ultrasonic |
-| **S4** | Color Sensor |
-| **Vision sensor** | HuskyLens |
-| **Vision interface** | Arduino Nano |
-| **Nano → EV3** | USB |
-
-These values identify the physical configuration to which the current calibration process applies.
-
-No previous geometry should be assumed equivalent unless it is re-measured on this configuration.
-
----
-
-# 5.7 Calibration Order
-
-A useful calibration order is:
-
-```text
-1. Verify mechanical assembly
-        ↓
-2. Verify port assignments
-        ↓
-3. Verify raw ultrasonic data
-        ↓
-4. Calibrate lateral wall geometry
-        ↓
-5. Calibrate frontal safety interpretation
-        ↓
-6. Calibrate floor-color classification
-        ↓
-7. Validate color-event processing
-        ↓
-8. Validate HuskyLens IDs
-        ↓
-9. Validate camera visibility
-        ↓
-10. Validate combined sensor behavior
-```
-
-This order moves from basic physical measurement toward higher-level sensor fusion.
-
----
-
-# 5.8 Port Verification
-
-Before numerical calibration, the software and hardware mapping must agree.
-
-The current assignment is:
-
-```text
-S1 = FRONT
-
-S2 = RIGHT
-
-S3 = LEFT
+S3 = RIGHT
 
 S4 = COLOR
 ```
 
-The USB vision path is:
-
-```text
-Arduino Nano
-     ↓
-USB
-     ↓
-LEGO EV3
-```
-
-A port mismatch can make perfectly accurate sensor data appear incorrect.
-
-For example:
-
-```text
-Software expects RIGHT on S2
-
-but physical LEFT sensor is connected there
-        ↓
-Navigation roles are reversed
-```
-
-Therefore, port verification always precedes calibration.
+Only S1 changes.
 
 ---
 
-# 5.9 Raw Ultrasonic Baseline
+# 5.4 Ultrasonic Calibration
 
-Before applying filtering or navigation equations, each ultrasonic sensor should be inspected using its raw distance output.
+<div align="center">
 
-Conceptually:
+<img
+  src="../../v-photos/v4/ultrasonic_pair_top.jpg"
+  alt="Piolín lateral ultrasonic sensor pair"
+  width="700"
+/>
 
-```text
-S1
-↓
-D_FRONT_RAW
+<br>
 
+<sub><b>Figure 5.2.</b> The two ultrasonic sensors are calibrated as installed lateral geometry sensors rather than as isolated rangefinders.</sub>
 
-S2
-↓
-D_RIGHT_RAW
+</div>
 
-
-S3
-↓
-D_LEFT_RAW
-```
-
-The purpose is to determine whether:
+Piolín uses two permanent lateral EV3 Ultrasonic Sensors:
 
 ```text
-Distance increases when the wall moves away
+S2 → LEFT
 
-Distance decreases when the wall moves closer
-
-Readings remain physically plausible
-
-Sensor orientation corresponds to expected surface
+S3 → RIGHT
 ```
 
-This separates sensor acquisition from navigation logic.
+Their calibration should establish how the measured values relate to known physical track geometry.
+
+The objective is not necessarily to force both sensors to return identical values.
+
+Instead, the goal is to understand:
+
+```text
+what S2 reports at known left-wall positions
+
+what S3 reports at known right-wall positions
+
+how repeatable each measurement is
+
+how orientation affects each measurement
+```
+
+The physical mounting of the two sensors is therefore part of the test.
 
 ---
 
-# 5.10 Ultrasonic Calibration Must Use the Installed Robot
+## 5.5 Ultrasonic Mount Verification
 
-The lateral sensors are mounted at approximately:
+<div align="center">
+
+<img
+  src="../../v-photos/v4/ultrasonic_lateral_alignment.jpg"
+  alt="Piolín ultrasonic sensors aligned laterally"
+  width="700"
+/>
+
+<br>
+
+<sub><b>Figure 5.3.</b> Lateral alignment should be verified before distance values are treated as calibration data.</sub>
+
+</div>
+
+Before measuring distances, verify that the sensors remain:
 
 ```text
-43.2 mm above the floor
+lateral
+
+secure
+
+approximately consistent with the intended chassis orientation
 ```
 
-and face directly toward their respective sides.
+A sensor that rotates even slightly can begin observing a different part of the wall.
 
-Their calibration therefore depends on:
+Then:
 
 ```text
-Sensor position
-
-Sensor orientation
-
-Robot width
-
-Track wall geometry
+same vehicle position
 ```
 
-A distance measured by a sensor mounted differently on an older Piolín version should not automatically become the calibration constant for the current robot.
+can produce:
+
+```text
+different ultrasonic value
+```
+
+without any change in the software.
+
+This is why sensor alignment should be checked before modifying wall-control gains or target distances.
 
 ---
 
-# 5.11 Physical Distance Reference
+## 5.6 Static Ultrasonic Distance Test
 
-To calibrate an ultrasonic sensor, the team compares:
+A basic calibration can place Piolín at several known physical distances from a flat track boundary.
 
-```text
-Known physical distance
-```
+For each position, record the raw ultrasonic result.
 
-with:
+A table can be used:
 
-```text
-Reported sensor distance
-```
+| Physical Reference | S2 Reading | S3 Reading | Notes |
+| :---: | :---: | :---: | :--- |
+| Position 1 | — | — | — |
+| Position 2 | — | — | — |
+| Position 3 | — | — | — |
+| Position 4 | — | — | — |
 
-Conceptually:
+Only measured V4 values should be entered.
 
-```text
-WALL
- │
- │ ← known distance → [ SENSOR ]
- │
-```
-
-For a series of physical positions:
-
-```text
-D_TRUE
-```
-
-and corresponding sensor values:
-
-```text
-D_MEASURED
-```
-
-the measurement error is:
-
-```text
-E_D =
-D_MEASURED - D_TRUE
-```
-
-and absolute error is:
-
-```text
-ABS_ERROR =
-ABS(D_MEASURED - D_TRUE)
-```
-
-No final accuracy percentage is claimed unless measured on the current sensor installation.
-
----
-
-# 5.12 Repeated Ultrasonic Measurements
-
-One reading does not describe repeatability.
-
-At each physical reference distance, several samples should be observed:
-
-```text
-D1
-D2
-D3
-...
-DN
-```
-
-The arithmetic mean is:
-
-```text
-D_MEAN =
-(D1 + D2 + ... + DN) / N
-```
-
-and the variation between samples helps determine whether the measurement is stable enough for navigation.
-
-However, the mean should not automatically be used as the navigation filter.
-
-A median can be more robust when isolated ultrasonic outliers occur.
-
----
-
-# 5.13 Median Calibration Check
-
-Piolín's ultrasonic processing can use a short median concept.
-
-For example:
-
-```text
-Reading 1 = 248 mm
-Reading 2 = 250 mm
-Reading 3 = 710 mm
-```
-
-then:
-
-```text
-MEDIAN = 250 mm
-```
+The test should include several readings at each position rather than one sample.
 
 This helps distinguish:
 
 ```text
-Typical local geometry
+normal measurement variation
 ```
 
 from:
 
 ```text
-One isolated extreme sample
-```
-
-The example above is illustrative rather than a current recorded Piolín calibration result.
-
----
-
-# 5.14 Lateral Sensor Calibration
-
-S2 and S3 form the primary wall-navigation pair.
-
-The calibration must establish how each sensor behaves at the robot's intended track position.
-
-The physical variables are:
-
-```text
-D_LEFT
-
-D_RIGHT
-```
-
-which later become:
-
-```text
-D_INNER
-
-D_OUTER
-```
-
-according to travel direction.
-
-The calibration process should therefore first work with physical left/right values before converting them into dynamic logical roles.
-
----
-
-# 5.15 Inner-Wall Reference
-
-During normal straight navigation, Piolín uses a desired relationship to the inner wall.
-
-This can be represented as:
-
-```text
-D_TARGET
-```
-
-The wall-following error becomes:
-
-```text
-E_WALL =
-D_TARGET - D_INNER
-```
-
-`D_TARGET` should be obtained from the current physical robot positioned in a useful track-relative location.
-
-It should not be selected solely because an older program used the same number.
-
----
-
-# 5.16 Why `D_TARGET` Is a Calibration Constant
-
-Changing:
-
-```text
-Sensor position
-```
-
-or:
-
-```text
-Robot width
-```
-
-can change the correct sensor reading even if the desired vehicle center trajectory remains the same.
-
-Therefore:
-
-```text
-Desired physical path
-        ↓
-Current sensor geometry
-        ↓
-Measured D_TARGET
-```
-
-The sensor target belongs to the complete installed geometry.
-
----
-
-# 5.17 Inner-Wall Target Calibration
-
-Conceptually, the target is established by:
-
-```text
-Place Piolín at desired straight-track position
-        ↓
-Align chassis in representative orientation
-        ↓
-Observe inner ultrasonic
-        ↓
-Repeat measurements
-        ↓
-Determine stable reference range
-```
-
-The resulting value can be represented as:
-
-```text
-D_TARGET
-```
-
-or a small acceptable interval:
-
-```text
-D_TARGET_MIN
-to
-D_TARGET_MAX
-```
-
-depending on the final software design.
-
----
-
-# 5.18 Deadband Calibration
-
-A steering controller should not necessarily react to every millimeter of measurement variation.
-
-A deadband can be defined around the wall target.
-
-```text
-TARGET - DB
-      ↓
-acceptable region
-      ↓
-TARGET + DB
-```
-
-Conceptually:
-
-```python
-if abs(D_TARGET - D_INNER) <= DEADBAND:
-    wall_error = 0
-```
-
-The deadband should be large enough to avoid unnecessary steering caused by measurement variation but small enough to maintain useful wall positioning.
-
-Its final value belongs to current code calibration.
-
----
-
-# 5.19 Deadband Trade-Off
-
-If the deadband is too small:
-
-```text
-Tiny measurement changes
-        ↓
-Constant steering adjustments
-        ↓
-Possible zig-zag
-```
-
-If the deadband is too large:
-
-```text
-Robot can drift significantly
-        ↓
-No correction triggered
-```
-
-Therefore:
-
-```text
-DEADBAND
-=
-Noise tolerance
-vs.
-Position control
-```
-
-It should be selected from actual robot behavior.
-
----
-
-# 5.20 Outer Sensor Calibration
-
-The outer sensor should also be observed during the same straight-wall calibration.
-
-The purpose is not necessarily to use:
-
-```text
-D_OUTER
-```
-
-as the main steering target.
-
-Instead, it provides:
-
-```text
-Secondary geometry
-
-Wall-safety information
-
-Corner context
-
-Geometry consistency
-```
-
-The relationship between the two lateral readings is especially useful.
-
----
-
-# 5.21 Corridor Reference
-
-During a valid straight-wall condition:
-
-```text
-D_INNER + D_OUTER
-```
-
-should remain within a characteristic range for the current robot and track geometry.
-
-A reference can be represented as:
-
-```text
-C_REF
-```
-
-with:
-
-```text
-C_CURRENT =
-D_INNER + D_OUTER
-```
-
-and:
-
-```text
-G =
-ABS(C_CURRENT - C_REF)
-```
-
-`C_REF` should be derived from current straight-section measurements rather than inherited from a previous robot version.
-
----
-
-# 5.22 Geometry Tolerance
-
-The system can define a tolerance around:
-
-```text
-C_REF
-```
-
-to determine whether the usual corridor model is still plausible.
-
-Conceptually:
-
-```text
-G <= G_TOL
-      ↓
-Normal corridor plausible
-```
-
-while:
-
-```text
-G > G_TOL
-      ↓
-Geometry has changed significantly
-```
-
-Possible causes include:
-
-```text
-Corner opening
-
-Different wall orientation
-
-Outlier measurement
-
-Obstacle interference
-```
-
-The final value of:
-
-```text
-G_TOL
-```
-
-should be selected from current sensor data.
-
----
-
-# 5.23 Why Corridor Calibration Helps Corner Detection
-
-During a straight:
-
-```text
-Both sensors observe
-the expected side boundaries
-```
-
-At a corner:
-
-```text
-One expected wall ends
-```
-
-and:
-
-```text
-D_INNER + D_OUTER
-```
-
-can change substantially.
-
-Therefore, calibrating the normal corridor range provides a baseline against which geometry transitions can be recognized.
-
-This complements direct:
-
-```text
-D_INNER
-```
-
-thresholds and state history.
-
----
-
-# 5.24 Lateral Position Calibration
-
-If the final physical lateral sensor offsets are measured, sensor values can be converted toward a common vehicle reference.
-
-Conceptually:
-
-```text
-D_LEFT_C =
-D_LEFT + O_LEFT
-```
-
-and:
-
-```text
-D_RIGHT_C =
-D_RIGHT + O_RIGHT
-```
-
-where:
-
-```text
-O_LEFT
-O_RIGHT
-```
-
-represent the sensor-to-reference offsets.
-
-Then lateral position in a corridor of width `W` can be estimated as:
-
-```text
-X_EST =
-(W + D_INNER_C - D_OUTER_C) / 2
-```
-
-No final offset values are claimed here because current final offsets have not been confirmed.
-
----
-
-# 5.25 Why Old Sensor Offsets Are Not Reused
-
-Legacy Piolín measurements contain previous development offsets and wall references.
-
-Those values were associated with:
-
-```text
-Different robot geometry
-
-Different sensor arrangement
-
-Different navigation versions
-```
-
-Therefore:
-
-```text
-LEGACY OFFSET
-      ≠
-CURRENT OFFSET
-```
-
-unless physically re-measured and confirmed.
-
-Historical geometry remains available in the legacy documentation but should not define current calibration.
-
----
-
-# 5.26 Front Ultrasonic Calibration
-
-S1 is calibrated separately because it is not part of the lateral wall-following model.
-
-Its variable is:
-
-```text
-D_FRONT
-```
-
-and its responsibility is:
-
-```text
-Frontal safety
-```
-
-The calibration question is:
-
-> At what measured forward clearance should the current vehicle no longer continue ordinary forward movement without a safety response?
-
-This must be determined on the complete robot.
-
----
-
-# 5.27 Why the Front Limit Depends on Vehicle Dynamics
-
-A useful frontal safety distance depends on more than sensor accuracy.
-
-It can also depend on:
-
-```text
-Vehicle speed
-
-Motor response
-
-Stopping behavior
-
-Robot length
-
-Sensor position
-
-Steering state
-```
-
-At greater speed:
-
-```text
-Robot travels farther
-during response time
-```
-
-so a safe threshold may need to be more conservative.
-
-Therefore:
-
-```text
-FRONT SAFETY CALIBRATION
-      =
-Sensor geometry
-+
-Vehicle dynamics
-```
-
-not simply one arbitrary distance.
-
----
-
-# 5.28 Front Safety Threshold
-
-The final software may use a value conceptually represented as:
-
-```text
-FRONT_SAFETY_LIMIT
-```
-
-A condition could be:
-
-```python
-if D_FRONT < FRONT_SAFETY_LIMIT:
-    frontal_risk = True
-```
-
-This document intentionally does not assign a numerical threshold because a current final value has not been established here.
-
-The threshold should be taken from the active final code once validated.
-
----
-
-# 5.29 Front Confirmation
-
-Because one isolated reading can be abnormal, a safety system may use confirmation logic.
-
-Conceptually:
-
-```text
-Close front reading
-      ↓
-Confirm condition
-      ↓
-Safety response
-```
-
-However, confirmation must not create excessive delay.
-
-The number of readings and exact implementation should reflect current software rather than an assumed value.
-
----
-
-# 5.30 Color Sensor Calibration
-
-S4 requires optical calibration instead of distance calibration.
-
-The main surface classes are:
-
-```text
-BLUE
-
-ORANGE
-
-NORMAL FLOOR
-```
-
-The purpose is to identify sensor ranges that separate these physical surfaces reliably in the current mounted configuration.
-
----
-
-# 5.31 Color Calibration Environment
-
-Color calibration should use the complete installed system:
-
-```text
-Current S4 sensor
-
-Current mounting position
-
-Current casing
-
-Current sensor-to-floor spacing
-
-Representative track surface
-
-Representative lighting
-```
-
-Removing the sensor from the robot and calibrating it separately could produce values that do not match competition operation.
-
----
-
-# 5.32 Raw Color Data Collection
-
-When RGB-style data is used, samples can be recorded as:
-
-```text
-(R, G, B)
-```
-
-for each surface.
-
-The calibration dataset should conceptually contain:
-
-```text
-BLUE:
-(R1, G1, B1)
-(R2, G2, B2)
-...
-
-
-ORANGE:
-(R1, G1, B1)
-(R2, G2, B2)
-...
-
-
-FLOOR:
-(R1, G1, B1)
-(R2, G2, B2)
-...
-```
-
-The purpose is to identify **ranges and relationships**, not one perfect RGB tuple.
-
----
-
-# 5.33 Why Multiple Color Samples Are Required
-
-If only one sample is recorded:
-
-```text
-BLUE = one RGB value
-```
-
-the software may incorrectly assume that every future blue reading must match that exact value.
-
-Real measurements vary.
-
-Therefore calibration should identify:
-
-```text
-Typical minimums
-
-Typical maximums
-
-Channel relationships
-
-Separation from other surfaces
-```
-
-using multiple measurements.
-
----
-
-# 5.34 Color Classification Regions
-
-Conceptually, calibration aims to establish non-identical regions such as:
-
-```text
-BLUE DATA
-██████████
-
-
-          separation
-
-
-                    █████████
-                    ORANGE DATA
-```
-
-The larger the separation between measured classes, the easier classification becomes.
-
-If the classes overlap:
-
-```text
-More ambiguity
-```
-
-exists and the team may need to improve:
-
-```text
-Mechanical light isolation
-
-Sensor position
-
-Classification logic
-```
-
-rather than simply widening every threshold.
-
----
-
-# 5.35 Color Threshold Logic
-
-A color classifier can use multiple conditions.
-
-Conceptually:
-
-```python
-def is_blue(r, g, b):
-    return (
-        condition_1
-        and condition_2
-        and condition_3
-    )
-```
-
-and similarly:
-
-```python
-def is_orange(r, g, b):
-    return (
-        condition_1
-        and condition_2
-        and condition_3
-    )
-```
-
-The specific conditions should be derived from the current calibration dataset.
-
-No universal RGB threshold is assumed.
-
----
-
-# 5.36 Absolute vs. Relative Color Conditions
-
-Color classification can use:
-
-```text
-Absolute channel ranges
-```
-
-such as:
-
-```text
-B > some calibrated value
-```
-
-and/or relative relationships such as:
-
-```text
-B > R
-```
-
-depending on measured data.
-
-Relative relationships can sometimes remain useful when overall brightness changes, but they are not automatically sufficient.
-
-The final classifier should be chosen from current empirical samples.
-
----
-
-# 5.37 Normal-Floor Calibration
-
-The ordinary track surface is just as important as Blue and Orange.
-
-The classifier needs to know when the robot has:
-
-```text
-LEFT the colored marking
-```
-
-so that:
-
-```text
-Color lock can reset
-
-Next event can be recognized
-```
-
-Therefore:
-
-```text
-NORMAL FLOOR
-```
-
-is an active calibration class rather than simply "everything else."
-
----
-
-# 5.38 Color Event Calibration
-
-Correct color classification alone does not guarantee correct course counting.
-
-The event layer must also be calibrated for:
-
-```text
-Confirmation
-
-Locking
-
-Unlock condition
-
-Transition recognition
-
-Cooldown behavior
-```
-
-The goal is:
-
-```text
-ONE PHYSICAL MARKING
-      ↓
-ONE VALID EVENT
+consistent geometric offset
 ```
 
 ---
 
-# 5.39 Confirmation Trade-Off for S4
+## 5.7 Ultrasonic Repeatability
 
-If too little confirmation is required:
-
-```text
-Noise
-     ↓
-False color event
-```
-
-If too much confirmation is required:
-
-```text
-Robot crosses marking quickly
-        ↓
-Insufficient confirmed samples
-        ↓
-Missed event
-```
-
-Therefore the final confirmation behavior must be tested at real operating speed.
-
----
-
-# 5.40 Color Lock Calibration
-
-The lock should remain active while Piolín is still associated with the same physical marking.
-
-Conceptually:
-
-```text
-Detect BLUE
-      ↓
-Register once
-      ↓
-LOCK
-      ↓
-Remain BLUE
-      ↓
-No extra count
-```
-
-The release condition should occur only when the sensor has sufficiently left that marking.
-
----
-
-# 5.41 Cooldown Calibration
-
-If cooldown is used, it should reject rapid duplicate triggers without suppressing the next legitimate course event.
-
-Too short:
-
-```text
-Boundary fluctuation
-      ↓
-Duplicate count
-```
-
-Too long:
-
-```text
-Next valid marking
-      ↓
-Still inside cooldown
-      ↓
-Missed event
-```
-
-The correct duration depends on:
-
-```text
-Vehicle speed
-
-Marking spacing
-
-Sampling rate
-
-Classification stability
-```
-
-and should therefore be derived from the current run behavior.
-
----
-
-# 5.42 Direction Calibration
-
-The direction mapping itself is fixed and should be verified:
-
-```text
-BLUE FIRST
-    ↓
-COUNTERCLOCKWISE
-```
-
-```text
-ORANGE FIRST
-     ↓
-CLOCKWISE
-```
-
-After the first valid direction event:
-
-```text
-direction
-```
-
-should be locked so later floor markings do not redefine the course direction.
-
-The corresponding ultrasonic mapping is:
-
-```text
-COUNTERCLOCKWISE
-
-S3 LEFT = INNER
-S2 RIGHT = OUTER
-```
-
-and:
-
-```text
-CLOCKWISE
-
-S2 RIGHT = INNER
-S3 LEFT = OUTER
-```
-
----
-
-# 5.43 Progress Calibration
-
-The intended three-lap course progression includes:
-
-```text
-12 valid BLUE events
-
-12 valid ORANGE events
-```
-
-The calibration objective is not to force these counts artificially.
-
-It is to ensure that each real physical marking produces exactly one valid event.
-
-Therefore, the useful relationship is:
-
-```text
-PHYSICAL COURSE EVENTS
-        ↓
-S4 DETECTION
-        ↓
-12 BLUE + 12 ORANGE
-```
-
-for the complete intended progression.
-
----
-
-# 5.44 HuskyLens Calibration
-
-HuskyLens calibration focuses on obstacle identity rather than metric wall distance.
-
-The confirmed current mapping is:
-
-```text
-ID 1
-=
-GREEN PILLAR
-```
-
-and:
-
-```text
-ID 2
-=
-RED PILLAR
-```
-
-The navigation interpretation is:
-
-```text
-GREEN
-   ↓
-Pass LEFT
-```
-
-and:
-
-```text
-RED
-  ↓
-Pass RIGHT
-```
-
-These mappings are current system constants and should remain consistent throughout the vision pipeline.
-
----
-
-# 5.45 Vision Mapping Verification
-
-Calibration should verify the complete information chain:
-
-```text
-Physical GREEN pillar
-        ↓
-HuskyLens
-        ↓
-ID 1
-        ↓
-Nano
-        ↓
-EV3
-        ↓
-GREEN state
-```
-
-and:
-
-```text
-Physical RED pillar
-        ↓
-HuskyLens
-        ↓
-ID 2
-        ↓
-Nano
-        ↓
-EV3
-        ↓
-RED state
-```
-
-A correct camera ID is not sufficient if the EV3 interprets it incorrectly.
-
----
-
-# 5.46 HuskyLens Training Consistency
-
-The learned identifiers stored in the HuskyLens must remain consistent with the software mapping.
-
-If a target is re-learned under a different ID:
-
-```text
-Camera recognition may still work
-```
-
-but:
-
-```text
-EV3 meaning may become wrong
-```
-
-This can produce:
-
-```text
-Correct visual recognition
-        ↓
-Wrong navigation behavior
-```
-
-Therefore, ID consistency is part of calibration.
-
----
-
-# 5.47 Vision Visibility Calibration
-
-HuskyLens must also be validated physically.
-
-Useful questions include:
-
-```text
-When does a pillar enter view?
-
-Can both colors be recognized from representative approaches?
-
-Does the chassis block part of the image?
-
-Does the pillar leave the view too early during avoidance?
-
-Does a corner orientation temporarily create a blind region?
-```
-
-These are not purely software questions.
-
-They depend on the current camera mount.
-
----
-
-# 5.48 Camera Mount Calibration
-
-The current HuskyLens is forward-facing.
-
-Its usable perception depends on:
-
-```text
-Height
-
-Pitch
-
-Horizontal orientation
-
-Forward position
-
-Structural obstruction
-```
-
-No final numerical camera height or angle is claimed here because those measurements have not been confirmed as final specifications.
-
-The mount should be treated as calibrated when it remains physically stable and supports reliable obstacle visibility for the current vehicle strategy.
-
----
-
-# 5.49 Camera Calibration Is Coupled to Speed
-
-A pillar may be detected correctly but still too late for a given vehicle speed.
-
-Therefore:
-
-```text
-Detection
-     +
-Communication
-     +
-Steering response
-     +
-Vehicle speed
-     ↓
-Available avoidance margin
-```
-
-Vision calibration should therefore be validated while Piolín is moving at representative obstacle-round speed.
-
----
-
-# 5.50 Vision Classification vs. Avoidance Calibration
-
-Two different results should be separated.
-
-### Vision classification
-
-```text
-Did HuskyLens identify
-GREEN / RED correctly?
-```
-
-### Vehicle avoidance
-
-```text
-Did Piolín pass on
-the correct side safely?
-```
-
-If:
-
-```text
-ID is correct
-```
-
-but:
-
-```text
-Piolín hits pillar
-```
-
-the camera calibration may be valid while steering or timing requires tuning.
-
-This distinction prevents unnecessary retraining of the vision system.
-
----
-
-# 5.51 Nano–EV3 Communication Validation
-
-The Nano-to-EV3 connection is confirmed as USB.
-
-Calibration of this interface means verifying that the meaning transmitted by the Nano is interpreted correctly by the EV3.
-
-Conceptually:
-
-```text
-Nano reports ID 1
-        ↓
-EV3 receives expected representation
-        ↓
-EV3 interprets GREEN
-```
-
-and similarly:
-
-```text
-Nano reports ID 2
-        ↓
-EV3 interprets RED
-```
-
-The exact packet format should be documented from the current code, not inferred here.
-
----
-
-# 5.52 Unknown and No-Detection States
-
-The vision interface should preserve distinct meanings for:
-
-```text
-GREEN
-
-RED
-
-NO TARGET
-
-UNKNOWN / INVALID
-```
-
-These should not collapse into the same state.
+At a fixed vehicle position, collect multiple measurements from each sensor.
 
 For example:
 
 ```text
-No target
+same wall
+
+same vehicle position
+
+same vehicle heading
+
+several sensor readings
 ```
 
-should not automatically be interpreted as:
+The useful question is not:
+
+> Does the sensor always return exactly one number?
+
+The useful question is:
+
+> What range of values should be considered normal for this physical geometry?
+
+This range later helps determine reasonable:
 
 ```text
-RED
+control deadbands
+
+safety thresholds
+
+outlier rejection
 ```
 
-or:
-
-```text
-GREEN
-```
-
-Calibration therefore includes verifying the **absence state**, not only successful detections.
+without reacting strongly to insignificant sensor variation.
 
 ---
 
-# 5.53 Sensor Fusion Calibration
+## 5.8 Ultrasonic Orientation Test
 
-After individual sensors are calibrated, they must be validated together.
+The lateral sensors are affected by vehicle yaw.
+
+A useful experiment is to keep Piolín in approximately the same region while changing its heading slightly.
 
 For example:
 
 ```text
-GREEN detected
-       ↓
-LEFT pass requested
+parallel to wall
+
+slightly rotated toward wall
+
+slightly rotated away from wall
 ```
 
-while simultaneously:
+and record how S2/S3 respond.
+
+This test demonstrates an important limitation:
 
 ```text
-S3 reports left-wall geometry
-
-S2 reports right-wall geometry
-
-S1 reports frontal clearance
+ultrasonic distance change
 ```
 
-The EV3 must interpret these together without creating contradictory vehicle commands.
+does not always represent:
+
+```text
+pure lateral vehicle movement
+```
+
+Part of the change can come from vehicle orientation.
+
+This is especially relevant when interpreting measurements near corners.
 
 ---
 
-# 5.54 Sensor Fusion Is Not Sensor Averaging
+# 5.9 Open Ultrasonic Calibration
 
-Sensor fusion does not mean averaging:
+During Open, the ultrasonic values primarily represent lateral geometry while the gyro provides heading information.
 
-```text
-Ultrasonic distance
-
-Color value
-
-Camera ID
-```
-
-These represent different physical quantities and cannot be meaningfully averaged together.
-
-Instead:
-
-```text
-ULTRASONIC
-      ↓
-Spatial constraint
-
-
-COLOR
-      ↓
-Course state
-
-
-HUSKYLENS
-      ↓
-Obstacle identity
-```
-
-are combined logically.
-
-This is **decision-level fusion**, not numerical averaging of unrelated measurements.
-
----
-
-# 5.55 Calibration by Navigation State
-
-The same sensor can require different interpretation depending on current robot state.
-
-For example:
-
-### Straight state
-
-```text
-D_INNER
-↓
-Wall-following error
-```
-
-### Corner state
-
-```text
-Large D_INNER
-↓
-Possible wall disappearance
-```
-
-### Obstacle recovery
-
-```text
-D_LEFT + D_RIGHT
-↓
-Recovery geometry
-```
-
-Therefore, calibration should validate measurements in the states where they are actually used.
-
----
-
-# 5.56 Static Calibration vs. Dynamic Calibration
-
-Static calibration is useful for determining initial sensor behavior.
-
-```text
-Robot stationary
-      ↓
-Known geometry
-      ↓
-Record sensor output
-```
-
-However, Piolín operates while moving.
-
-Dynamic calibration checks what happens during:
-
-```text
-Acceleration
-
-Steering
-
-Cornering
-
-Obstacle avoidance
-
-Recovery
-```
-
-Both are necessary because motion changes the physical geometry seen by the sensors.
-
----
-
-# 5.57 Why Dynamic Calibration Matters for Ultrasonics
-
-During a turn:
-
-```text
-Chassis rotates
-        ↓
-Lateral sensor orientation
-relative to wall changes
-        ↓
-Measured distance changes
-```
-
-Therefore, a sensor value measured with Piolín perfectly parallel to a wall cannot describe every possible turning state.
-
-Static measurements establish the baseline.
-
-Dynamic behavior determines how that baseline should be interpreted in navigation.
-
----
-
-# 5.58 Why Dynamic Calibration Matters for Color
-
-During motion:
-
-```text
-S4 crosses marking
-        ↓
-Only a limited number of samples are available
-```
-
-and during a curve:
-
-```text
-S4 follows an arc
-```
-
-Therefore, color classification that works while the robot is held stationary should also be validated during realistic movement.
-
----
-
-# 5.59 Why Dynamic Calibration Matters for Vision
-
-While stationary, a pillar may remain centered and easy to recognize.
-
-During driving:
-
-```text
-Camera translates
-
-Camera rotates
-
-Pillar approaches
-
-Pillar moves across image
-```
-
-so visibility changes continuously.
-
-Vision calibration should therefore include realistic driving trajectories.
-
----
-
-# 5.60 Calibration Data Logging
-
-Useful calibration logs should preserve both raw and interpreted values.
-
-A combined diagnostic record can conceptually include:
-
-```text
-TIME
-
-STATE
-
-D_FRONT
-
-D_LEFT
-
-D_RIGHT
-
-D_INNER
-
-D_OUTER
-
-COLOR_RAW
-
-COLOR_CLASS
-
-BLUE_COUNT
-
-ORANGE_COUNT
-
-PILLAR_ID
-
-VISION_STATE
-
-STEERING_COMMAND
-
-DRIVE_COMMAND
-```
-
-This allows one recorded run to be analyzed across multiple subsystems.
-
----
-
-# 5.61 Why Raw Data Should Be Preserved
-
-Suppose the robot makes a wrong steering correction.
-
-If only:
-
-```text
-STEERING = LEFT
-```
-
-is logged, it is difficult to determine why.
-
-If the record contains:
-
-```text
-D_LEFT
-D_RIGHT
-STATE
-STEERING
-```
-
-the team can trace:
-
-```text
-Measurement
-      ↓
-Interpretation
-      ↓
-Action
-```
-
-This is far more useful for calibration.
-
----
-
-# 5.62 Calibration Dataset Separation
-
-Data should be kept conceptually separated by purpose.
-
-```text
-ULTRASONIC CALIBRATION
-      ↓
-Distance / geometry
-
-
-COLOR CALIBRATION
-      ↓
-Optical classification
-
-
-VISION CALIBRATION
-      ↓
-Pillar identity
-
-
-CONTROL TUNING
-      ↓
-Steering / speed response
-```
-
-Combining all changes simultaneously makes it difficult to determine which adjustment improved or degraded the run.
-
----
-
-# 5.63 One Variable at a Time
-
-During calibration, the preferred process is:
-
-```text
-Baseline
-   ↓
-Change one calibration parameter
-   ↓
-Run same condition
-   ↓
-Record result
-   ↓
-Compare
-```
-
-For example:
-
-```text
-Change BLUE threshold
-```
-
-without simultaneously changing:
-
-```text
-Drive speed
-
-Steering strength
-
-Ultrasonic target
-```
-
-This improves cause-and-effect traceability.
-
----
-
-# 5.64 Hysteresis
-
-Some sensor classifications benefit from different thresholds for entering and leaving a state.
-
-This is called hysteresis.
-
-Conceptually:
-
-```text
-ENTER BLUE
-at one calibrated condition
-```
-
-but:
-
-```text
-LEAVE BLUE
-only after moving clearly
-outside that condition
-```
-
-This can reduce rapid switching:
-
-```text
-BLUE
-OTHER
-BLUE
-OTHER
-```
-
-near the edge of a threshold.
-
-Whether hysteresis is used in the final implementation should be documented from the current code.
-
----
-
-# 5.65 Threshold Margin
-
-A threshold should ideally not lie directly on top of the normal variation of two classes.
-
-For example:
-
-```text
-Class A values
-████████
-
-threshold
-        │
-
-          ████████
-          Class B values
-```
-
-provides more margin than:
-
-```text
-Class A ███████████
-           │ threshold
-        ███████████ Class B
-```
-
-where the distributions overlap substantially.
-
-The same principle applies to:
-
-```text
-Color classification
-
-Wall-loss detection
-
-Geometry validity
-```
-
-Calibration seeks useful separation between states.
-
----
-
-# 5.66 Avoiding Over-Calibrated Thresholds
-
-A calibration value can work perfectly in one specific position but fail under ordinary variation.
-
-For example:
-
-```text
-BLUE accepted only
-within extremely narrow RGB range
-```
-
-may work during stationary testing but fail under:
-
-```text
-Small lighting changes
-
-Movement
-
-Different part of same marking
-```
-
-Calibration should therefore represent the **usable operating range**, not one perfect sample.
-
----
-
-# 5.67 Avoiding Overly Broad Thresholds
-
-The opposite problem also exists.
-
-If a threshold is too broad:
-
-```text
-Normal floor
-```
-
-may be classified as:
-
-```text
-BLUE
-```
-
-or:
-
-```text
-ORANGE
-```
-
-Likewise, an overly permissive ultrasonic condition may confuse:
-
-```text
-Normal distance variation
-```
-
-with:
-
-```text
-Corner transition
-```
-
-Calibration therefore balances:
-
-```text
-Sensitivity
-```
-
-and:
-
-```text
-Specificity
-```
-
-for each sensor role.
-
----
-
-# 5.68 Calibration and Mechanical Changes
-
-Any significant change to:
-
-```text
-Sensor mount
-
-Wheel geometry
-
-Chassis geometry
-
-Color casing
-
-Camera position
-```
-
-should trigger a review of affected calibration constants.
-
-For example:
-
-```text
-Move S2
-    ↓
-Review D_RIGHT behavior
-    ↓
-Review D_TARGET / C_REF
-```
-
-or:
-
-```text
-Move HuskyLens
-    ↓
-Review obstacle visibility
-```
-
-Calibration belongs to a physical configuration, not only to software.
-
----
-
-# 5.69 Calibration and Software Changes
-
-Software changes can also require recalibration.
-
-For example, changing:
-
-```text
-Sensor filtering
-```
-
-can alter the value seen by higher-level control.
-
-Likewise, changing:
-
-```text
-Color confirmation count
-```
-
-changes detection timing even if the RGB classifier is unchanged.
-
-Therefore, calibration records should be associated with the software version that used them.
-
----
-
-# 5.70 Calibration and Vehicle Speed
-
-Sensor thresholds can be physically correct while navigation still fails because speed changed.
-
-Higher speed changes:
-
-```text
-Response distance
-
-Number of color samples
-
-Vision reaction time
-
-Corner transition timing
-```
-
-Therefore, after increasing Motor A speed, the team should verify that:
-
-```text
-Color events remain detectable
-
-Corner geometry remains timely
-
-Front safety margin remains adequate
-
-Vision avoidance still begins early enough
-```
-
-without assuming the existing dynamic calibration remains optimal.
-
----
-
-# 5.71 Calibration and Steering
-
-Steering can also change sensor geometry.
-
-During strong steering:
-
-```text
-Vehicle rotates faster
-        ↓
-Lateral ultrasonic angles
-relative to walls change faster
-```
-
-and:
-
-```text
-Camera field of view rotates faster
-```
-
-Therefore, changing steering strength can alter how sensor events appear over time.
-
-This is why calibration and control tuning interact even though they are conceptually separate.
-
----
-
-# 5.72 Current Confirmed Calibration Mappings
-
-The following current mappings are confirmed:
-
-| Item | Current Mapping |
-| :--- | :--- |
-| **S1** | Front Ultrasonic |
-| **S2** | Right Ultrasonic |
-| **S3** | Left Ultrasonic |
-| **S4** | Downward Color Sensor |
-| **Blue first** | Counterclockwise |
-| **Orange first** | Clockwise |
-| **CCW inner sensor** | S3 Left |
-| **CCW outer sensor** | S2 Right |
-| **CW inner sensor** | S2 Right |
-| **CW outer sensor** | S3 Left |
-| **Green pillar** | HuskyLens ID 1 |
-| **Green passing side** | Left |
-| **Red pillar** | HuskyLens ID 2 |
-| **Red passing side** | Right |
-| **Nano → EV3** | USB |
-| **Gyroscope** | Not used |
-| **PixyCam** | Legacy |
-
-These mappings are architectural calibration facts rather than numerical thresholds.
-
----
-
-# 5.73 Numerical Values Intentionally Not Invented
-
-The following calibration values should be taken from the final code or current measured data before being presented numerically:
-
-```text
-D_TARGET
-
-D_TARGET_MIN / MAX
-
-DEADBAND
-
-C_REF
-
-G_TOL
-
-Front safety limit
-
-Front confirmation count
-
-Lateral ultrasonic offsets
-
-Current RGB Blue thresholds
-
-Current RGB Orange thresholds
-
-Normal-floor thresholds
-
-Color confirmation count
-
-Color cooldown
-
-Color lock-release condition
-
-HuskyLens detection confirmation
-
-Camera detection distance
-
-Camera mounting angle
-
-Camera mounting height
-
-Camera field-of-view angle
-```
-
-Older values may remain useful as development history, but they should not be labeled as final calibration.
-
----
-
-# 5.74 Calibration Configuration Table
-
-Once current software values are frozen, the calibration architecture can be summarized using variables such as:
-
-| Variable | Meaning | Source |
-| :--- | :--- | :--- |
-| `D_TARGET` | Desired inner-wall measurement | Lateral US calibration |
-| `DEADBAND` | Acceptable wall-error region | Lateral US calibration |
-| `C_REF` | Normal lateral corridor sum | Dual-US calibration |
-| `G_TOL` | Geometry-consistency tolerance | Dual-US calibration |
-| `FRONT_SAFETY_LIMIT` | Frontal safety distance | S1 calibration |
-| `BLUE_RANGE` | Valid Blue classification region | S4 calibration |
-| `ORANGE_RANGE` | Valid Orange classification region | S4 calibration |
-| `FLOOR_RANGE` | Normal floor classification | S4 calibration |
-| `COLOR_CONFIRM` | Color-event confirmation behavior | Dynamic S4 calibration |
-| `ID_GREEN` | Green pillar identifier | HuskyLens |
-| `ID_RED` | Red pillar identifier | HuskyLens |
-
-This table describes the logical structure without inventing unsupported numerical values.
-
----
-
-# 5.75 Calibration Acceptance Criteria
-
-A calibration should be considered useful only when it supports repeatable behavior.
-
-For ultrasonic navigation:
-
-```text
-Stable straight-wall interpretation
-
-Correct corner transition recognition
-
-Useful wall recovery
-
-No frequent false safety events
-```
-
-For color:
-
-```text
-Blue detected
-
-Orange detected
-
-Normal floor rejected correctly
-
-One physical marking produces one event
-```
-
-For vision:
-
-```text
-Green maps to ID 1
-
-Red maps to ID 2
-
-No-target state remains distinct
-
-EV3 receives correct identity
-```
-
-These are system behaviors rather than arbitrary numerical accuracy claims.
-
----
-
-# 5.76 Calibration Failure Categories
-
-| Failure | Likely Calibration Area |
-| :--- | :--- |
-| Robot continuously hugs one wall | `D_TARGET`, steering center, sensor geometry |
-| Robot oscillates on straight | Deadband/filtering/control interaction |
-| Corner not recognized | Wall-loss / geometry calibration |
-| False corner appears | Filtering / geometry tolerance |
-| Front safety activates unnecessarily | S1 threshold / measurement interpretation |
-| Blue missed | S4 Blue classification or timing |
-| Orange missed | S4 Orange classification or timing |
-| One marking counted multiple times | Lock/cooldown/event logic |
-| Wrong initial direction | Color mapping or event classification |
-| Green causes right-side behavior | Vision ID mapping / software interpretation |
-| Red causes left-side behavior | Vision ID mapping / software interpretation |
-| Correct ID but pillar collision | Mobility/control timing rather than classification |
-| Pillar recognized too late in motion | Vision geometry / speed interaction |
-
-This table helps identify which calibration layer should be inspected first.
-
----
-
-# 5.77 Calibration Diagnostic Hierarchy
-
-When a sensor-related problem occurs:
-
-```text
-CHECK PHYSICAL MOUNT
-        ↓
-CHECK CONNECTION
-        ↓
-CHECK RAW DATA
-        ↓
-CHECK FILTERED DATA
-        ↓
-CHECK CLASSIFICATION
-        ↓
-CHECK STATE LOGIC
-        ↓
-CHECK CONTROL RESPONSE
-```
-
-The key principle is:
-
-```text
-Do not tune Motor B
-to compensate for
-incorrect sensor interpretation
-```
-
-unless the sensing layer has first been verified.
-
----
-
-# 5.78 Current vs. Legacy Calibration
-
-Piolín's development history contains calibration values associated with:
-
-```text
-Two-ultrasonic configurations
-
-Gyroscope navigation
-
-Different sensor positions
-
-Different wall targets
-
-Different color thresholds
-
-PixyCam
-
-Alternative control systems
-```
-
-Those values remain useful as evidence of engineering development.
-
-They do not automatically describe the current robot.
-
-The current rule is:
-
-```text
-CURRENT HARDWARE
-      ↓
-CURRENT MEASUREMENT
-      ↓
-CURRENT CALIBRATION
-```
-
-Historical systems are documented in:
-
-[Legacy Documentation](../legacy/00_LEGACY_NOTICE.md)
-
-[Legacy Gyroscope Configuration](../legacy/01_GConfig.md)
-
-[Legacy PixyCam](../legacy/02_CameraPixy.md)
-
-[Legacy Performance Testing](../legacy/03_PTesting&Analysis.md)
-
----
-
-# 5.79 Calibration Traceability
-
-Every important calibration constant should ultimately be traceable through:
-
-```text
-PHYSICAL REQUIREMENT
-      ↓
-MEASUREMENT
-      ↓
-SELECTED VALUE
-      ↓
-CODE CONSTANT
-      ↓
-TEST RESULT
-```
-
-For example:
-
-```text
-Desired wall position
-      ↓
-Measured S3 / S2 values
-      ↓
-D_TARGET
-      ↓
-Wall-following code
-      ↓
-Straight-run evidence
-```
-
-or:
-
-```text
-Physical Blue marking
-      ↓
-Recorded RGB samples
-      ↓
-Blue classifier
-      ↓
-S4 code
-      ↓
-Color-detection evidence
-```
-
-This traceability is one of the strongest ways to demonstrate that constants were engineered rather than guessed.
-
----
-
-# 5.80 Calibration and Reproducibility
-
-A second Piolín build should not require guessing sensor constants from scratch.
-
-The repository should explain:
-
-```text
-What must be measured
-
-Why it must be measured
-
-What variable it produces
-
-Where that variable is used
-```
-
-The exact execution steps belong in:
-
-[How to Calibrate](../reproducibility/06_HowToCalibrate.md)
-
-while this document explains the technical meaning behind those steps.
-
-Together:
-
-```text
-05_Calibration.md
-      ↓
-WHY + WHAT
-
-
-06_HowToCalibrate.md
-      ↓
-HOW
-```
-
-This separation improves repository organization.
-
----
-
-# 5.81 Complete Calibration Pipeline
-
-The complete current sensor-calibration architecture can be summarized as:
-
-```text
-                       PHYSICAL PIOLÍN
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        ▼                     ▼                     ▼
-   ULTRASONICS               COLOR                VISION
-        │                     │                     │
-        ▼                     ▼                     ▼
- RAW DISTANCES            RAW OPTICAL            TARGET ID
-        │                     │                     │
-        ▼                     ▼                     ▼
-   FILTERING             CLASSIFICATION       ID VALIDATION
-        │                     │                     │
-        ▼                     ▼                     ▼
- WALL / SAFETY           COLOR EVENT        OBSTACLE STATE
- INTERPRETATION           PROCESSING               │
-        │                     │                     │
-        └─────────────────────┼─────────────────────┘
-                              ▼
-                           LEGO EV3
-                              │
-                              ▼
-                     NAVIGATION STATE
-                              │
-                    ┌─────────┴─────────┐
-                    ▼                   ▼
-                 Motor A             Motor B
-```
-
-Calibration defines the transformation between each physical measurement and its usable navigation meaning.
-
----
-
-# 5.82 Ultrasonic Calibration Summary
-
-The current ultrasonic calibration structure is:
+The useful separation is:
 
 ```text
 S2 / S3
-   ↓
-D_LEFT / D_RIGHT
-   ↓
-Direction mapping
-   ↓
-D_INNER / D_OUTER
-   ↓
-Wall target + geometry reference
+→ WHERE Piolín is laterally
 ```
 
-with:
-
 ```text
-E_WALL =
-D_TARGET - D_INNER
+Gyro
+→ HOW Piolín is oriented
 ```
 
-and:
+The current Open controller may use a target inner-wall value as part of its working tuning, but any such value should be treated as:
 
 ```text
-G =
-ABS(
-(D_INNER + D_OUTER)
--
-C_REF
-)
+current software calibration
+```
+
+rather than:
+
+```text
+immutable physical specification
+```
+
+until it has been validated across representative track sections and repeated runs.
+
+---
+
+## 5.10 Inner and Outer Calibration
+
+The physical sensors remain:
+
+```text
+S2 = LEFT
+
+S3 = RIGHT
+```
+
+but the Open software assigns inner and outer roles based on direction.
+
+For counterclockwise:
+
+```text
+S2 LEFT
+→ INNER
+
+S3 RIGHT
+→ OUTER
+```
+
+For clockwise:
+
+```text
+S3 RIGHT
+→ INNER
+
+S2 LEFT
+→ OUTER
+```
+
+Calibration data should therefore preserve the physical identities first.
+
+It is safer to record:
+
+```text
+S2 reading
+
+S3 reading
+```
+
+rather than only:
+
+```text
+inner reading
+
+outer reading
+```
+
+because physical sensor identity remains constant while the logical role changes.
+
+---
+
+# 5.11 Color Sensor Calibration
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/color_sensor_s4_installed.jpg"
+  alt="Piolín EV3 Color Sensor installed on S4"
+  width="660"
+/>
+
+<br>
+
+<sub><b>Figure 5.4.</b> The Color Sensor is calibrated in its permanent downward-facing S4 installation.</sub>
+
+</div>
+
+The Color Sensor must distinguish the important floor categories used by Piolín:
+
+```text
+BLUE
+
+ORANGE
+
+NORMAL FLOOR
+```
+
+The useful calibration is not based on one sample from each category.
+
+Instead, the team should measure a **range of observations** for each physical surface.
+
+The calibration must use:
+
+```text
+current sensor
+
+current casing
+
+current mounting height
+
+real track colors
+
+representative lighting
+```
+
+because any of these can change the optical values.
+
+---
+
+# 5.12 Color Sensor Casing
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/color_sensor_casing.jpg"
+  alt="Piolín 3D-printed Color Sensor light isolation casing"
+  width="660"
+/>
+
+<br>
+
+<sub><b>Figure 5.5.</b> The Color Sensor casing improves control of the optical environment around the downward-facing sensor.</sub>
+
+</div>
+
+The casing reduces uncontrolled light reaching the floor-measurement region.
+
+Its purpose is to improve the physical conditions before classification occurs.
+
+Conceptually:
+
+```text
+ambient light variation
+        ↓
+casing reduces part of variation
+        ↓
+sensor measurement
+        ↓
+software classification
+```
+
+The casing does not eliminate the need for calibration.
+
+Instead, it makes calibration more meaningful because the measurement environment is more controlled.
+
+If the casing is changed or repositioned, color values should be reverified.
+
+---
+
+# 5.13 Blue Calibration
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/color_sensor_blue_mark.jpg"
+  alt="Piolín Color Sensor over a blue floor reference"
+  width="660"
+/>
+
+<br>
+
+<sub><b>Figure 5.6.</b> Blue calibration should use the real course marking and current sensor installation.</sub>
+
+</div>
+
+Blue should be measured repeatedly under the actual S4 installation.
+
+A useful dataset includes:
+
+```text
+center of blue marking
+
+different points across blue region
+
+stationary readings
+
+dynamic crossings
+```
+
+The objective is to determine a classification region wide enough to detect the actual marking while remaining sufficiently distinct from Orange and the normal floor.
+
+During Open:
+
+```text
+BLUE first
+→ counterclockwise
+```
+
+so incorrect Blue classification can affect the complete direction state of the run.
+
+---
+
+# 5.14 Orange Calibration
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/color_sensor_orange_mark.jpg"
+  alt="Piolín Color Sensor over an orange floor reference"
+  width="660"
+/>
+
+<br>
+
+<sub><b>Figure 5.7.</b> Orange must be characterized independently because its optical range can differ from Blue.</sub>
+
+</div>
+
+Orange should be measured using the same process.
+
+During Open:
+
+```text
+ORANGE first
+→ clockwise
+```
+
+The calibration should therefore provide enough separation that:
+
+```text
+Blue is not classified as Orange
+
+Orange is not classified as Blue
+
+normal floor is not classified as either
+```
+
+The final thresholds should come from the measured distribution of values rather than one ideal reading.
+
+---
+
+# 5.15 Color Calibration Dataset
+
+A useful table can contain:
+
+| Surface | Trial | Raw / RGB Measurement | Classified As |
+| :--- | :---: | :--- | :--- |
+| Blue | 1 | — | — |
+| Blue | 2 | — | — |
+| Blue | 3 | — | — |
+| Orange | 1 | — | — |
+| Orange | 2 | — | — |
+| Orange | 3 | — | — |
+| Normal floor | 1 | — | — |
+| Normal floor | 2 | — | — |
+| Normal floor | 3 | — | — |
+
+The final dataset should contain real measurements only.
+
+No theoretical RGB values should be substituted for measurements from the actual robot.
+
+---
+
+# 5.16 Dynamic Color Calibration
+
+Static recognition is only the first stage.
+
+Piolín detects course markings while moving.
+
+Therefore the final calibration should test:
+
+```text
+slow crossing
+
+normal driving-speed crossing
+
+slightly different path across marking
+```
+
+At higher speed:
+
+```text
+less time above color
+→ fewer samples
+```
+
+This affects:
+
+```text
+confirmation count
+
+event lock
+
+debounce
+
+classification delay
+```
+
+A color threshold that works perfectly while stationary is not sufficient evidence of reliable dynamic detection.
+
+---
+
+# 5.17 Event Calibration
+
+The Color Sensor must not only classify color correctly.
+
+It must also convert a physical crossing into exactly one navigation event.
+
+The desired behavior is:
+
+```text
+normal floor
+      ↓
+Blue enters sensor
+      ↓
+Blue confirmed
+      ↓
+ONE event
+      ↓
+sensor remains above Blue
+      ↓
+NO additional events
+      ↓
+marking leaves sensor
+      ↓
+detector re-armed
+```
+
+Calibration therefore includes:
+
+```text
+classification thresholds
++
+temporal confirmation
++
+event locking
++
+re-arm condition
+```
+
+These values should be tuned together using real crossings.
+
+---
+
+# 5.18 Gyro Calibration — Open Challenge
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/s1_open_gyro.jpg"
+  alt="Piolín Gyro Sensor connected to S1 for Open Challenge"
+  width="680"
+/>
+
+<br>
+
+<sub><b>Figure 5.8.</b> Open Challenge calibration includes the round-specific EV3 Gyro Sensor on S1.</sub>
+
+</div>
+
+The Gyro Sensor is active only during Open.
+
+Its purpose is to provide a heading and rotation reference.
+
+At program startup, the current Open architecture establishes a local reference by resetting the gyro angle.
+
+Conceptually:
+
+```text
+Piolín positioned at start
+        ↓
+gyro allowed to stabilize
+        ↓
+gyro reset
+        ↓
+initial heading = 0
+```
+
+The robot can then measure relative angular change from that reference.
+
+---
+
+## 5.19 Gyro Orientation
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/gyro_orientation.jpg"
+  alt="Physical orientation of Piolín EV3 Gyro Sensor"
+  width="660"
+/>
+
+<br>
+
+<sub><b>Figure 5.9.</b> Gyro calibration depends on preserving the sensor's orientation relative to the chassis.</sub>
+
+</div>
+
+The gyro must remain mechanically fixed because the software assumes its measured rotation corresponds to vehicle yaw.
+
+If the sensor orientation changes relative to the chassis:
+
+```text
+gyro reference
+```
+
+no longer describes the vehicle in exactly the same way.
+
+Therefore the physical gyro mount should be verified before Open heading constants are changed.
+
+---
+
+# 5.20 Gyro Zero Calibration
+
+The most basic gyro calibration is the startup zero.
+
+A practical sequence is:
+
+```text
+1. Place Piolín in the intended start orientation.
+
+2. Keep the robot still.
+
+3. Initialize the sensor.
+
+4. Reset the gyro angle.
+
+5. Confirm reading is near the expected reference.
+
+6. Begin movement only after initialization is complete.
+```
+
+The robot should not reset the heading while it is already physically rotating unless that behavior is intentionally part of the controller.
+
+---
+
+# 5.21 Gyro Drift Test
+
+The gyro can be tested while Piolín remains stationary.
+
+The objective is to observe whether:
+
+```text
+reported heading
+```
+
+changes significantly even though:
+
+```text
+physical heading
+```
+
+does not.
+
+A test table can use:
+
+| Time | Gyro Angle | Robot Physically Moved? |
+| :---: | :---: | :---: |
+| Start | — | No |
+| Sample 2 | — | No |
+| Sample 3 | — | No |
+| Sample 4 | — | No |
+
+This should be populated only with actual measurements.
+
+The purpose is to determine how stable the heading reference remains over the duration of a representative run.
+
+---
+
+# 5.22 Gyro Turn Calibration
+
+A second experiment can physically rotate Piolín through a known track corner and compare the gyro change with the observed vehicle orientation.
+
+The course corners are approximately right-angle turns, but the software should not assume one exact final gyro value without measurement.
+
+A practical Ackermann vehicle can begin and release steering before or after the chassis reaches a theoretical geometric angle.
+
+The useful calibration question is:
+
+> **What gyro behavior corresponds to a reliable corner exit for the actual robot?**
+
+This value should be established through repeated physical testing.
+
+---
+
+# 5.23 Gyro and Ultrasonic Cross-Checking
+
+Open calibration becomes stronger when gyro and ultrasonic data are observed together.
+
+For example:
+
+```text
+gyro indicates heading recovered
+```
+
+but:
+
+```text
+S2/S3 geometry still unstable
+```
+
+may indicate that the robot has rotated enough but has not yet reached a good lateral exit position.
+
+Similarly:
+
+```text
+ultrasonic distance looks normal
 ```
 
 while:
 
 ```text
-S1
- ↓
-D_FRONT
- ↓
-Independent frontal safety calibration
+gyro indicates significant yaw
 ```
 
-The front sensor remains separate from lateral geometry.
+can show that wall distance alone is insufficient to describe vehicle state.
+
+This is why Open calibration should eventually test both data sources simultaneously.
 
 ---
 
-# 5.83 Color Calibration Summary
+# 5.24 Pixy2.1 Calibration — Obstacle Challenge
 
-The color calibration structure is:
+<div align="center">
 
-```text
-S4
- ↓
-Raw optical sample
- ↓
-BLUE / ORANGE / FLOOR
- ↓
-Confirmation
- ↓
-Event lock
- ↓
-Valid event
- ↓
-Direction or progress
-```
+<img
+  src="../../v-photos/v4/pixy21_front.jpg"
+  alt="Pixy2.1 installed on Piolín for Obstacle Challenge calibration"
+  width="700"
+/>
 
-with confirmed mappings:
+<br>
+
+<sub><b>Figure 5.10.</b> Pixy2.1 is calibrated as part of the complete forward-facing Obstacle Challenge vision system.</sub>
+
+</div>
+
+Pixy2.1 replaces the Gyro Sensor on S1 during the Obstacle Challenge.
+
+The current visual signature mapping is:
 
 ```text
-BLUE first
-=
-COUNTERCLOCKWISE
+sig1 → Pink → Parking
+
+sig2 → Red → Pass RIGHT
+
+sig3 → Green → Pass LEFT
 ```
+
+Pixy calibration must establish more than whether the camera can detect a color.
+
+It should characterize:
+
+```text
+signature reliability
+
+block position
+
+apparent size
+
+target relevance
+
+lighting response
+
+target persistence
+```
+
+because all of these affect the final obstacle maneuver.
+
+---
+
+# 5.25 Pixy2.1 3D-Printed Casing
+
+The current Pixy2.1 installation includes a **3D-printed casing around the camera**.
+
+This casing is now part of Piolín's active Obstacle Challenge hardware and must therefore remain installed during final camera calibration.
+
+Its main engineering roles are to provide a more controlled and repeatable physical environment around the vision module and to protect/support the camera as part of the front assembly.
+
+Depending on the exact geometry of the casing, it can also reduce some unwanted side illumination reaching the camera.
+
+However:
+
+```text
+Pixy casing
+≠
+replacement for visual calibration
+```
+
+The camera signatures still need to be trained and validated under representative track lighting.
+
+The important rule is:
+
+> **Pixy calibration performed with the casing installed should not automatically be reused after removing, modifying, or repositioning the casing.**
+
+This is the same general principle applied to the Color Sensor casing: the mechanical enclosure becomes part of the optical system.
+
+---
+
+# 5.26 Why the Pixy Casing Matters
+
+Pixy color recognition depends on the light reaching the camera.
+
+Environmental changes can include:
+
+```text
+overhead lights
+
+sunlight
+
+shadows
+
+reflections
+
+bright objects beside the track
+```
+
+The casing can help make the camera installation more mechanically and optically repeatable.
+
+The desired relationship is:
+
+```text
+stable camera mount
++
+stable casing
++
+representative lighting
+        ↓
+more repeatable visual blocks
+```
+
+It should not be assumed that the casing eliminates lighting sensitivity entirely.
+
+Instead, it reduces one source of variability while Pixy's signature training and software logic handle the remaining visual uncertainty.
+
+---
+
+# 5.27 Pixy Signature Calibration
+
+Each physical target should be tested independently.
+
+The current mapping is:
+
+| Signature | Target | Required Meaning |
+| :---: | :--- | :--- |
+| 1 | Pink | Parking |
+| 2 | Red | Pass right |
+| 3 | Green | Pass left |
+
+The calibration must verify that the trained signature and the EV3 software agree.
+
+A correct visual detection with an incorrect software mapping still produces the wrong maneuver.
+
+The sequence is:
+
+```text
+physical color
+      ↓
+Pixy signature
+      ↓
+EV3 signature mapping
+      ↓
+navigation rule
+```
+
+Every stage must be correct.
+
+---
+
+# 5.28 Red Signature Test
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/pixy21_red_detection.jpg"
+  alt="Pixy2.1 red pillar detection"
+  width="680"
+/>
+
+<br>
+
+<sub><b>Figure 5.11.</b> Red detection calibration validates signature 2 and the corresponding pass-right rule.</sub>
+
+</div>
+
+Red testing should verify:
+
+```text
+Red produces sig2
+
+sig2 is stable enough to be useful
+
+Red is not confused with Pink
+
+Red is not confused with Green
+
+small unrelated red regions do not dominate navigation
+```
+
+The final navigation meaning is always:
+
+```text
+RED
+→ pass RIGHT
+```
+
+The image position of Red may change.
+
+The passing rule does not.
+
+---
+
+# 5.29 Green Signature Test
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/pixy21_green_detection.jpg"
+  alt="Pixy2.1 green pillar detection"
+  width="680"
+/>
+
+<br>
+
+<sub><b>Figure 5.12.</b> Green detection calibration validates signature 3 and the corresponding pass-left rule.</sub>
+
+</div>
+
+Green testing should independently verify:
+
+```text
+Green produces sig3
+
+Green remains detectable at useful approach positions
+
+background colors do not frequently create false sig3 blocks
+```
+
+The required navigation rule remains:
+
+```text
+GREEN
+→ pass LEFT
+```
+
+Red and Green should not be assumed to have identical detection strength under the same lighting.
+
+Each needs its own validation.
+
+---
+
+# 5.30 Parking Signature Test
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/pixy21_parking_detection.jpg"
+  alt="Pixy2.1 pink parking reference detection"
+  width="680"
+/>
+
+<br>
+
+<sub><b>Figure 5.13.</b> Signature 1 is calibrated independently as the visual parking reference.</sub>
+
+</div>
+
+The Pink signature should be distinguishable from the obstacle signatures.
+
+The final parking controller should not rely only on:
+
+```text
+sig1 visible
+```
+
+because a valid visual block does not automatically prove that the complete course state is ready for parking.
+
+Instead, Pink calibration establishes:
+
+```text
+can the visual reference be detected reliably?
+```
+
+while the navigation controller decides:
+
+```text
+is this the correct time to use it?
+```
+
+---
+
+# 5.31 Pixy Horizontal Coordinate Calibration
+
+The `x` value describes the horizontal position of a block inside the camera image.
+
+A useful static calibration moves the same pillar through several positions:
+
+```text
+left of camera center
+
+near center
+
+right of camera center
+```
+
+and records the reported `x`.
+
+This confirms the expected coordinate direction and provides a reference for steering logic.
+
+One critical principle must remain fixed:
+
+```text
+x
+→ target geometry
+```
+
+not:
+
+```text
+x
+→ competition passing rule
+```
+
+A Red pillar remains a pass-right obstacle regardless of where it appears in the camera image.
+
+---
+
+# 5.32 Pixy Apparent-Size Calibration
+
+Pixy also provides:
+
+```text
+width
+
+height
+```
+
+which can be combined conceptually into:
+
+```text
+apparent area
+≈ width × height
+```
+
+A useful test moves the same pillar through several distances and records how its apparent size changes.
+
+The expected general tendency is:
+
+```text
+closer pillar
+→ larger image block
+```
+
+but the relationship is not automatically an exact physical-distance equation.
+
+Viewing angle, partial visibility, and lighting can change apparent dimensions.
+
+The purpose of this calibration is therefore to support:
+
+```text
+target relevance
+```
+
+rather than claim exact centimeter ranging from the camera.
+
+---
+
+# 5.33 Multiple-Block Calibration
+
+The Obstacle Challenge can produce situations where multiple valid blocks are visible.
+
+The calibration should therefore test:
+
+```text
+Red + Green visible together
+
+two blocks at different apparent sizes
+
+one central + one peripheral block
+
+near target + distant target
+```
+
+The goal is to determine whether the target-selection logic consistently chooses the most relevant current pillar.
+
+Piolín should not rely permanently on:
+
+```text
+first block returned
+```
+
+because list order does not necessarily equal physical relevance.
+
+---
+
+# 5.34 Target-Lock Calibration
+
+Once one pillar has been selected, Piolín may temporarily lock that target.
+
+The lock prevents visual switching during an active maneuver.
+
+Calibration should determine:
+
+```text
+how long the lock should persist
+
+what evidence releases it
+
+how brief target loss is handled
+```
+
+The target should not be released merely because it disappears for one camera update.
+
+Likewise, it should not remain locked after the physical pillar has clearly been passed.
+
+The final target-lock parameters remain under development.
+
+---
+
+# 5.35 Pixy Lighting Calibration
+
+The camera should be tested under the lighting conditions expected during actual use.
+
+Useful variations include:
+
+```text
+normal room lighting
+
+slightly brighter illumination
+
+slightly darker areas
+
+representative track shadows
+```
+
+The test should ask:
+
+```text
+Does Red remain Red?
+
+Does Green remain Green?
+
+Does Pink remain distinguishable?
+
+Do false blocks appear?
+```
+
+The new 3D-printed Pixy casing should remain installed during these tests because it is now part of the final optical installation.
+
+---
+
+# 5.36 Pixy Static vs. Dynamic Calibration
+
+A stationary camera test is useful for signature training.
+
+It is not enough for autonomous navigation.
+
+During real movement:
+
+```text
+distance changes
+
+camera yaw changes
+
+pillar size changes
+
+pillar x changes
+
+lighting angle changes
+```
+
+Therefore calibration should progress from:
+
+```text
+stationary target
+      ↓
+slow vehicle approach
+      ↓
+normal-speed approach
+      ↓
+active steering
+      ↓
+complete pillar pass
+```
+
+This determines whether static camera performance remains useful while Piolín actually moves.
+
+---
+
+# 5.37 Obstacle Sensor Fusion Calibration
+
+Pixy calibration should eventually be tested together with S2/S3.
+
+The intended division is:
+
+```text
+Pixy
+→ obstacle identity and visual relevance
+```
+
+```text
+S2/S3
+→ physical wall / lateral geometry
+```
+
+A representative test should record both sources during:
+
+```text
+pillar approach
+
+avoidance
+
+side pass
+
+countersteering
+
+recovery
+```
+
+This helps determine when obstacle control should dominate and when lateral wall recovery should regain greater authority.
+
+---
+
+# 5.38 Pillar-Pass Calibration
+
+A key Obstacle Challenge calibration is deciding when the current pillar has actually been passed.
+
+A visual-only condition such as:
+
+```text
+pillar disappeared
+```
+
+is weak because steering can move the camera away from the target before the vehicle has cleared it.
+
+A stronger condition can combine:
+
+```text
+recent Pixy target
+
+vehicle motion
+
+lateral ultrasonic behavior
+
+opening geometry after pillar
+```
+
+The exact final thresholds should come from recorded physical runs.
+
+---
+
+# 5.39 Calibration by Competition Round
+
+The complete calibration workflow differs slightly between Open and Obstacles.
+
+### Open
+
+```text
+verify mechanics
+      ↓
+verify S2/S3
+      ↓
+calibrate Color Sensor
+      ↓
+initialize / test Gyro
+      ↓
+test straight geometry
+      ↓
+test corner rotation
+      ↓
+test corner exit
+      ↓
+test multi-corner behavior
+```
+
+### Obstacles
+
+```text
+verify mechanics
+      ↓
+verify S2/S3
+      ↓
+verify Color Sensor
+      ↓
+install Pixy + 3D casing
+      ↓
+verify signatures
+      ↓
+test x / size
+      ↓
+test target selection
+      ↓
+test pillar pass
+      ↓
+test recovery
+      ↓
+test consecutive pillars
+```
+
+This keeps the calibration process aligned with the different information requirements of each round.
+
+---
+
+# 5.40 Battery Condition During Calibration
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/ev3_battery_45501.jpg"
+  alt="EV3 Rechargeable DC Battery 45501 used during Piolín calibration"
+  width="650"
+/>
+
+<br>
+
+<sub><b>Figure 5.14.</b> Battery condition should remain reasonably consistent when comparing dynamic calibration runs.</sub>
+
+</div>
+
+Sensor readings are not the only variable affecting dynamic calibration.
+
+Motor response also matters.
+
+When comparing:
+
+```text
+corner timing
+
+obstacle reaction
+
+reverse movement
+
+parking
+```
+
+the battery condition should remain reasonably consistent.
+
+Otherwise, the same sensor threshold can appear to behave differently simply because Piolín travels a different physical distance before the steering response develops.
+
+---
+
+# 5.41 One Variable at a Time
+
+Calibration changes should be tested systematically.
+
+Suppose the robot reacts too late to a Green pillar.
+
+Potential causes include:
+
+```text
+Pixy detects late
+
+block relevance threshold too strict
+
+confirmation too long
+
+Motor A too fast
+
+Motor B response too slow
+```
+
+Changing all five at once does not reveal the cause.
+
+A better process is:
+
+```text
+observe
+      ↓
+form hypothesis
+      ↓
+change one relevant parameter
+      ↓
+repeat same test
+      ↓
+compare
+```
+
+This transforms tuning into an engineering experiment.
+
+---
+
+# 5.42 Calibration Logging
+
+A useful calibration record should contain:
+
+| Field | Information to Record |
+| :--- | :--- |
+| Date | Test date |
+| Challenge | Open / Obstacles |
+| Software version | File or commit |
+| Sensor | S1 / S2 / S3 / S4 |
+| Mechanical configuration | Current mounting/casing |
+| Battery condition | Test condition |
+| Physical reference | Wall, floor, pillar, angle |
+| Raw measurement | Actual sensor output |
+| Processed state | Classification / target / geometry |
+| Vehicle response | What Piolín did |
+| Result | Expected / unexpected |
+| Next change | One next calibration change |
+
+For Pixy tests, the record should also note that the **3D-printed camera casing was installed**, because it is now part of the calibrated optical configuration.
+
+---
+
+# 5.43 When Calibration Must Be Rechecked
+
+Calibration should be reverified after changes such as:
+
+```text
+ultrasonic remounting
+
+ultrasonic orientation change
+
+Color Sensor remounting
+
+Color Sensor casing replacement
+
+gyro remounting
+
+Pixy remounting
+
+Pixy casing modification
+
+Pixy casing replacement
+
+camera angle change
+
+camera height change
+
+major chassis change
+
+wheel / steering changes that alter dynamic trajectories
+```
+
+Not every change necessarily requires a complete recalibration.
+
+But the previous calibration should not be assumed automatically valid without at least a verification test.
+
+---
+
+# 5.44 Calibration Failure Diagnosis
+
+| Symptom | First Calibration Area to Check |
+| :--- | :--- |
+| Open drifts despite normal wall distance | Gyro zero/orientation and steering |
+| S2/S3 values suddenly changed | Ultrasonic mount / physical geometry |
+| Inner/outer logic appears inverted | Direction mapping, not sensor remounting first |
+| Blue missed | S4 thresholds, speed, casing |
+| Orange missed | S4 thresholds, speed, casing |
+| One line counted twice | Event-lock calibration |
+| Gyro angle changes while stationary | Gyro stability / initialization |
+| Open corner rotates incorrectly | Gyro turn calibration + geometry |
+| Red weakly detected | Pixy Red signature / lighting |
+| Green weakly detected | Pixy Green signature / lighting |
+| Pixy behavior changes after casing work | Reverify optical calibration |
+| Distant pillar affects steering too early | Target-relevance calibration |
+| Pillar disappears and maneuver cancels | Target-loss / lock calibration |
+| Pillar passed but robot stays in avoidance | Target-release / pass confirmation |
+| Obstacle passed but wall hit | Recovery / ultrasonic arbitration |
+| Parking reference appears too early | Parking-state logic rather than signature alone |
+
+This encourages diagnosis at the correct layer before unrelated values are changed.
+
+---
+
+# 5.45 Values Not Yet Claimed as Final
+
+The following calibration values should only be published as final after representative V4 testing:
+
+```text
+S2 static calibration curve
+
+S3 static calibration curve
+
+final inner-wall target
+
+final wall safety thresholds
+
+final ultrasonic filtering
+
+measured ultrasonic repeatability
+
+Blue classification range
+
+Orange classification range
+
+neutral-floor classification range
+
+Color Sensor confirmation count
+
+Color Sensor event-lock timing
+
+Gyro drift
+
+final gyro corner-release angle
+
+Pixy camera height
+
+Pixy camera pitch
+
+Pixy camera yaw
+
+Pixy image-center target
+
+Red signature thresholds
+
+Green signature thresholds
+
+Pink signature thresholds
+
+minimum useful block size
+
+target relevance formula
+
+target-lock duration
+
+target-loss tolerance
+
+pillar-pass confirmation threshold
+
+maximum reliable obstacle reaction distance
+```
+
+Temporary code values are useful during development but should remain identified as **working calibration values** until validated.
+
+---
+
+# 5.46 Current Calibration Status
+
+Piolín's hardware architecture is established, but several navigation calibration values are still being optimized.
+
+Current work includes:
+
+```text
+Open initial acquisition
+
+Open corner entry
+
+Open corner exit
+
+three-lap stability
+
+Color Sensor progression counting
+
+Pixy Red / Green reliability
+
+multiple-block target selection
+
+target locking
+
+pillar-pass confirmation
+
+post-pillar recovery
+
+parking
+```
+
+This means the repository should distinguish clearly between:
+
+```text
+CURRENT HARDWARE
+```
+
+which can be documented definitively, and:
+
+```text
+FINAL PERFORMANCE CALIBRATION
+```
+
+which should be updated as measured evidence becomes available.
+
+---
+
+# 5.47 Complete Calibration Chain
+
+The current calibration process can be summarized as:
+
+```text
+                    PHYSICAL ROBOT
+                         │
+                         ▼
+                 VERIFY INSTALLATION
+                         │
+                         ▼
+                  RAW SENSOR TEST
+                         │
+                         ▼
+                STATIC CALIBRATION
+                         │
+                         ▼
+                DYNAMIC CALIBRATION
+                         │
+                         ▼
+                SENSOR INTERPRETATION
+                         │
+                         ▼
+                  CONTROL RESPONSE
+                         │
+                         ▼
+                   TRACK TESTING
+                         │
+                         ▼
+                 MEASURE / OBSERVE
+                         │
+                         ▼
+                 ADJUST ONE VARIABLE
+                         │
+                         └───────────────┐
+                                         │
+                                         ▼
+                                      RETEST
+```
+
+The goal is not to search randomly for values that happen to complete one run.
+
+The goal is to create a relationship between measurable physical conditions and predictable autonomous behavior.
+
+---
+
+# 5.48 Final Engineering Assessment
+
+Calibration is the point at which Piolín's mechanical design, sensor installation, electronics, and software become one autonomous system.
+
+The same raw measurement can have different meaning if the physical installation changes.
+
+For this reason:
+
+```text
+ultrasonic mounting
+```
+
+is part of ultrasonic calibration,
+
+```text
+Color Sensor casing
+```
+
+is part of floor-color calibration,
+
+```text
+gyro orientation
+```
+
+is part of Open heading calibration,
 
 and:
 
 ```text
-ORANGE first
-=
-CLOCKWISE
+Pixy2.1 mounting + 3D-printed casing
 ```
 
-The intended full three-lap progression contains:
+are part of Obstacle vision calibration.
+
+Piolín therefore does not treat calibration as a list of isolated software constants.
+
+Instead, calibration follows the complete chain:
 
 ```text
-12 valid BLUE events
-
-12 valid ORANGE events
+physical geometry
++
+sensor installation
++
+raw measurement
++
+classification / interpretation
++
+vehicle response
 ```
 
-rather than counting every raw sample.
+During Open, calibration combines:
+
+```text
+S2/S3 lateral geometry
+
+S4 floor events
+
+S1 gyro heading
+```
+
+During Obstacles, it combines:
+
+```text
+S2/S3 lateral geometry
+
+S4 course state
+
+S1 Pixy2.1 vision
+```
+
+The addition of the **3D-printed Pixy2.1 casing** strengthens this philosophy. Just as the Color Sensor casing is treated as part of its optical measurement system, the Pixy casing is now part of the physical camera installation and should remain consistent whenever final vision values are measured or compared.
+
+The final calibration principle is:
+
+> **Measure first, control the physical installation, validate dynamically, and only then treat a software value as meaningful.**
+
+This approach allows Piolín's calibration values to represent the real V4 robot rather than assumptions inherited from earlier versions or isolated component tests.
 
 ---
 
-# 5.84 Vision Calibration Summary
+<div align="center">
 
-The current vision calibration structure is:
+### [← Back to PiolínTech Main README](../../README.md)
 
-```text
-HuskyLens
-    ↓
-Known pillar ID
-    ↓
-Arduino Nano
-    ↓
-USB
-    ↓
-EV3
-```
-
-with:
-
-```text
-ID 1 = GREEN = PASS LEFT
-
-ID 2 = RED = PASS RIGHT
-```
-
-Calibration verifies both:
-
-```text
-Correct recognition
-```
-
-and:
-
-```text
-Correct end-to-end interpretation
-```
-
-without treating obstacle steering itself as part of camera classification.
-
----
-
-# 5.85 Final Calibration Architecture
-
-Piolín's calibration process is based on one central principle:
-
-> **A calibration value belongs to the current physical robot, current sensor installation, current software interpretation, and current operating environment.**
-
-The final sensor stack is:
-
-```text
-                    ENVIRONMENT
-                         │
-        ┌────────────────┼────────────────┐
-        ▼                ▼                ▼
-      WALLS            FLOOR            PILLARS
-        │                │                │
-        ▼                ▼                ▼
-   S1 / S2 / S3          S4           HuskyLens
-        │                │                │
-        ▼                ▼                ▼
-    DISTANCE         COLOR DATA         ID DATA
-        │                │                │
-        ▼                ▼                ▼
-   CALIBRATION       CALIBRATION      CALIBRATION
-        │                │                │
-        └────────────────┼────────────────┘
-                         ▼
-                      LEGO EV3
-                         │
-                         ▼
-                NAVIGATION DECISION
-```
-
-The current architecture does **not** rely on copied legacy constants or unverified theoretical numbers.
-
-Instead:
-
-```text
-MEASURE
-   ↓
-CALIBRATE
-   ↓
-VALIDATE
-   ↓
-IMPLEMENT
-   ↓
-TEST
-   ↓
-RECALIBRATE IF HARDWARE CHANGES
-```
-
-This provides a traceable engineering relationship between Piolín's physical environment and its autonomous software.
-
----
-
-## Power and Sensor Documentation
-
-[Power and Sensor Configuration](01_PowerSensorconfig.md)
-
-[Ultrasonic Sensor Data](02_USSensorD.md)
-
-[Color Sensor](03_color_sensor.md)
-
-[HuskyLens Vision System](04_huskylens.md)
-
----
-
-## Reproducibility
-
-[Wiring](../reproducibility/03_wiring.md)
-
-[Electrical Schematic](../reproducibility/04_elecschem.md)
-
-[Software Setup](../reproducibility/05_softwaresetup.md)
-
-[How to Calibrate](../reproducibility/06_HowToCalibrate.md)
-
-[Testing Protocol](../reproducibility/07_TestingProtocol.md)
-
-[Troubleshooting](../reproducibility/08_Troubleshooting.md)
-
----
-
-## Related Software Documentation
-
-[Software Architecture](../software_obstacles_strategy/01_SWArchitecture.md)
-
-[State Machine](../software_obstacles_strategy/02_statemachine.md)
-
-[Wall Following](../software_obstacles_strategy/03_wallfollowing.md)
-
-[Corner Handling](../software_obstacles_strategy/04_cornerhandling.md)
-
-[Obstacle Detection](../software_obstacles_strategy/05_obstacledetec.md)
-
-[Obstacle Strategy](../software_obstacles_strategy/06_obstaclestrateg.md)
-
-[Software Tuning](../software_obstacles_strategy/07_softwaretuning.md)
-
-[HuskyLens Vision](../software_obstacles_strategy/08_CameraHLVision.md)
-
-[RGB Detection](../software_obstacles_strategy/09_RGBdetection.md)
-
----
-
-## Historical Reference
-
-[Legacy Documentation Notice](../legacy/00_LEGACY_NOTICE.md)
-
-[Legacy Gyroscope Configuration](../legacy/01_GConfig.md)
-
-[Legacy PixyCam](../legacy/02_CameraPixy.md)
-
-[Legacy Performance Testing](../legacy/03_PTesting&Analysis.md)
+</div>
