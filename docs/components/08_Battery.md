@@ -1110,5 +1110,3 @@ This also supports reproducibility: another team can reconstruct the primary ele
 ### [← Back to PiolínTech Main README](../../README.md)
 
 </div>
-
-`battery_performance_test.png` únicamente tendría sentido más adelante si recogemos **datos reales de batería y comportamiento del robot**. El esquema de alimentación detallado lo dejamos para `09_PowerDistribution.md`, que es donde realmente pertenece.
