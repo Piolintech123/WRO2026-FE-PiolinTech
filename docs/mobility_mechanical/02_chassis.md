@@ -1,1553 +1,1656 @@
 # 2. Chassis Design and Structural Integration
 
-Piolín's chassis is the structural foundation of the entire WRO Future Engineers 2026 vehicle.
+<div align="center">
 
-It is responsible for much more than simply holding the components together. The chassis establishes the relative position of the wheels, steering mechanism, motors, sensors, controller, and vision system. Because the autonomous software interprets sensor measurements according to this geometry, changes in the structure can directly affect navigation behavior.
+<img
+  src="../../v-photos/v4/piolin_open_isometric.jpg"
+  alt="Current Piolín V4 chassis in the Open Challenge configuration"
+  width="720"
+/>
 
-The current Piolín chassis is primarily constructed from **LEGO Technic structural elements** and supports a car-like mechanical architecture with rear propulsion and front Ackermann-style steering.
+<br>
 
-The complete mechanical relationship can be summarized as:
+<sub><b>Figure 2.1.</b> Current Piolín V4 platform showing the common LEGO Technic chassis used for both competition rounds.</sub>
+
+</div>
+
+Piolín's chassis is the mechanical structure that connects every major subsystem into one autonomous vehicle.
+
+It supports:
 
 ```text
-CHASSIS
-   │
-   ├── Supports drivetrain
-   │
-   ├── Supports steering system
-   │
-   ├── Aligns front and rear wheels
-   │
-   ├── Holds LEGO EV3
-   │
-   ├── Maintains ultrasonic sensor orientation
-   │
-   ├── Supports downward color sensor
-   │
-   ├── Supports HuskyLens
-   │
-   └── Organizes cables and secondary electronics
+EV3 Intelligent Brick
+
+EV3 Rechargeable Battery
+
+Motor A propulsion system
+
+Motor B steering system
+
+front Ackermann linkage
+
+rear drivetrain
+
+left and right ultrasonic sensors
+
+downward Color Sensor
+
+round-specific S1 sensor
+
+wiring and supporting structure
 ```
 
-The chassis therefore acts as the common mechanical reference for every major Piolín subsystem.
+The chassis is therefore not simply the body of the robot.
 
-For the general vehicle architecture, see:
+It defines the physical relationships on which sensing, steering, propulsion, and software calibration depend.
 
-[Mechanical Architecture](01_mecharchitecture.md)
+A useful systems-level relationship is:
+
+```text
+CHASSIS GEOMETRY
+       ↓
+COMPONENT POSITION
+       ↓
+SENSOR / MOTOR BEHAVIOR
+       ↓
+SOFTWARE CALIBRATION
+       ↓
+VEHICLE MOTION
+```
+
+If the chassis changes significantly, the calibration of other subsystems may also need to change.
 
 ---
 
-## 2.1 Current Chassis Configuration
+## 2.1 Current Chassis Architecture
 
-The current Piolín chassis supports the following primary systems:
+Piolín uses a primarily **LEGO Technic structural platform** built around one common vehicle architecture.
 
-| Chassis Region | Integrated System | Main Function |
-| :--- | :--- | :--- |
-| **Front** | Ackermann steering assembly | Direction control |
-| **Front** | Front ultrasonic sensor | Frontal safety sensing |
-| **Front / Upper Structure** | HuskyLens | Obstacle perception |
-| **Left Side** | Left ultrasonic sensor | Left-wall measurement |
-| **Right Side** | Right ultrasonic sensor | Right-wall measurement |
-| **Lower Structure** | Color sensor | Floor-marking detection |
-| **Central Structure** | LEGO EV3 | Main controller |
-| **Rear Structure** | Drive system | Vehicle propulsion |
-| **Internal / Upper Structure** | Arduino Nano and wiring | Vision communication support |
+The same basic chassis is used in:
 
-The chassis combines these systems into one vehicle rather than treating them as independent modules.
+```text
+OPEN CHALLENGE
+```
+
+and:
+
+```text
+OBSTACLE CHALLENGE
+```
+
+The permanent vehicle systems are:
+
+```text
+Motor A
+→ rear propulsion
+
+
+Motor B
+→ front Ackermann-style steering
+
+
+S2
+→ LEFT Ultrasonic Sensor
+
+
+S3
+→ RIGHT Ultrasonic Sensor
+
+
+S4
+→ downward Color Sensor
+```
+
+Only the S1 perception device changes between rounds:
+
+```text
+OPEN
+→ Gyro Sensor
+
+
+OBSTACLES
+→ Pixy2.1
+```
+
+This allows Piolín to remain mechanically the same vehicle while changing only the specialized sensing system required by the challenge.
 
 ---
 
-# 2.2 Confirmed Overall Dimensions
+# 2.2 Why One Common Chassis Is Used
 
-The final assembled Piolín configuration has the following confirmed dimensions:
+A possible alternative would have been to build one robot for Open and another for Obstacles.
 
-| Parameter | Measured Value |
-| :--- | :---: |
-| **Length** | **210 mm** |
-| **Width** | **150 mm** |
-| **Height** | **230 mm** |
-| **Mass** | **0.80476 kg** |
+That could allow each vehicle to be highly specialized.
 
-These measurements describe the complete robot rather than only the bare LEGO frame.
-
-They include the installed mechanical, sensing, processing, and vision hardware used by the current Piolín architecture.
-
-Conceptually:
+However, it would also require maintaining:
 
 ```text
-                  HEIGHT
-                  230 mm
-                     ↑
-                     │
-                     │
-              ┌──────────────┐
-              │              │
-              │    PIOLÍN    │
-              │              │
-              └──────────────┘
-               ← 150 mm →
-                  WIDTH
+two chassis
 
+two steering systems
 
-       ←──────── 210 mm ────────→
-                  LENGTH
+two drivetrains
+
+two mechanical calibrations
+
+two wiring arrangements
+
+two sets of structural tolerances
 ```
 
-The robot's external dimensions are relevant because Piolín must remain compact enough to maneuver within the WRO Future Engineers track while carrying all required systems.
+Piolín instead uses one common platform.
+
+This means that improvements to:
+
+```text
+steering rigidity
+
+wheel alignment
+
+drivetrain friction
+
+sensor mounting
+
+cable routing
+```
+
+benefit both competition rounds.
+
+The common chassis therefore reduces duplicated engineering work and makes the vehicle easier to reproduce.
 
 ---
 
-# 2.3 Chassis Design Objectives
+# 2.3 Top-Level Chassis Layout
 
-The current chassis was developed around several structural requirements.
+<div align="center">
 
-It needed to:
+<img
+  src="../../v-photos/v4/chassis_top.jpg"
+  alt="Top view of Piolín V4 chassis"
+  width="720"
+/>
+
+<br>
+
+<sub><b>Figure 2.2.</b> Top view of Piolín's current chassis showing the relative placement of the controller, drivetrain, steering system, and sensor structures.</sub>
+
+</div>
+
+The chassis is organized around several functional regions.
 
 ```text
-Maintain wheel alignment
-
-Support Ackermann steering
-
-Provide stable drivetrain mounting
-
-Keep sensors in repeatable positions
-
-Support the EV3 securely
-
-Allow forward camera visibility
-
-Protect cables from moving mechanisms
-
-Remain compact
-
-Maintain sufficient rigidity
-
-Allow access to important components
+                FRONT
+                  ↑
+                  │
+        ┌──────────────────┐
+        │ FRONT STEERING   │
+        │ + SENSING AREA   │
+        │                  │
+        │  EV3 / CENTRAL   │
+        │     STRUCTURE    │
+        │                  │
+        │ REAR DRIVETRAIN  │
+        └──────────────────┘
+                  │
+                  ↓
+                 REAR
 ```
 
-These requirements can conflict with one another.
+The front section contains the Ackermann steering mechanism and the structures required to support forward or lateral sensing.
+
+The central section provides structural support for the EV3 and battery assembly.
+
+The rear section supports propulsion and the drivetrain.
+
+This functional separation helps make mechanical problems easier to diagnose.
+
+---
+
+# 2.4 Chassis as the Mechanical Reference Frame
+
+Several autonomous measurements are only meaningful because their sensors remain fixed relative to the chassis.
 
 For example:
 
 ```text
-More structural reinforcement
-        ↓
-Potentially greater rigidity
+Gyro orientation
+→ relative to chassis
 
-but also
 
-More structural material
-        ↓
-Additional mass and occupied space
+Ultrasonic direction
+→ relative to chassis
+
+
+Pixy viewing direction
+→ relative to chassis
+
+
+Color Sensor position
+→ relative to chassis
+
+
+Steering center
+→ relative to chassis
 ```
 
-The final chassis therefore represents a balance between structural support, component integration, accessibility, and overall vehicle size.
+If one of these components changes position physically, the software may receive different information even though the code has not changed.
+
+The chassis therefore acts as Piolín's mechanical reference frame.
 
 ---
 
-# 2.4 LEGO Technic as the Structural Framework
+# 2.5 Structural Rigidity
 
-Piolín uses LEGO Technic elements as the main chassis construction system.
+A vehicle chassis should resist unnecessary deformation under normal movement.
 
-The structural framework includes components such as:
-
-```text
-Beams
-
-Pins
-
-Axles
-
-Connectors
-
-Frames
-
-Bracing elements
-
-Wheel supports
-
-Steering linkages
-```
-
-These elements allow the chassis to be assembled around the exact mechanical requirements of the vehicle.
-
-One advantage of the Technic system during development was that structural geometry could be modified without manufacturing an entirely new chassis.
-
-This supported an iterative process:
+Potential sources of mechanical load include:
 
 ```text
-Build
-  ↓
-Observe
-  ↓
-Modify geometry
-  ↓
-Reassemble
-  ↓
-Evaluate behavior
+acceleration
+
+steering
+
+countersteering
+
+reverse movement
+
+wheel friction
+
+handling between tests
 ```
 
-That flexibility was particularly useful while the steering, sensor arrangement, and electronics configuration were still evolving.
+If the chassis flexes significantly:
+
+```text
+motor mounts can move
+
+sensor angles can change
+
+steering pivots can shift
+
+wheel alignment can change
+```
+
+which reduces repeatability.
+
+The goal is not to claim that LEGO Technic has zero flexibility.
+
+Instead, Piolín's structure is designed to keep movement small enough that calibrated geometry remains useful from one run to another.
 
 ---
 
-# 2.5 Structural Reference Frame
+# 2.6 Bottom Structure
 
-The chassis defines the physical reference frame used throughout the robot.
+<div align="center">
 
-For navigation purposes, the main directions are:
+<img
+  src="../../v-photos/v4/chassis_bottom.jpg"
+  alt="Bottom view of Piolín V4 chassis"
+  width="720"
+/>
 
-```text
-                         FRONT
-                           ↑
-                           │
-                           │
-LEFT  ←────────────── [ PIOLÍN ] ──────────────→ RIGHT
-                           │
-                           │
-                           ↓
-                          REAR
-```
+<br>
 
-The sensors are mounted relative to this frame.
+<sub><b>Figure 2.3.</b> Bottom view showing Piolín's drivetrain, steering support, wheel arrangement, and lower structural connections.</sub>
 
-Therefore:
+</div>
+
+The underside is especially important because it contains or supports several mechanically sensitive elements:
 
 ```text
-Front ultrasonic
-        ↓
-Measures forward geometry
+rear drivetrain
 
+wheel axles
 
-Left ultrasonic
-        ↓
-Measures left-side geometry
+front steering pivots
 
+Color Sensor
 
-Right ultrasonic
-        ↓
-Measures right-side geometry
-
-
-Color sensor
-        ↓
-Measures floor beneath robot
-
-
-HuskyLens
-        ↓
-Observes forward visual region
+lower chassis reinforcement
 ```
 
-If a sensor rotates relative to the chassis, the meaning of its measurement also changes.
+The bottom structure must provide enough rigidity while also preserving:
 
-For this reason, sensor mounting is part of the structural design.
+```text
+wheel clearance
+
+sensor clearance
+
+free axle rotation
+
+ground clearance
+```
+
+A structure that is strong but interferes with moving components would not be useful.
 
 ---
 
-# 2.6 Front Chassis Region
+# 2.7 Structural Load Paths
 
-The front of Piolín contains several mechanically important systems.
+Motor forces must eventually be transferred through the chassis.
+
+For propulsion:
+
+```text
+Motor A
+   ↓
+drivetrain
+   ↓
+rear wheels
+   ↓
+track
+   ↓
+reaction through chassis
+```
+
+For steering:
+
+```text
+Motor B
+   ↓
+steering linkage
+   ↓
+front wheel pivots
+   ↓
+tire forces
+   ↓
+reaction through chassis
+```
+
+This means the motor mounts cannot be considered independently from the frame.
+
+The surrounding Technic structure must resist the forces generated by each actuator so that intended motor motion becomes wheel motion rather than chassis deformation.
+
+---
+
+# 2.8 Motor A Integration
+
+Motor A is the EV3 Large Motor used for rear propulsion.
+
+Its mounting must maintain a stable relationship between:
+
+```text
+motor
+
+drivetrain
+
+axles
+
+rear wheels
+```
+
+If the motor or axle support shifts:
+
+```text
+friction can increase
+
+transmission alignment can change
+
+vehicle speed can change
+
+encoder-based displacement can become less repeatable
+```
+
+For this reason, drivetrain behavior should be inspected mechanically before propulsion parameters are changed in software.
+
+Detailed Motor A behavior is documented in:
+
+[Motors and Actuation System](../components/03_Motors.md)
+
+---
+
+# 2.9 Motor B Integration
+
+Motor B is the EV3 Medium Motor used for steering.
+
+The chassis must hold the steering motor and linkage supports firmly enough that:
+
+```text
+Motor B movement
+```
+
+is converted primarily into:
+
+```text
+front-wheel movement
+```
+
+rather than:
+
+```text
+structural movement
+```
+
+This relationship is especially important because the software uses Motor B position as an actuator reference.
+
+If the support structure flexes, the same Motor B position can create different wheel geometry.
+
+Detailed steering design is documented in:
+
+[Steering Motor and Ackermann Actuation](../components/04_SteeringMotor.md)
+
+---
+
+# 2.10 Front Chassis Structure
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/chassis_front.jpg"
+  alt="Front view of Piolín V4 chassis"
+  width="700"
+/>
+
+<br>
+
+<sub><b>Figure 2.4.</b> Front view of Piolín showing the structural area responsible for supporting the steering mechanism and front sensing configuration.</sub>
+
+</div>
+
+The front of Piolín has several competing mechanical requirements.
+
+It must provide:
+
+```text
+steering rigidity
+
+wheel clearance
+
+sensor support
+
+camera visibility during Obstacles
+
+low interference with moving linkage
+```
+
+while remaining compact enough for the vehicle to navigate the course.
+
+This makes the front structure one of the most mechanically sensitive regions of the chassis.
+
+---
+
+# 2.11 Steering Clearance
+
+The steering mechanism moves through a significant angular range.
+
+The chassis must therefore provide clearance at:
+
+```text
+LEFT steering
+
+CENTER
+
+RIGHT steering
+```
+
+for:
+
+```text
+front wheels
+
+linkage
+
+axles
+
+cables
+```
+
+A component that does not interfere while the wheels are centered can still create a problem at steering lock.
+
+For example:
+
+```text
+wheel turns
+      ↓
+cable becomes tight
+      ↓
+Motor B experiences extra load
+      ↓
+steering response changes
+```
+
+This is why clearance must be evaluated dynamically rather than only through static inspection.
+
+---
+
+# 2.12 Rear Chassis Structure
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/chassis_rear.jpg"
+  alt="Rear view of Piolín V4 chassis and drivetrain"
+  width="700"
+/>
+
+<br>
+
+<sub><b>Figure 2.5.</b> Rear view of Piolín's current chassis showing the propulsion region and rear structural support.</sub>
+
+</div>
+
+The rear section is primarily responsible for supporting the propulsion system.
+
+It must maintain:
+
+```text
+wheel alignment
+
+axle alignment
+
+Motor A position
+
+drivetrain clearance
+```
+
+while supporting the rest of the vehicle.
+
+Because the rear wheels generate the longitudinal driving force, unnecessary friction in this region directly affects propulsion performance.
+
+---
+
+# 2.13 Wheel Alignment
+
+Wheel alignment influences both mechanical efficiency and autonomous control.
+
+Potential problems include:
+
+```text
+wheel rubbing
+
+axle misalignment
+
+unequal friction
+
+wheel looseness
+```
+
+A vehicle with asymmetric rolling resistance can curve even when the steering system is mechanically centered.
+
+This can be misinterpreted as:
+
+```text
+gyro problem
+
+wall-control problem
+
+steering-center problem
+```
+
+when the actual cause exists in the chassis or drivetrain.
+
+Mechanical alignment should therefore be checked before compensating through software.
+
+---
+
+# 2.14 Ackermann Geometry Depends on the Chassis
+
+Piolín's steering geometry depends on several physical relationships.
 
 These include:
 
 ```text
-Front wheels
+wheelbase
 
-Steering pivots
+front track width
 
-Ackermann linkage
+pivot positions
 
-Motor B steering actuation
+steering-arm geometry
 
-Front ultrasonic sensor
-
-HuskyLens support structure
+linkage attachment points
 ```
 
-This makes the front assembly one of the most mechanically dense regions of the robot.
+All of these are defined by the chassis.
 
-Conceptually:
+Therefore the Ackermann mechanism cannot be treated as an isolated front attachment.
+
+It is part of the complete vehicle geometry.
+
+A small structural change near the pivot positions can affect:
 
 ```text
-                         FRONT
-                           ↑
+inner wheel angle
 
-                       HuskyLens
+outer wheel angle
 
-                    Front Ultrasonic
+turning radius
 
-              Front L           Front R
-                Wheel             Wheel
-                   \             /
-                    \           /
-                  Steering Linkage
-                         │
-                         ▼
-                      Motor B
+left/right symmetry
 ```
 
-The structure must hold these components without preventing the steering linkage from moving through its usable range.
+even when Motor B code remains unchanged.
 
 ---
 
-# 2.7 Steering Structure Integration
+# 2.15 EV3 and Battery Placement
 
-Piolín's front chassis is designed around an Ackermann-style steering system.
+The EV3 Intelligent Brick and its rechargeable battery form one of the largest concentrated masses in the vehicle.
 
-The chassis must support:
-
-```text
-Left steering pivot
-
-Right steering pivot
-
-Steering linkage
-
-Motor B
-
-Front wheel mounts
-```
-
-while allowing controlled motion.
-
-The structural relationship is:
+Their placement affects:
 
 ```text
-CHASSIS
-   ↓
-Fixed steering supports
-   ↓
-Rotating steering elements
-   ↓
-Front wheels
+vehicle balance
+
+front/rear loading
+
+accessibility
+
+cable length
+
+overall structural arrangement
 ```
 
-The fixed chassis establishes the geometry from which the movable steering components operate.
+The EV3 must also remain accessible enough for:
 
-Any unwanted movement in the fixed support structure can alter the effective steering geometry.
+```text
+starting programs
+
+connecting cables
+
+charging
+
+inspection
+
+debugging
+```
+
+The chassis therefore balances structural support with serviceability.
 
 ---
 
-# 2.8 Fixed Structure vs. Moving Structure
+# 2.16 Mass Distribution
 
-One important chassis-design distinction is between components that should remain stationary and components that must move.
-
-### Fixed relative to the chassis
+Mass distribution can influence:
 
 ```text
-EV3
+rear-wheel traction
 
-Ultrasonic mounts
+front steering load
 
-Color sensor mount
+turning behavior
 
-HuskyLens mount
-
-Motor bodies
-
-Main beams
-
-Structural braces
+mechanical inertia
 ```
 
-### Intentionally moving
+However, Piolín's exact V4 center of mass and front/rear load distribution have not yet been formally measured.
 
-```text
-Steering linkage
+This document therefore does not assign precise numerical values to them.
 
-Front steering pivots
-
-Front wheels
-
-Drive wheels
-
-Drivetrain transmission elements
-```
-
-A good chassis must provide rigidity to the fixed structure without restricting the intended motion of the mechanical systems.
+The important current engineering requirement is to keep heavy components securely mounted and avoid unnecessary high or unsupported mass.
 
 ---
 
-# 2.9 Steering Clearance
+# 2.17 Center of Gravity
 
-The front wheels require physical clearance when steering.
+A lower center of gravity generally reduces the tendency of a vehicle to experience excessive body movement during changes in direction.
 
-When Motor B changes the steering position:
-
-```text
-Front wheel orientation changes
-        ↓
-Outer edge of wheel moves
-        ↓
-Required chassis clearance changes
-```
-
-Therefore, structural elements near the front wheels must not interfere with the steering path.
-
-Conceptually:
+For Piolín, this is relevant because autonomous movement includes:
 
 ```text
-STRAIGHT
+corners
 
-| FRONT WHEEL |
+wall corrections
 
+pillar avoidance
 
-TURNED
-
-\ FRONT WHEEL \
+countersteering
 ```
 
-The second orientation occupies a different physical envelope.
+However, this document does not claim a measured center-of-gravity height.
 
-The chassis design must leave space for this movement.
+Such a value should only be published if it is actually measured or calculated from verified component masses and locations.
 
 ---
 
-# 2.10 Structural Rigidity
+# 2.18 Permanent Ultrasonic Mounting
 
-The chassis must resist unnecessary deformation during:
-
-```text
-Acceleration
-
-Braking
-
-Cornering
-
-Obstacle avoidance
-
-Steering reversal
-
-Manual handling
-```
-
-If the frame moves significantly relative to the steering system, the same motor command can produce different physical behavior.
-
-For example:
+Piolín uses two permanently installed lateral ultrasonic sensors:
 
 ```text
-Motor B command
-       ↓
-Steering linkage moves
-       ↓
-Chassis support flexes
-       ↓
-Effective wheel angle changes
+S2 = LEFT
+
+S3 = RIGHT
 ```
 
-This creates inconsistency between software commands and actual trajectory.
-
-Piolín's structure therefore uses interconnected LEGO Technic members to maintain the alignment of the important mechanical assemblies.
-
-This does not imply that the structure is perfectly rigid. The objective is to reduce unwanted movement enough to maintain repeatable vehicle behavior.
-
----
-
-# 2.11 Triangulation and Bracing
-
-Long unsupported structural elements are generally more susceptible to movement than structures supported at multiple points.
-
-Piolín's chassis therefore benefits from connecting major structural regions through multiple LEGO Technic members rather than relying on isolated single-beam connections.
-
-Conceptually:
+The chassis must preserve their:
 
 ```text
-Weak structural concept:
+orientation
 
-A────────────B
+height
 
+position
 
-More constrained concept:
-
-A────────────B
- \          /
-  \        /
-   \      /
-      C
+left/right identity
 ```
 
-In a real LEGO chassis, the exact geometry differs, but the engineering objective is similar:
+A sensor that rotates physically changes the geometry of the measurement.
 
-```text
-More constrained joints
-        ↓
-Less unintended relative movement
-```
+Therefore ultrasonic performance depends partly on the structural mount.
 
-Structural reinforcement is particularly important around:
-
-```text
-Steering supports
-
-Motor mounts
-
-Wheel supports
-
-EV3 mounting points
-```
-
----
-
-# 2.12 Motor A Structural Integration
-
-Motor A provides propulsion and must be mechanically supported by the chassis.
-
-The structural path is:
-
-```text
-Motor A
-   ↓
-Motor mount
-   ↓
-Main chassis
-   ↓
-Drivetrain
-   ↓
-Rear propulsion
-```
-
-Motor torque creates reaction forces in the motor housing.
-
-Therefore, the motor mount must resist those forces while keeping the drivetrain aligned.
-
-If the motor mount moves significantly:
-
-```text
-Gear / axle alignment can change
-        ↓
-Mechanical resistance can increase
-        ↓
-Vehicle response can change
-```
-
-The drivetrain structure is documented in greater detail in:
-
-[Drivetrain](05_drivetrain.md)
-
----
-
-# 2.13 Motor B Structural Integration
-
-Motor B actuates the steering system.
-
-Its mounting must maintain a stable relationship with the steering linkage.
-
-```text
-Motor B
-   ↓
-Fixed chassis mount
-   ↓
-Motor output
-   ↓
-Steering mechanism
-   ↓
-Front wheels
-```
-
-If Motor B itself rotates or shifts relative to the frame, part of the commanded motion can be absorbed by structural movement instead of being transferred to the steering linkage.
-
-For this reason, the steering motor is mechanically integrated into the fixed chassis structure.
-
-Current motor documentation:
-
-[Steering Motor](../components/04_SteeringMotor.md)
-
----
-
-# 2.14 Rear Chassis Region
-
-The rear region supports the propulsion system and rear wheels.
-
-Its primary mechanical responsibilities are:
-
-```text
-Support Motor A
-
-Maintain drivetrain alignment
-
-Support rear wheel geometry
-
-Transfer propulsion forces into chassis
-
-Support rear portion of robot mass
-```
-
-The rear structure therefore receives both vertical load from the vehicle mass and longitudinal force during propulsion.
-
-Conceptually:
-
-```text
-               Motor A
-                  │
-                  ▼
-             Drivetrain
-             /        \
-            /          \
-       Rear wheel   Rear wheel
-```
-
-The exact transmission arrangement is documented separately from the overall chassis structure.
-
----
-
-# 2.15 Wheel Support and Alignment
-
-Wheel alignment is fundamental to predictable vehicle movement.
-
-Ideally, when Piolín is commanded to drive straight:
-
-```text
-Front wheels
-       +
-Rear propulsion direction
-       ↓
-Produce approximately the same
-longitudinal vehicle direction
-```
-
-Misalignment can create:
-
-```text
-Continuous steering bias
-
-Additional tire scrub
-
-Higher mechanical resistance
-
-Unexpected wall-distance changes
-```
-
-The chassis therefore acts as the reference structure that holds the wheel assemblies relative to one another.
-
----
-
-# 2.16 Front and Rear Wheel Sizes
-
-The current vehicle uses different front and rear wheel sizes.
-
-| Position | Diameter | Primary Role |
-| :--- | :---: | :--- |
-| **Front** | **38.1 mm** | Steering |
-| **Rear** | **~61.0 mm** | Propulsion |
-
-The front radius is:
-
-```text
-R_FRONT = 19.05 mm
-```
-
-The rear radius is approximately:
-
-```text
-R_REAR ≈ 30.5 mm
-```
-
-The mechanical architecture therefore does not use four identical wheels for identical functions.
-
-Instead:
-
-```text
-Front assembly
-      ↓
-Directional control
-
-
-Rear assembly
-      ↓
-Primary propulsion
-```
-
----
-
-# 2.17 Central EV3 Integration
-
-The LEGO EV3 is integrated into the main chassis rather than being treated as an external module.
-
-This has both electronic and mechanical consequences.
-
-Mechanically, the EV3 contributes:
-
-```text
-Mass
-
-Volume
-
-Structural mounting requirements
-```
-
-Electronically, it provides:
-
-```text
-Motor control
-
-Sensor interfaces
-
-Main processing
-```
-
-Its position must therefore balance accessibility with structural integration.
-
-The EV3 also requires cable access to:
-
-```text
-Motor A
-
-Motor B
-
-S1
-
-S2
-
-S3
-
-S4
-
-USB connection
-```
-
-The chassis must provide enough physical space for these connections without allowing the cables to interfere with steering or wheel movement.
-
----
-
-# 2.18 Mass Distribution
-
-Piolín's total measured mass is:
-
-```text
-m = 0.80476 kg
-```
-
-The chassis determines where this mass is physically distributed.
-
-Components contributing to the distribution include:
-
-```text
-EV3
-
-Battery
-
-Drive motor
-
-Steering motor
-
-Wheels
-
-Sensors
-
-HuskyLens
-
-Arduino Nano
-
-LEGO structure
-```
-
-The exact center-of-mass coordinates are not claimed in this document.
-
-However, the design objective is to avoid placing unnecessary mass in positions that would create poor mechanical balance or interfere with vehicle motion.
-
----
-
-# 2.19 Center of Mass and Vehicle Behavior
-
-Even without a measured center-of-mass coordinate, its mechanical importance can be understood.
-
-A vehicle's center of mass affects:
-
-```text
-Load on front wheels
-
-Load on rear wheels
-
-Available tire traction
-
-Response during acceleration
-
-Response during cornering
-```
-
-The total gravitational force acting on Piolín is approximately:
-
-```text
-P = m × g
-```
-
-using:
-
-```text
-m = 0.80476 kg
-
-g = 9.81 m/s²
-```
-
-therefore:
-
-```text
-P ≈ 7.89 N
-```
-
-That force is distributed across the wheel contact points according to the physical mass distribution.
-
-The chassis therefore influences not only component positioning but also wheel loading.
-
----
-
-# 2.20 Lateral Ultrasonic Sensor Integration
-
-The lateral ultrasonic sensors are physically mounted to the chassis and face their respective sides.
-
-Current arrangement:
-
-```text
-LEFT US                     RIGHT US
-  S3                           S2
-   ←                           →
-      ┌───────────────────┐
-      │      PIOLÍN       │
-      └───────────────────┘
-```
-
-Their approximate confirmed mounting height is:
-
-```text
-43.2 mm above the floor
-```
-
-Because these sensors form the primary lateral wall-navigation pair, their orientation should remain stable relative to the chassis.
-
-The mechanical relationship is:
-
-```text
-Chassis orientation
-        ↓
-Sensor orientation
-        ↓
-Observed wall geometry
-        ↓
-Distance measurement
-```
-
-Current sensing documentation:
+Detailed sensor geometry is documented in:
 
 [Ultrasonic Sensors](../components/05_UltrasonicSensors.md)
 
 ---
 
-# 2.21 Front Ultrasonic Integration
+# 2.19 Color Sensor Integration
 
-S1 is mounted facing forward.
+The Color Sensor is mounted downward and connected to S4.
 
-Its main role is frontal safety.
+The chassis defines:
 
 ```text
-        Direction of travel
-                ↑
+sensor height above floor
 
-           FRONT US S1
-                │
-           ┌─────────┐
-           │ PIOLÍN  │
-           └─────────┘
+sensor position along vehicle
+
+sensor orientation
+
+light-isolation casing position
 ```
 
-The front sensor must have an unobstructed forward acoustic path.
+These properties affect both raw color readings and the physical timing of course events.
 
-Structural elements directly in front of it could alter the usable sensing region.
+For example:
 
-Its position is therefore part of the chassis design.
+```text
+Color Sensor crosses marking
+```
 
-The front ultrasonic is structurally integrated with the vehicle but logically separated from the lateral wall-navigation pair.
+does not mean the geometric center of the robot is at exactly the same location.
+
+Its mounting position must therefore remain consistent between calibration and competition.
 
 ---
 
-# 2.22 Color Sensor Integration
+# 2.20 Modular S1 Architecture
 
-The color sensor is mounted underneath the chassis and faces the floor.
+Piolín uses one round-specific S1 device.
 
-```text
-        PIOLÍN CHASSIS
-              │
-              ▼
-        COLOR SENSOR
-              │
-              ▼
-          TRACK FLOOR
-```
-
-Its mounting structure must satisfy several conditions:
+### Open Challenge
 
 ```text
-Remain close enough to observe floor markings
-
-Maintain consistent orientation
-
-Avoid direct mechanical contact with track
-
-Reduce exposure to unwanted ambient light
+S1 = Gyro
 ```
 
-A dedicated casing around the sensor helps isolate the observation region from the surrounding environment.
+### Obstacle Challenge
 
-A 3D-printable casing is also preserved in:
+```text
+S1 = Pixy2.1
+```
 
-[Color Sensor Casing Model](../../models/3dprint/ColorSensorCasing.stl)
+The chassis must support this modularity without requiring a complete vehicle rebuild.
 
-Current color-sensor documentation:
+This is an important design decision because the specialized sensing requirement changes while:
 
-[Color Sensor](../components/06_ColorSensor.md)
+```text
+drivetrain
+
+steering
+
+ultrasonic sensors
+
+Color Sensor
+
+EV3
+```
+
+remain the same.
 
 ---
 
-# 2.23 HuskyLens Structural Integration
+# 2.21 Gyro Mechanical Requirements
 
-The HuskyLens is positioned toward the front of Piolín.
+During Open, the Gyro Sensor must remain fixed relative to the chassis.
 
-Its chassis mounting affects the visible region available to the obstacle-detection system.
-
-```text
-            FIELD OF VIEW
-             \         /
-              \       /
-               \     /
-              HuskyLens
-                  │
-                  ▼
-             PIOLÍN CHASSIS
-```
-
-The mount must keep the camera facing consistently toward the region in front of the vehicle.
-
-A change in camera orientation can change:
+If its mount moves:
 
 ```text
-Where pillars appear
-
-When pillars enter view
-
-When pillars leave view
+sensor orientation changes
 ```
 
-The camera mount therefore forms part of the perception geometry.
+while:
 
-Current documentation:
+```text
+vehicle orientation may not
+```
 
-[HuskyLens](../components/07_HuskyLens.md)
+making calibration less meaningful.
+
+The chassis therefore treats the gyro as a fixed orientation sensor rather than as a loosely positioned accessory.
 
 ---
 
-# 2.24 Arduino Nano Integration
+# 2.22 Pixy2.1 Mechanical Requirements
 
-The Arduino Nano is a supporting component of the current vision architecture.
+During Obstacles, Pixy2.1 becomes the S1 device.
 
-Its confirmed relationship with the EV3 is:
+Its perception depends strongly on mounting geometry.
 
-```text
-HuskyLens
-    ↓
-Arduino Nano
-    ↓
-USB
-    ↓
-LEGO EV3
-```
-
-Mechanically, the Nano requires a protected mounting location and cable routing that does not interfere with:
+Important physical variables include:
 
 ```text
-Steering movement
+camera height
 
-Wheel movement
+camera pitch
 
-Drivetrain
+camera yaw
 
-Sensor field of view
+lateral offset
+
+structural vibration
 ```
 
-It does not replace the EV3 as the main vehicle controller.
+The exact values should be measured before being published numerically.
+
+What matters structurally is that the mount remains stable enough that:
+
+```text
+same physical target position
+```
+
+produces approximately repeatable:
+
+```text
+image geometry
+```
+
+between tests.
 
 ---
 
-# 2.25 Cable Management as a Mechanical Requirement
+# 2.23 Camera Field of View and Chassis Design
 
-Cable routing is part of chassis engineering because electrical cables occupy physical space and can interfere with moving mechanisms.
+The chassis can also obstruct a camera.
 
-The principal moving area that requires protection is the front steering assembly.
+A forward vision sensor needs a useful field of view toward the obstacle region.
 
-Poor routing could produce:
+Therefore surrounding structure should avoid unnecessary obstruction in front of the Pixy.
+
+At the same time, the camera needs enough structural support that it does not shift during:
 
 ```text
-Cable contacts steering linkage
-        ↓
-Mechanical resistance increases
-        ↓
-Steering response changes
+cornering
+
+pillar avoidance
+
+vehicle transport
+```
+
+This creates a trade-off between:
+
+```text
+visibility
+```
+
+and:
+
+```text
+mechanical protection / rigidity
+```
+
+---
+
+# 2.24 Cable Routing
+
+Cable management is part of chassis design.
+
+Piolín's cables should remain clear of:
+
+```text
+front wheels
+
+Ackermann linkage
+
+rear wheels
+
+drivetrain axles
+
+other moving components
+```
+
+A cable can be electrically correct but mechanically harmful.
+
+For example:
+
+```text
+cable contacts steering
+      ↓
+additional resistance
+      ↓
+Motor B response changes
 ```
 
 or:
 
 ```text
-Cable reaches wheel
-        ↓
-Cable moves or disconnects
+cable pulls sensor
+      ↓
+sensor orientation changes
+      ↓
+measurement changes
 ```
 
-For this reason, the chassis provides controlled cable paths between the EV3 and:
-
-```text
-Motor A
-
-Motor B
-
-Ultrasonic sensors
-
-Color sensor
-
-Arduino Nano
-```
-
-Mechanical cable management supports electrical reliability.
+Cable routing therefore contributes directly to repeatability.
 
 ---
 
-# 2.26 Chassis and Sensor Accuracy
+# 2.25 Serviceability
 
-Sensor accuracy is not determined only by the electronics.
+A competition chassis must be practical to inspect between tests.
 
-Mechanical mounting also matters.
+Important components should remain reasonably accessible:
+
+```text
+EV3 controls
+
+battery
+
+Motor A connection
+
+Motor B connection
+
+sensor ports
+
+S1 device
+
+Color Sensor
+
+steering linkage
+```
+
+A structure that is extremely difficult to service can increase testing time and make simple faults harder to identify.
+
+Piolín therefore prioritizes both:
+
+```text
+structural support
+```
+
+and:
+
+```text
+maintenance access
+```
+
+rather than treating them as separate concerns.
+
+---
+
+# 2.26 Structural Simplicity
+
+Adding more beams does not automatically produce a better chassis.
+
+Additional structure can increase:
+
+```text
+mass
+
+construction complexity
+
+access difficulty
+
+part count
+```
+
+without necessarily improving the areas that actually carry load.
+
+The stronger design principle is:
+
+> **Add structure where it preserves important geometry or load paths, not simply where additional pieces can fit.**
+
+This is similar to the philosophy used elsewhere in Piolín:
+
+```text
+more hardware
+≠
+automatically better system
+```
+
+---
+
+# 2.27 Rigidity vs. Mass
+
+Chassis design contains an unavoidable trade-off.
+
+```text
+MORE REINFORCEMENT
+→ potentially greater rigidity
+→ potentially greater mass
+```
+
+while:
+
+```text
+LESS STRUCTURE
+→ lower mass
+→ potentially greater flex
+```
+
+The correct solution is not necessarily the lightest or the heaviest structure.
+
+It is a structure that provides enough mechanical stability for repeatable sensing and actuation without carrying unnecessary material.
+
+The current V4 mass must be physically remeasured before any final numerical claim is added.
+
+---
+
+# 2.28 Chassis and Propulsion Efficiency
+
+Structural alignment influences the energy required for propulsion.
+
+If the rear drivetrain is misaligned:
+
+```text
+friction increases
+      ↓
+Motor A works against additional resistance
+      ↓
+vehicle response changes
+```
+
+This can create symptoms such as:
+
+```text
+lower speed
+
+different acceleration
+
+less repeatable movement
+```
+
+The appropriate correction may therefore be mechanical rather than software-based.
+
+---
+
+# 2.29 Chassis and Steering Repeatability
+
+The same principle applies to steering.
+
+If the front structure flexes or one pivot changes position:
+
+```text
+Motor B command
+```
+
+may produce:
+
+```text
+different wheel geometry
+```
+
+between tests.
+
+A stable chassis makes steering calibration meaningful because the relationship between:
+
+```text
+motor position
+```
+
+and:
+
+```text
+wheel response
+```
+
+remains more consistent.
+
+---
+
+# 2.30 Chassis and Sensor Repeatability
+
+Sensor calibration also assumes fixed geometry.
 
 For example:
 
 ```text
-Sensor rotates by small angle
-        ↓
-Observed wall position changes
-        ↓
-Reported distance changes
+S2/S3 wall distance thresholds
 ```
 
-Even though the wall and vehicle center may not have moved significantly.
-
-Similarly:
+assume stable ultrasonic orientation.
 
 ```text
-Color sensor height changes
-        ↓
-Illuminated floor region changes
-        ↓
-Color reading can change
+Color Sensor thresholds
 ```
 
-This demonstrates why chassis stability is part of the sensing system.
+assume stable floor height and casing position.
+
+```text
+Pixy X values
+```
+
+assume stable camera geometry.
+
+```text
+Gyro heading
+```
+
+assumes stable sensor orientation.
+
+Mechanical repeatability is therefore one of the foundations of software repeatability.
 
 ---
 
-# 2.27 Chassis and Steering Accuracy
+# 2.31 Open Challenge Structural Configuration
 
-Steering control also depends on the chassis.
-
-The complete chain is:
+During Open, Piolín uses:
 
 ```text
-Software command
-        ↓
-Motor B
-        ↓
-Motor mount
-        ↓
-Steering linkage
-        ↓
-Wheel supports
-        ↓
-Front-wheel orientation
+S1 = Gyro
+
+S2 = LEFT Ultrasonic
+
+S3 = RIGHT Ultrasonic
+
+S4 = Color Sensor
 ```
 
-Every structural connection in that chain contributes to the final wheel position.
+The chassis supports:
 
-If a joint has excessive unintended motion, the output becomes less repeatable.
+```text
+rear propulsion
 
-For this reason, the steering support structure is one of the most important regions of Piolín's chassis.
+front steering
+
+lateral wall sensing
+
+floor sensing
+
+heading sensing
+```
+
+without requiring any camera hardware.
+
+The vehicle remains the same mechanical platform used for Obstacles.
 
 ---
 
-# 2.28 Chassis and Drivetrain Efficiency
+# 2.32 Obstacle Challenge Structural Configuration
 
-The propulsion system also depends on structural alignment.
-
-Conceptually:
+During Obstacles:
 
 ```text
-Motor A
-    ↓
-Transmission
-    ↓
-Driven wheels
+S1 = Pixy2.1
+
+S2 = LEFT Ultrasonic
+
+S3 = RIGHT Ultrasonic
+
+S4 = Color Sensor
 ```
 
-If drivetrain components are not properly aligned, part of the motor output can be lost through:
+The major structural difference is the front vision installation.
+
+The underlying:
 
 ```text
-Friction
+chassis
 
-Binding
+motors
 
-Axle misalignment
+steering
 
-Unnecessary structural deformation
+drivetrain
+
+lateral ultrasonics
+
+Color Sensor
 ```
 
-The chassis therefore supports efficient power transfer by keeping the drivetrain geometry consistent.
+remain common.
+
+This modularity reduces the risk of changing vehicle geometry between competition rounds.
 
 ---
 
-# 2.29 Ground Clearance
+# 2.33 Why a Front Ultrasonic Is Not Part of the Current Chassis
 
-Piolín must provide sufficient clearance between the fixed chassis structure and the track surface.
+Earlier Piolín versions experimented with a frontal ultrasonic sensor.
 
-The underside includes the downward-facing color sensor and structural components.
+The current competition architecture no longer uses one.
 
-The design must avoid unintended contact between the track and:
+S1 is now reserved for:
 
 ```text
-LEGO beams
-
-Sensor casing
-
-Axles
-
-Cables
-
-Other fixed components
+OPEN
+→ Gyro
 ```
 
-while still positioning the color sensor appropriately for floor observation.
+or:
 
-No final numerical ground-clearance value is claimed here because it has not been confirmed as a final measured specification.
+```text
+OBSTACLES
+→ Pixy2.1
+```
+
+The current chassis should therefore not be documented as requiring a permanent front-US mount.
+
+Historical mounts may remain in older photographs or development notes, but they are not part of current reconstruction instructions.
 
 ---
 
-# 2.30 Chassis Width and Track Navigation
+# 2.34 Why HuskyLens and Nano Are Not Part of the Current Chassis
 
-The confirmed total vehicle width is:
-
-```text
-150 mm
-```
-
-The chassis width directly affects:
+Earlier obstacle prototypes required structural space for:
 
 ```text
-Available lateral clearance
-
-Distance from sensors to walls
-
-Obstacle bypass space
-
-Turning envelope
-```
-
-This means software wall-distance targets cannot be interpreted independently from the physical vehicle width.
-
-The robot does not navigate as a single mathematical point.
-
-It occupies a real physical envelope:
-
-```text
-               150 mm
-       ←──────────────────→
-
-       ┌──────────────────┐
-       │      PIOLÍN      │
-       └──────────────────┘
-```
-
-The navigation software must therefore keep the entire chassis clear of boundaries and obstacles.
-
----
-
-# 2.31 Chassis Length and Cornering
-
-The confirmed total length is:
-
-```text
-210 mm
-```
-
-During a turn, the front and rear of the vehicle follow different paths.
-
-Conceptually:
-
-```text
-        FRONT
-          ↗
-
-      ┌───────────┐
-      │           │
-      │  PIOLÍN   │
-      │           │
-      └───────────┘
-           ↗
-          REAR
-```
-
-The chassis therefore occupies a larger swept area during rotation than during straight-line motion.
-
-This is important when Piolín:
-
-```text
-Turns around track corners
-
-Passes pillars
-
-Recovers after obstacle avoidance
-
-Performs parking-related movement
-```
-
----
-
-# 2.32 Chassis Height
-
-The current overall height is:
-
-```text
-230 mm
-```
-
-This includes the upper robot structure and installed components.
-
-Vertical placement affects:
-
-```text
-Component packaging
-
-Camera mounting
-
-Cable routing
-
-Mass distribution
-```
-
-The objective is not simply to minimize height, but to place each subsystem where it can perform its intended function while maintaining structural stability.
-
----
-
-# 2.33 Modularity and Maintenance
-
-Although Piolín operates as one integrated vehicle, the LEGO Technic construction makes major areas accessible for modification or maintenance.
-
-Subsystems can be treated conceptually as modules:
-
-```text
-FRONT MODULE
-Steering + front sensing
-
-
-CENTER MODULE
-EV3 + main structure
-
-
-REAR MODULE
-Propulsion
-
-
-SENSOR MODULES
-Left / right / bottom
-
-
-VISION MODULE
-HuskyLens + Nano support
-```
-
-This separation makes it easier to identify whether a problem originates from:
-
-```text
-Structure
-
-Steering
-
-Drivetrain
-
-Sensor mount
-
-Electrical connection
-```
-
-without rebuilding the entire robot.
-
----
-
-# 2.34 Chassis Evolution
-
-Piolín's current chassis should not be interpreted as the first version of the robot.
-
-The mechanical architecture evolved together with:
-
-```text
-Steering design
-
-Sensor arrangement
-
-Camera system
-
-Electrical architecture
-
-Software strategy
-```
-
-Changes to one subsystem often required physical changes elsewhere.
-
-For example:
-
-```text
-Sensor architecture changes
-        ↓
-Mounting structure changes
-
-
-Camera changes
-        ↓
-Front / upper structure changes
-
-
-Steering changes
-        ↓
-Front chassis geometry changes
-```
-
-This development history is preserved separately from the current configuration.
-
-[Legacy Documentation](../legacy/00_LEGACY_NOTICE.md)
-
-Additional visual evidence of Piolín's physical evolution is available in:
-
-[Robot Version Photos](../../v-photos/README.md)
-
----
-
-# 2.35 Current Chassis vs. Legacy Configurations
-
-The current chassis should only be interpreted together with the current hardware architecture.
-
-Current Piolín uses:
-
-```text
-LEGO EV3
-
-Motor A propulsion
-
-Motor B Ackermann steering
-
-S1 front ultrasonic
-
-S2 right ultrasonic
-
-S3 left ultrasonic
-
-S4 downward color sensor
-
 HuskyLens
 
 Arduino Nano
+
+additional wiring
 ```
 
-Historical configurations involving:
+The current Pixy2.1 architecture removed those components.
+
+This simplified more than the electronics.
+
+It also reduced:
 
 ```text
-Gyroscope
+mounting requirements
 
-PixyCam
+cable routing
 
-Alternative ultrasonic arrangements
+component count
 
-Raspberry Pi prototypes
-
-Arduino Mega controller experiments
+structural clutter
 ```
 
-belong to the legacy development history and should not be used to define the final chassis configuration.
+This demonstrates how an architecture change in one subsystem can simplify the mechanical vehicle as well.
 
 ---
 
-# 2.36 Structural Interaction With Software
+# 2.35 Mechanical Inspection Before Testing
 
-The relationship between software and chassis behavior can be represented as a closed loop:
+Before major autonomous testing, the chassis should be checked physically.
+
+A useful sequence is:
 
 ```text
-TRACK
-  ↓
-SENSORS
-  ↓
-EV3
-  ↓
-CONTROL COMMAND
-  ↓
-MOTORS
-  ↓
-CHASSIS MECHANICS
-  ↓
-VEHICLE MOVES
-  ↓
-SENSOR GEOMETRY CHANGES
-  ↓
-NEW SENSOR DATA
+1. Inspect chassis connections.
+
+2. Verify EV3 is secure.
+
+3. Verify Motor A mount.
+
+4. Verify Motor B mount.
+
+5. Check rear wheels for free rotation.
+
+6. Check steering through left / center / right.
+
+7. Check ultrasonic mounts.
+
+8. Check Color Sensor and casing.
+
+9. Verify active S1 device is secure.
+
+10. Inspect cables near moving parts.
+
+11. Verify nothing rubs against wheels.
+
+12. Begin sensor validation.
 ```
 
-The chassis is therefore not passive.
-
-It is the physical system through which every software decision becomes a change in the environment observed by the sensors.
+This prevents avoidable structural faults from being interpreted as software regressions.
 
 ---
 
-# 2.37 Mechanical Problem Propagation
+# 2.36 Mechanical Failure Can Look Like Software Failure
 
-A structural issue can propagate through multiple subsystems.
+Several visible behaviors can have structural causes.
 
-Example:
-
-```text
-Loose sensor mount
-       ↓
-Sensor angle changes
-       ↓
-Distance measurement changes
-       ↓
-Navigation error changes
-       ↓
-Steering command changes
-       ↓
-Vehicle trajectory changes
-```
-
-Another example:
-
-```text
-Loose steering support
-       ↓
-Physical wheel angle differs
-       ↓
-Robot does not follow expected path
-       ↓
-Wall distance changes
-       ↓
-Controller applies larger correction
-```
-
-This is why mechanical consistency must be considered before interpreting every navigation problem as a software problem.
-
----
-
-# 2.38 Chassis Responsibility Matrix
-
-| Chassis Requirement | Why It Matters |
+| Symptom | Possible Chassis / Mechanical Cause |
 | :--- | :--- |
-| **Wheel alignment** | Supports predictable straight movement |
-| **Steering support** | Maintains Ackermann geometry |
-| **Motor support** | Transfers motor torque into useful motion |
-| **Sensor stability** | Preserves measurement geometry |
-| **Camera stability** | Preserves field of view |
-| **Controller support** | Integrates the EV3 structurally |
-| **Cable management** | Prevents mechanical/electrical interference |
-| **Clearance** | Prevents contact with track or moving components |
-| **Compact dimensions** | Supports track maneuverability |
-| **Structural rigidity** | Improves repeatability |
+| Piolín curves while commanded straight | Steering center or wheel alignment shifted |
+| Left and right turns differ | Linkage asymmetry or structural play |
+| Motor A appears weak | Drivetrain friction |
+| Motor B reacts slowly | Steering binding |
+| Ultrasonic values suddenly changed | Sensor mount moved |
+| Pixy coordinates changed | Camera mount moved |
+| Color detection changed | Sensor or casing height shifted |
 
-The chassis therefore connects nearly every engineering category of the robot.
+This is why the chassis should be considered during debugging instead of assuming every autonomous failure originates in code.
 
 ---
 
-# 2.39 Final Chassis Architecture
+# 2.37 Reproducibility
 
-The current structural system can be summarized as:
+A second team does not need every LEGO beam to be explained in prose to understand the vehicle.
 
-```text
-                           PIOLÍN CHASSIS
-                                  │
-             ┌────────────────────┼────────────────────┐
-             │                    │                    │
-             ▼                    ▼                    ▼
-        FRONT STRUCTURE      CENTER STRUCTURE      REAR STRUCTURE
-             │                    │                    │
-             │                    │                    │
-     Ackermann Steering        LEGO EV3           Propulsion
-         Motor B                  │                 Motor A
-             │                    │                    │
-       Front Wheels          Sensor Wiring        Rear Drive
-             │                    │                    │
-     Front Ultrasonic       Arduino Nano              │
-             │                    │                 Rear Wheels
-         HuskyLens                 │
-                                  │
-                     Structural Integration
-```
+However, the documentation should make the functional geometry reproducible.
 
-The confirmed current chassis specifications are:
+Important relationships include:
 
 ```text
-Length       = 210 mm
+rear propulsion
 
-Width        = 150 mm
+front Ackermann steering
 
-Height       = 230 mm
+Motor A fixed to drivetrain
 
-Mass         = 0.80476 kg
+Motor B fixed to steering linkage
 
-Front wheels = 38.1 mm diameter
+S2 physically LEFT
 
-Rear wheels  ≈ 61.0 mm diameter
+S3 physically RIGHT
 
-Lateral ultrasonic
-mounting height ≈ 43.2 mm
+S4 downward-facing
+
+S1 configured by competition round
 ```
 
-No unconfirmed wheelbase, track-width, ground-clearance, center-of-mass coordinate, or sensor-offset values are claimed in this document.
+The photographs in this document provide direct evidence of the physical implementation.
 
-The final chassis provides the physical reference structure required for Piolín's autonomous systems to operate together:
-
-```text
-STRUCTURE
-    ↓
-Stable mechanical geometry
-
-MECHANICS
-    ↓
-Predictable motion
-
-SENSORS
-    ↓
-Meaningful measurements
-
-SOFTWARE
-    ↓
-Useful corrections
-```
-
-This integration makes the chassis the physical foundation of Piolín's WRO Future Engineers 2026 navigation architecture.
+Detailed subsystem documents then explain the individual mechanisms.
 
 ---
 
-## Continue Reading
+# 2.38 Dimensions to Measure
 
-[Robot Mobility](03_RMobility.md)
+The following current V4 measurements should be collected before final competition documentation is frozen:
 
-[Steering System](04_steering.md)
+```text
+overall length
 
-[Drivetrain](05_drivetrain.md)
+overall width
 
-[Mechanical Testing](06_testing.md)
+overall height
 
-Return to:
+wheelbase
+
+front track width
+
+rear track width
+
+ground clearance
+```
+
+The approximate development references available for the current robot should not be presented as official dimensions until physically confirmed.
+
+Older robot dimensions are not automatically valid for V4.
+
+---
+
+# 2.39 Why Wheelbase Matters
+
+Wheelbase is particularly important for Piolín because it affects vehicle curvature.
+
+In a simplified steering model:
+
+```text
+larger wheelbase
+→ generally larger turning radius
+for the same steering angle
+```
+
+and:
+
+```text
+shorter wheelbase
+→ generally tighter curvature
+```
+
+The actual behavior also depends on front steering geometry.
+
+This is why final wheelbase measurement belongs in the mechanical documentation rather than being treated as an arbitrary cosmetic dimension.
+
+---
+
+# 2.40 Why Track Width Matters
+
+Front track width affects Ackermann geometry.
+
+The inner and outer wheels need different angles because they follow different radii.
+
+Therefore the relationship between:
+
+```text
+wheelbase
+```
+
+and:
+
+```text
+front track width
+```
+
+helps define the ideal steering geometry.
+
+Once current V4 measurements are available, they can support the more detailed calculations in the steering documentation.
+
+---
+
+# 2.41 Mass to Measure
+
+The current V4 robot should also be reweighed.
+
+Previous mass values belonged to previous physical configurations.
+
+The final measured mass should correspond to the robot in the configuration being documented.
+
+If Open and Obstacles differ measurably because of the S1 hardware change, those values can be recorded separately.
+
+Until then, this document intentionally avoids claiming an exact mass.
+
+---
+
+# 2.42 Measurements Should Describe the Real Robot
+
+The objective of physical measurement is not to make the documentation appear more precise.
+
+It is to make it reproducible.
+
+Therefore:
+
+```text
+measured current value
+```
+
+is preferable to:
+
+```text
+precise old value
+```
+
+even if the older number looks more complete.
+
+This principle applies to:
+
+```text
+dimensions
+
+mass
+
+wheel diameters
+
+sensor heights
+
+camera geometry
+
+steering angles
+```
+
+throughout the repository.
+
+---
+
+# 2.43 Structural Trade-Off Summary
+
+| Design Decision | Advantage | Trade-Off |
+| :--- | :--- | :--- |
+| Common chassis for both rounds | Shared calibration and fewer duplicated systems | S1 mount must support modular hardware |
+| LEGO Technic construction | Modular, repairable, EV3-compatible | Mechanical play must be controlled |
+| Rear propulsion | Keeps front assembly focused on steering | Rear drivetrain alignment becomes important |
+| Front Ackermann steering | Car-like trajectory | More complex than differential drive |
+| Central EV3/battery structure | Common control and power platform | Concentrated mass must be supported |
+| Fixed lateral ultrasonics | Stable geometry in both rounds | Mounting angle must remain consistent |
+| Modular S1 | Specialized sensing for each challenge | Physical sensor swap required |
+| Reduced external electronics | Simpler structure and wiring | Less hardware redundancy |
+
+The chassis therefore reflects systems-level compromises rather than one isolated mechanical objective.
+
+---
+
+# 2.44 Relationship to the Mechanical Architecture
+
+This file focuses specifically on the physical chassis.
+
+The broader relationship between:
+
+```text
+propulsion
+
+steering
+
+sensor placement
+
+vehicle geometry
+```
+
+is documented in:
 
 [Mechanical Architecture](01_mecharchitecture.md)
 
-Related hardware:
+The component-level details are documented separately in:
 
-[Hardware Overview](../components/01_Hardwareoverview.md)
+```text
+03_Motors.md
 
-[Motors](../components/03_Motors.md)
+04_SteeringMotor.md
 
-[Steering Motor](../components/04_SteeringMotor.md)
+05_UltrasonicSensors.md
 
-[Ultrasonic Sensors](../components/05_UltrasonicSensors.md)
+06_ColorSensor.md
 
-[Color Sensor](../components/06_ColorSensor.md)
+07_PixyVision.md
+```
 
-[HuskyLens](../components/07_HuskyLens.md)
+This avoids duplicating the same technical explanation across every mechanical document.
+
+---
+
+# 2.45 Values Intentionally Not Claimed as Final
+
+The following values should only be added after measurement on the current V4 Piolín:
+
+```text
+final total mass
+
+overall length
+
+overall width
+
+overall height
+
+wheelbase
+
+front track width
+
+rear track width
+
+ground clearance
+
+front wheel diameter
+
+rear wheel diameter
+
+center-of-mass position
+
+weight distribution
+
+sensor mounting heights
+
+Pixy mounting height and angle
+```
+
+Older measurements may remain in historical development records.
+
+They should not automatically be reused as final V4 specifications.
+
+---
+
+# 2.46 Current Chassis Architecture
+
+The current mechanical structure can be summarized as:
+
+```text
+                    PIOLÍN CHASSIS
+                          │
+       ┌──────────────────┼──────────────────┐
+       │                  │                  │
+       ▼                  ▼                  ▼
+   PROPULSION          STEERING           SENSING
+       │                  │                  │
+    Motor A            Motor B           S2 / S3
+       │                  │                  │
+ rear drivetrain       Ackermann             S4
+       │               linkage               │
+       ▼                  ▼                  ▼
+ rear wheels         front wheels      course geometry
+                                                │
+                                                ▼
+                                          MODULAR S1
+                                          Gyro / Pixy
+```
+
+All of these subsystems depend on the chassis maintaining their physical relationships.
+
+---
+
+# 2.47 Final Engineering Assessment
+
+Piolín's chassis is not treated as a passive container.
+
+It is the mechanical foundation that allows all other systems to remain calibrated.
+
+The relationship is:
+
+```text
+STABLE STRUCTURE
+       ↓
+STABLE COMPONENT GEOMETRY
+       ↓
+REPEATABLE SENSOR READINGS
+       ↓
+REPEATABLE ACTUATOR RESPONSE
+       ↓
+MEANINGFUL SOFTWARE CALIBRATION
+```
+
+The chassis must therefore balance several requirements:
+
+```text
+rigidity
+
+mass
+
+serviceability
+
+component clearance
+
+sensor stability
+
+motor support
+
+modularity
+
+reproducibility
+```
+
+The current architecture also reflects a broader lesson from Piolín's development:
+
+> **A good autonomous-vehicle chassis is not the structure with the most pieces. It is the structure in which every important component is held in a stable, useful, and reproducible position.**
+
+Piolín's common V4 chassis provides that mechanical foundation for both Open and Obstacles while allowing the specialized S1 sensor to change without redesigning the rest of the vehicle.
+
+---
+
+<div align="center">
+
+### [← Back to PiolínTech Main README](../../README.md)
+
+</div>
