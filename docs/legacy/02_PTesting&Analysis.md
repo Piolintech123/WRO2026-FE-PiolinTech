@@ -9,7 +9,7 @@
 
 Piolín did not reach its current architecture through a single successful design. The robot evolved through repeated cycles of construction, programming, track testing, failure observation, modification, and retesting.
 
-Many of the most useful engineering conclusions did not come from successful full-course runs. They came from situations where the robot behaved differently from what the software designer expected.
+Many of the most useful engineering conclusions came from situations where the physical robot behaved differently from what the software designer expected.
 
 Examples included:
 
@@ -27,7 +27,7 @@ robot completed one corner
 but software counted two
 
 same code
-but different behavior from a different starting position
+but different behavior from different starting positions
 
 camera lost target
 before obstacle had actually been passed
@@ -41,7 +41,7 @@ change code
 → visually judge result
 ```
 
-toward a more structured approach:
+toward:
 
 ```text
 identify subsystem
@@ -89,7 +89,7 @@ vehicle speed
 battery condition
 ```
 
-A parameter that appears correct mathematically can still behave incorrectly once these systems interact physically.
+A parameter that appears reasonable mathematically can still behave incorrectly when these systems interact physically.
 
 For example:
 
@@ -100,22 +100,22 @@ steering linkage
       ↓
 front-wheel angle
       ↓
-vehicle moves forward
+vehicle moves
       ↓
-actual turning radius
+actual turning trajectory
 ```
 
-The software does not command the final trajectory directly.
+The software does not directly command the final trajectory.
 
-It commands an actuator that operates through a mechanical system.
+It commands actuators that operate through a mechanical vehicle.
 
-Testing was therefore required to determine whether the physical robot matched the assumptions used by the software.
+Testing was therefore required to verify whether the physical robot matched the assumptions made in software.
 
 ---
 
-# 2.2 The Core Testing Loop
+# 2.2 Core Testing Loop
 
-A useful description of the development loop is:
+A useful description of Piolín's development loop is:
 
 ```text
 DESIGN
@@ -137,53 +137,73 @@ RETEST
 
 <img
   src="../../embed/legacy_testing_cycle.png"
-  alt="Piolín legacy engineering testing cycle"
+  alt="Piolín engineering testing cycle"
   width="850"
 />
 
 <br>
 
-<sub><b>Figure L2.1.</b> Prototype development followed repeated design, implementation, testing, diagnosis, and refinement cycles.</sub>
+<sub><b>Figure L2.1.</b> Piolín prototype development followed repeated design, implementation, testing, diagnosis, modification, and retesting cycles.</sub>
 
 </div>
 
-The quality of the final decision depended heavily on the **diagnosis** step.
+The quality of the final decision depended heavily on the **diagnosis** stage.
 
-If a steering failure was incorrectly classified as a camera failure, camera parameters could be changed unnecessarily.
+For example:
 
-If an electrical connection problem was interpreted as a control problem, navigation code could become more complicated without solving the actual issue.
+```text
+steering failure
+misdiagnosed as
+camera failure
+```
+
+could lead to unnecessary vision changes.
+
+Likewise:
+
+```text
+electrical connection failure
+misdiagnosed as
+navigation failure
+```
+
+could make software more complicated without correcting the real cause.
+
+The goal eventually became:
+
+> **Identify the failing layer before modifying the system.**
 
 ---
 
 # 2.3 Failure Classification
 
-Over time, Piolín failures could be grouped into several major categories.
+Over time, Piolín's failures could be grouped into several categories.
 
 | Category | Typical Examples |
 | :--- | :--- |
-| Perception | False camera detection, missed color, unstable target |
+| Perception | False camera detection, missed target, unstable recognition |
 | Geometry | Wall distance, FOV, sensor orientation, starting position |
 | State logic | Double counting, stale target lock, incorrect transition |
 | Control | Zig-zag, overcorrection, weak steering, late response |
 | Mechanical | Steering play, wheel alignment, drivetrain friction |
 | Electrical / communication | Wrong port, missing sensor, Nano/USB communication |
-| Integration | Two controllers requesting conflicting steering |
-| Methodology | Too many changes between tests |
+| Integration | Several controllers requesting conflicting steering |
+| Methodology | Too many simultaneous changes between tests |
 
-A visible failure could belong to more than one category.
+One visible symptom could have several possible causes.
 
 For example:
 
 ```text
-robot hits red pillar
+robot hits RED pillar
 ```
 
 could result from:
 
 ```text
-red not detected
+RED not detected
 
-red detected too late
+RED detected too late
 
 EV3 never received detection
 
@@ -196,80 +216,80 @@ steering mechanically weak
 vehicle speed too high
 ```
 
-This is why symptom-based diagnosis alone was insufficient.
+This is why visible behavior alone was not enough to identify the failing subsystem.
 
 ---
 
-# 2.4 Testing Perception Separately from Navigation
+# 2.4 Layered Testing
 
-One of the most important lessons was that a camera should be tested independently before judging the full autonomous maneuver.
+One of the most useful development improvements was separating the system into layers.
 
-For the historical HuskyLens architecture, a complete chain existed:
+For the historical HuskyLens architecture:
 
 ```text
-pillar
-  ↓
-HuskyLens
-  ↓
-Arduino Nano
-  ↓
-USB Serial
-  ↓
+PILLAR
+   ↓
+CAMERA
+   ↓
+COMMUNICATION
+   ↓
 EV3
-  ↓
-state logic
-  ↓
-steering
-```
-
-A test therefore needed to answer several separate questions.
-
-```text
-Does the camera see the object?
-
-Does it identify the correct ID?
-
-Does Nano receive the data?
-
-Does Nano send the expected message?
-
-Does EV3 receive the line?
-
-Does EV3 parse it correctly?
-
-Does obstacle logic choose correct side?
-
-Does Motor B physically steer correct way?
+   ↓
+STATE
+   ↓
+STEERING
+   ↓
+VEHICLE
 ```
 
 <div align="center">
 
 <img
   src="../../embed/legacy_layered_testing.png"
-  alt="Layered testing of Piolín perception and navigation system"
+  alt="Layered testing of Piolín perception and navigation"
   width="880"
 />
 
 <br>
 
-<sub><b>Figure L2.2.</b> Layered testing separated perception, communication, interpretation, actuation, and physical vehicle response.</sub>
+<sub><b>Figure L2.2.</b> Piolín testing separated the perception, communication, EV3 processing, state, steering, and physical vehicle layers so each could be verified independently.</sub>
 
 </div>
 
-This prevented a correct camera from being blamed for a downstream steering error.
+A complete diagnostic process could therefore ask:
+
+```text
+Does the camera see the target?
+
+Does the camera identify the correct target?
+
+Does the communication layer transfer that data?
+
+Does the EV3 receive it?
+
+Does the EV3 parse it correctly?
+
+Does the state machine select the correct behavior?
+
+Does Motor B receive the correct steering request?
+
+Does the physical vehicle steer correctly?
+```
+
+This prevented a correct camera from being blamed for a downstream control error.
 
 ---
 
 # 2.5 Static Testing Was Not Enough
 
-Several sensing systems behaved convincingly while the robot was stationary.
+Several sensing systems behaved well while Piolín was stationary.
 
-However, stationary testing removed many variables that exist during autonomous movement.
+However, stationary tests remove many effects that appear during autonomous driving.
 
-While driving:
+While moving:
 
 ```text
-camera position changes
+camera orientation changes
 
 background changes
 
@@ -277,11 +297,11 @@ lighting changes
 
 pillar moves across image
 
-available reaction time decreases
+reaction distance decreases
 
 ultrasonic geometry changes
 
-steering changes sensor viewpoint
+vehicle heading changes
 ```
 
 Therefore:
@@ -293,16 +313,18 @@ works while stationary
 did not imply:
 
 ```text
-works reliably during a complete run
+works during complete autonomous motion
 ```
 
-Dynamic testing was essential.
+Static tests were useful for confirming basic functionality.
+
+Dynamic track testing was required for validating integration.
 
 ---
 
 # 2.6 Historical HuskyLens Testing
 
-The HuskyLens system demonstrated that Piolín could distinguish:
+The HuskyLens stage demonstrated that Piolín could distinguish:
 
 ```text
 ID 1 = GREEN
@@ -310,86 +332,93 @@ ID 1 = GREEN
 ID 2 = RED
 ```
 
-but full-track testing revealed several problems that were difficult to reproduce using only stationary tests.
-
-Observed issues included:
+but dynamic tests exposed several additional problems:
 
 ```text
 false detections
 
-intermittent Green detection
+intermittent Green recognition
 
 lighting sensitivity
 
-objects outside track being recognized
+objects outside the track being recognized
 
-target leaving FOV during steering
+target leaving field of view
 
 multiple visible blocks
 
 target lock remaining active too long
 ```
 
-These observations were particularly useful because they revealed that **recognition accuracy alone was not the complete problem**.
+These observations showed that:
 
-The vehicle needed contextual and temporal perception.
+```text
+correct classification
+```
+
+was only one part of autonomous obstacle perception.
+
+Piolín also needed:
+
+```text
+relevance
+
+continuity
+
+state memory
+
+physical pass confirmation
+
+controller arbitration
+```
 
 ---
 
 # 2.7 False Detection Testing
 
-False detections were tested by observing the camera in representative track environments rather than only placing a clean pillar against an isolated background.
+False detections were tested in realistic track environments rather than only with isolated targets.
 
-Potential confusing regions included:
+Potential confusing visual regions included:
 
 ```text
-track material
-
-shadows
+track materials
 
 reflections
 
-colored objects outside track
+shadows
+
+colored external objects
 
 background structures
 ```
 
-The resulting engineering problem was a trade-off.
+This produced a filtering trade-off:
+
+| Filter Behavior | Possible Result |
+| :--- | :--- |
+| Too permissive | Irrelevant objects accepted |
+| Moderate | Better rejection of false targets |
+| Too restrictive | Real pillars rejected |
+
+The conclusion was:
 
 ```text
-loose filtering
-→ more false positives
-
-
-strict filtering
-→ more valid targets rejected
+more thresholds
+≠
+automatically better perception
 ```
 
-<div align="center">
-
-<img
-  src="../../embed/legacy_false_positive_negative_test.png"
-  alt="Legacy Piolín false positive and false negative vision trade-off"
-  width="850"
-/>
-
-<br>
-
-<sub><b>Figure L2.3.</b> Vision filtering had to balance false-positive rejection against the risk of rejecting real pillars.</sub>
-
-</div>
-
-This led to the conclusion that a single threshold could not always solve perception reliability.
+The filters had to reject irrelevant detections without making the valid target impossible to acquire.
 
 ---
 
-# 2.8 Green vs. Red Detection
+# 2.8 Green vs. Red Testing
 
-During HuskyLens testing, Green was observed to be less consistent than Red in several conditions.
+During HuskyLens development, Green was often observed to be less consistent than Red.
 
-Instead of assuming both colors behaved identically, testing had to evaluate them independently.
+The two colors therefore had to be tested independently.
 
-A useful test sequence was:
+A useful qualitative test sequence was:
 
 ```text
 RED
@@ -406,23 +435,21 @@ GREEN
 → different distance
 ```
 
-The repeated Green issue demonstrated why individual target classes should be validated separately.
-
-A single statement such as:
+This demonstrated that the statement:
 
 ```text
 camera detects colors
 ```
 
-was too general to describe actual competition behavior.
+was too general.
+
+Each target class had its own behavior under real operating conditions.
 
 ---
 
 # 2.9 Intermittent Detection
 
-One difficult camera behavior was intermittent recognition.
-
-A physical pillar could remain continuously visible to a human observer while software received a sequence more similar to:
+A physical target could remain visually present while software received:
 
 ```text
 DETECTED
@@ -434,447 +461,532 @@ DETECTED
 NOT DETECTED
 ```
 
-This created problems for controllers that responded directly to every current frame.
+A controller responding directly to every frame could repeatedly enter and exit obstacle mode.
 
-A frame-by-frame controller could repeatedly enter and exit obstacle mode.
+This created unstable steering.
 
-The solution required some degree of temporal memory.
-
-However, memory created the next problem:
+Temporary memory helped:
 
 ```text
-when should the detection be forgotten?
+target confirmed
+      ↓
+remember target
+      ↓
+brief detection loss
+      ↓
+continue maneuver
 ```
 
-That question eventually became part of target-state management.
+but immediately created another engineering question:
+
+```text
+When should the remembered target be released?
+```
+
+This eventually became a target-state problem rather than only a camera problem.
 
 ---
 
-# 2.10 Field-of-View Tests
+# 2.10 Field-of-View Testing
 
-The camera's field of view was tested not only when Piolín was perfectly aligned, but also after turns.
+Field-of-view tests were especially important after corners.
 
-This was important because a small post-corner heading error could move the next pillar outside the camera image.
-
-The failure sequence was often:
+A typical failure sequence was:
 
 ```text
 corner completed
       ↓
 robot exits slightly rotated
       ↓
-pillar outside FOV
+next pillar outside camera FOV
       ↓
 no detection
       ↓
-vehicle continues
+robot continues forward
       ↓
-pillar becomes visible late
+pillar enters FOV later
+      ↓
+less distance remains for avoidance
 ```
 
-<div align="center">
+This demonstrated that:
 
-<img
-  src="../../embed/legacy_fov_track_test.png"
-  alt="Camera field of view test after Piolín corner exit"
-  width="860"
-/>
+```text
+camera performance
+```
 
-<br>
+and:
 
-<sub><b>Figure L2.4.</b> Dynamic FOV testing evaluated whether the next obstacle remained visible after a realistic corner exit.</sub>
+```text
+vehicle alignment
+```
 
-</div>
+were physically connected.
 
-This showed that camera placement and post-corner vehicle alignment were part of the same perception problem.
+The camera cannot detect a target that the vehicle is not pointing toward.
 
 ---
 
 # 2.11 Target-Loss Testing
 
-One of the most useful tests compared:
+One of the most important experiments compared:
 
 ```text
-target disappears from camera
+target disappeared from camera
 ```
 
 with:
 
 ```text
-vehicle physically passes target
+vehicle physically passed target
 ```
 
-These are not equivalent events.
+These are different events.
 
-Piolín could begin steering around a pillar, rotate the camera away from it, and lose visual detection before sufficient clearance existed.
+When Piolín begins avoiding a pillar:
 
-This produced an important experimental conclusion:
+```text
+vehicle turns
+      ↓
+camera rotates
+      ↓
+target moves toward image edge
+      ↓
+target disappears
+```
 
-> **Camera disappearance cannot be used by itself as a pillar-passed condition.**
+while the pillar may still be beside the robot.
 
-Later strategies therefore considered ultrasonic geometry as additional evidence.
+This produced the important rule:
+
+> **Target lost does not mean target passed.**
 
 ---
 
 # 2.12 Lateral Ultrasonic Pass Confirmation
 
-The side ultrasonic sensors offered a physical method of observing the pillar passing beside the robot.
+The lateral ultrasonic sensors provided one possible source of physical pass evidence.
 
-A typical qualitative sequence was:
+A qualitative sequence could be:
 
 ```text
-normal wall distance
+normal distance
       ↓
 distance decreases
       ↓
-pillar enters lateral sensor region
+pillar beside sensor
       ↓
 minimum region
       ↓
-distance increases again
+distance increases
 ```
 
-This created a stronger physical interpretation:
+The conceptual fusion became:
 
 ```text
-camera identifies target
-+
-lateral geometry changes
-+
-distance opens again
-=
-stronger evidence of physical pass
+CAMERA
+→ obstacle identity
+
+
+ULTRASONIC
+→ physical side geometry
 ```
 
-<div align="center">
+and:
 
-<img
-  src="../../embed/legacy_pass_confirmation_test.png"
-  alt="Legacy pillar pass confirmation testing using lateral ultrasonic measurements"
-  width="870"
-/>
+```text
+camera target
++
+side-distance change
++
+distance opening again
+```
 
-<br>
+could provide stronger evidence of physical completion than camera disappearance alone.
 
-<sub><b>Figure L2.5.</b> Lateral ultrasonic behavior was explored as physical evidence that the vehicle had moved past an obstacle.</sub>
-
-</div>
-
-The exact thresholds were not universal and depended on geometry, but the principle remained useful.
+The exact thresholds remained dependent on the current geometry and were not universal constants.
 
 ---
 
 # 2.13 Target-Lock Testing
 
-Target locking was introduced to prevent unstable color switching.
+Target locking was introduced because intermittent recognition could produce unstable target switching.
 
-Without lock:
+Without memory:
 
 ```text
 RED
-→ loss
-→ GREEN false detection
+→ lost
+→ false GREEN
 → RED
 ```
 
-could cause inconsistent steering.
+could create contradictory steering requests.
 
-With lock:
+With a lock:
 
 ```text
 RED confirmed
-→ maintain RED maneuver
+      ↓
+maintain RED target
 ```
 
-was more stable.
+the maneuver became more stable.
 
-However, testing revealed the opposite extreme.
+However, testing also exposed the opposite failure:
 
 ```text
-first pillar locked
+pillar 1 locked
       ↓
-pillar passed
+pillar 1 passed
       ↓
-next pillar visible
+pillar 2 appears
       ↓
 old lock remains
       ↓
-next pillar ignored
+pillar 2 ignored
 ```
 
-This showed that target locking had two calibration dimensions:
+Therefore target locking had two equally important requirements:
 
 ```text
-how easily target becomes locked
-
-how reliably target becomes released
+reliable acquisition
 ```
 
-The release logic was just as important as acquisition.
+and:
+
+```text
+reliable release
+```
 
 ---
 
-# 2.14 Multiple-Block Testing
+# 2.14 Target Lifecycle
 
-The perception system was also tested in situations where more than one candidate target appeared simultaneously.
-
-A simplistic strategy:
+A more complete interpretation became:
 
 ```text
-take first block
+SEARCH
+   ↓
+ACQUIRE
+   ↓
+VALIDATE
+   ↓
+LOCK
+   ↓
+AVOID
+   ↓
+PASS CONFIRMED
+   ↓
+RELEASE
+   ↓
+SEARCH NEXT
 ```
 
-could fail because returned ordering did not guarantee physical relevance.
+This separated concepts that had previously been combined:
 
-The first block could be:
+```text
+visible target
+
+selected target
+
+remembered target
+
+passed target
+
+next target
+```
+
+The result was a clearer state-management model.
+
+---
+
+# 2.15 Multiple-Block Testing
+
+Another perception problem appeared when several candidate blocks were visible.
+
+The rule:
+
+```text
+take first valid block
+```
+
+did not guarantee:
+
+```text
+take most relevant obstacle
+```
+
+The first returned block could be:
 
 ```text
 smaller
 
 farther away
 
-future obstacle
+near image edge
 
-background detection
+future pillar
+
+false visual region
 ```
 
-Testing therefore led toward a relevance concept involving:
+This motivated a target-relevance model based on several features.
+
+Conceptually:
 
 ```text
-target identity
-
+valid identity
++
 position
-
++
 size
-
-temporal persistence
-
-current navigation state
++
+temporal continuity
++
+navigation state
+      ↓
+target relevance
 ```
 
 This lesson later transferred directly into Pixy2.1 development.
 
 ---
 
-# 2.15 Testing Reference Code from Other Teams
+# 2.16 Image Coordinates and Calibration
 
-PiolínTech studied successful external WRO implementations to understand useful navigation concepts.
+Another important lesson was that camera values such as:
 
-This was valuable for learning ideas such as:
+```text
+X
+
+Y
+
+W
+
+H
+```
+
+are image-space measurements.
+
+They are not automatically metric physical values.
+
+For example:
+
+```text
+larger apparent block
+```
+
+may provide useful relative information.
+
+However:
+
+```text
+block width = value
+```
+
+does not automatically mean:
+
+```text
+pillar distance = exact centimeters
+```
+
+without physical calibration.
+
+The relationship depends on:
+
+```text
+camera height
+
+camera angle
+
+lens geometry
+
+target geometry
+
+vehicle orientation
+```
+
+This became especially important when studying code from other teams.
+
+---
+
+# 2.17 Testing External Reference Code
+
+PiolínTech studied successful WRO implementations to understand useful strategies.
+
+Concepts such as:
 
 ```text
 wall following
 
-camera-based pillar selection
+camera-based target selection
 
 corner handling
 
 state management
 ```
 
-However, direct copying of numerical values repeatedly proved unreliable.
+could be transferred conceptually.
 
-Another team's constants may depend on:
+Their numerical constants could not.
+
+Another team's values may depend on:
 
 ```text
 different camera
 
-different camera height
+different mounting height
 
 different wheelbase
 
-different steering mechanism
+different steering geometry
 
-different motor layout
+different motor configuration
 
-different vehicle speed
+different speed
 ```
-
-For example, camera thresholds from another robot could only be interpreted as examples of **what type of variable matters**.
-
-They were not Piolín calibration values.
 
 The correct process became:
 
 ```text
-study idea
+study strategy
       ↓
-understand physical meaning
+understand meaning
       ↓
 adapt architecture
       ↓
 measure Piolín
       ↓
-calibrate Piolín values
+calibrate values
 ```
+
+The engineering principle was:
+
+> **Reuse the idea, not the calibration.**
 
 ---
 
-# 2.16 Hardware-Mapping Validation
+# 2.18 Hardware-Mapping Validation
 
-Several historical software problems were caused by code being written for a hardware mapping that did not match the physical robot.
+Several historical problems occurred because software assumptions did not match the physical robot.
 
-Examples included different interpretations of:
-
-```text
-S2
-
-S3
-
-Motor A
-
-Motor B
-```
-
-Piolín's current convention is:
+Piolín's current mapping is:
 
 ```text
 A = propulsion
 
 B = steering
 
-S2 = LEFT ultrasonic
+S2 = LEFT Ultrasonic
 
-S3 = RIGHT ultrasonic
+S3 = RIGHT Ultrasonic
 ```
 
-Historical reference code sometimes used different assignments.
+Reference code and older prototypes sometimes used different assignments.
 
-A software algorithm could therefore be logically correct and still produce an incorrect vehicle response simply because:
+A mathematically valid controller could therefore behave incorrectly if:
 
 ```text
-software LEFT sensor
+software LEFT
 ```
 
 was physically:
 
 ```text
-RIGHT sensor
+RIGHT
 ```
 
-or a steering motor was assumed to be a drive motor.
+This produced one of the most important testing rules:
 
-This produced one of the simplest but most important testing rules:
-
-> **Verify hardware mapping before tuning control parameters.**
+> **Verify physical hardware mapping before tuning control behavior.**
 
 ---
 
-# 2.17 Steering-Sign Testing
+# 2.19 Steering-Sign Testing
 
-Another repeated source of confusion was steering sign.
+Steering direction also needed independent validation.
 
-The software needed a consistent physical interpretation of:
-
-```text
-positive steering
-
-negative steering
-```
-
-Before obstacle logic could be trusted, a basic actuator test needed to verify:
+Before testing autonomous obstacle logic:
 
 ```text
 command LEFT
-→ front wheels physically move left
+→ wheels must physically steer left
 
 
 command RIGHT
-→ front wheels physically move right
+→ wheels must physically steer right
 ```
 
-Without this verification:
+Without this test:
 
 ```text
 RED correctly detected
 ```
 
-could still lead to:
+could still result in:
 
 ```text
-wrong-side pass
+wrong passing side
 ```
 
-because perception and steering mapping were independent problems.
+because perception and steering mapping are separate layers.
 
 ---
 
-# 2.18 Why Wrong-Side Passing Did Not Always Mean Wrong Color Recognition
+# 2.20 Wrong-Side Passing Diagnosis
 
 Suppose Piolín passes a Red pillar on the left.
 
-At least several explanations are possible:
+Possible causes include:
 
 ```text
-camera classified Red as Green
+camera classified target incorrectly
 
-EV3 parsed ID incorrectly
+EV3 parsed target incorrectly
 
-target lock contained Green
+stale target lock remained
 
-steering command sign inverted
+passing-side mapping inverted
 
-avoidance side mapping inverted
+Motor B sign inverted
 
-another controller overrode obstacle steering
+wall control overrode obstacle control
 ```
 
-Therefore the visible result:
+Therefore:
 
 ```text
-wrong side
+wrong physical side
 ```
 
-did not uniquely identify the failing subsystem.
-
-This reinforced the need for logs containing intermediate state information.
-
-Useful debugging output could include:
+does not uniquely indicate:
 
 ```text
-target ID
-
-target state
-
-left US
-
-right US
-
-steering request
-
-active controller
+wrong color detection
 ```
 
-rather than only observing the final trajectory.
+This was one reason internal state logging became increasingly valuable.
 
 ---
 
-# 2.19 Conflicting Controllers
+# 2.21 Conflicting Controllers
 
-One of the most repeated causes of zig-zag behavior was multiple controllers requesting steering corrections at the same time.
+One of the most repeated causes of zig-zag behavior was several controllers requesting steering at the same time.
 
 For example:
 
 ```text
-camera says LEFT
+vision says LEFT
 
-wall controller says RIGHT
+wall control says RIGHT
 
-recenter logic says LEFT
+recenter says LEFT
 
-safety logic says RIGHT
+safety says RIGHT
 ```
 
-If those requests alternated between control cycles:
-
-```text
-+8
--6
-+5
--7
-```
-
-the physical result was:
+If these requests dominate on alternating loops:
 
 ```text
 LEFT
@@ -883,41 +995,31 @@ LEFT
 RIGHT
 ```
 
-<div align="center">
+the physical robot oscillates.
 
-<img
-  src="../../embed/legacy_controller_conflict.png"
-  alt="Legacy Piolín steering conflict between multiple controllers"
-  width="870"
-/>
+The solution was not necessarily to add another correction term.
 
-<br>
-
-<sub><b>Figure L2.6.</b> Zig-zag behavior often resulted from multiple control subsystems competing for Motor B authority.</sub>
-
-</div>
-
-The solution was architectural rather than simply numerical.
+It was to define **control authority**.
 
 ---
 
-# 2.20 State-Dependent Steering Authority
+# 2.22 State-Dependent Steering Authority
 
-Later development moved toward assigning steering responsibility according to robot state.
+Later development moved toward assigning a primary controller according to state.
 
-A conceptual structure was:
+Conceptually:
 
 ```text
 NORMAL
-→ wall navigation dominant
+→ wall navigation
 
 
 CORNER
-→ corner controller dominant
+→ corner controller
 
 
 PILLAR
-→ vision objective dominant
+→ vision objective
 
 
 PASSING
@@ -925,376 +1027,358 @@ PASSING
 
 
 RECENTER
-→ ultrasonic geometry dominant
+→ lateral geometry
 
 
 SAFETY
-→ emergency correction
+→ emergency constraint
 ```
 
-This reduced the chance of several controllers continuously fighting each other.
+This produced one of the most important control lessons from prototype testing:
 
-The lesson carried forward was:
-
-> **Control arbitration is often more important than adding another correction term.**
+> **Control arbitration can matter more than increasing controller complexity.**
 
 ---
 
-# 2.21 Over-Aggressive Correction Testing
+# 2.23 Overcorrection Testing
 
-Several controllers produced a familiar oscillation pattern.
+Several Piolín controllers produced a common oscillation:
 
 ```text
 small error
       ↓
 large correction
       ↓
-robot crosses target
+robot crosses desired state
       ↓
 error changes sign
       ↓
 large opposite correction
+      ↓
+repeat
 ```
-
-The resulting vehicle path became a zig-zag.
 
 This appeared in:
 
 ```text
-wall correction
-
-post-pillar recentering
+wall following
 
 camera steering
+
+post-pillar recentering
 
 initial acquisition
 ```
 
-Testing showed that a controller should be judged not only by:
+A controller therefore had to be evaluated using two questions:
 
 ```text
-does it correct error?
+Does it correct the error?
 ```
 
-but also by:
+and:
 
 ```text
-does it settle without repeatedly crossing the target?
+Does it settle without repeatedly overshooting?
 ```
 
 ---
 
-# 2.22 Correction Strength vs. Reaction Speed
+# 2.24 Correction Strength and Speed
 
-Reducing gain can decrease oscillation but may also make the robot react too slowly.
+Reducing correction strength can reduce oscillation.
 
-The trade-off is:
+However:
 
 ```text
-high correction
-→ faster reaction
-→ greater overshoot risk
-
-
-low correction
-→ smoother behavior
-→ greater late-response risk
+too weak
+→ response becomes late
 ```
 
-This is why tuning one numerical gain without considering vehicle speed was insufficient.
+while:
 
-Control strength and forward velocity had to be tested together.
+```text
+too strong
+→ overshoot increases
+```
+
+Vehicle speed changes the same trade-off.
+
+Therefore:
+
+```text
+steering gain
+```
+
+and:
+
+```text
+forward speed
+```
+
+could not be tuned independently.
 
 ---
 
-# 2.23 Vehicle Speed Testing
+# 2.25 Vehicle Speed Testing
 
-An intuitive response to instability is to reduce speed.
+Lowering speed sometimes helped perception because it increased reaction time.
 
-This helped in some situations because it increased reaction time.
+However, extremely slow driving created another problem.
 
-However, reducing speed too much also created problems for Piolín's Ackermann geometry.
-
-Ackermann steering requires longitudinal vehicle movement.
+Piolín uses Ackermann steering.
 
 ```text
-front wheels turn
+front wheels steer
 +
-vehicle advances
+vehicle moves longitudinally
 =
-curved path
+curved trajectory
 ```
 
-If propulsion becomes extremely slow:
+If the vehicle barely advances:
 
 ```text
 steering changes
 ```
 
-but:
+but the physical trajectory develops slowly.
+
+The objective was therefore not:
 
 ```text
-vehicle geometry develops very slowly
+minimum possible speed
 ```
 
-which can produce awkward corner and recovery behavior.
-
-The objective was therefore not minimum speed.
-
-It was a speed that provided:
+but a speed that provided:
 
 ```text
-enough perception time
+sufficient perception time
 
-enough steering response
+sufficient steering response
 
-enough forward motion for Ackermann geometry
+sufficient longitudinal movement
 ```
 
 ---
 
-# 2.24 Corner-Strength Testing
+# 2.26 Corner-Strength Testing
 
 Corner tuning repeatedly moved between two extremes.
 
 ```text
-corner too weak
-→ vehicle runs wide / reaches wall
-
-
-increase steering or duration
-        ↓
-
-corner too strong
-→ vehicle cuts excessively / over-rotates
+too weak
+→ wide turn
+→ wall risk
 ```
 
-This iterative cycle showed that a corner cannot be defined by steering magnitude alone.
+and:
 
-Its physical result also depends on:
+```text
+too strong
+→ excessive cut
+→ over-rotation
+```
+
+This demonstrated that corner geometry depends on more than Motor B steering magnitude.
+
+The result also depends on:
 
 ```text
 forward speed
 
 entry position
 
-entry heading
+entry orientation
 
-steering mechanics
+mechanical steering
 
 turn duration
 
-available geometry
+track geometry
 ```
 
-The later use of gyro during Open provided a more direct orientation reference for evaluating the amount of rotation achieved.
+This later strengthened the case for using a direct orientation reference during Open.
 
 ---
 
-# 2.25 Corner Start Testing
+# 2.27 Corner Start Testing
 
-Several failures came from initiating a corner too late.
+Several corner failures occurred because the robot began steering too late.
 
 A typical sequence was:
 
 ```text
-robot approaches end of straight
+approach corner
       ↓
-corner event not recognized
+corner evidence not recognized
       ↓
-robot continues forward
+continue forward
       ↓
-steering begins late
+turn starts late
       ↓
-collision / wide turn
+wide turn / collision
 ```
 
-This demonstrated that corner logic requires both:
+Testing clarified that cornering requires:
 
 ```text
-reliable start condition
+a start condition
 ```
 
 and:
 
 ```text
-reliable completion condition
+a completion condition
 ```
 
-Possible physical evidence included:
+Possible evidence included:
 
 ```text
-floor color event
+floor event
 
 wall geometry change
 
-loss/opening of expected wall
+expected wall opening
 
-gyro rotation once turn begins
+gyro rotation after turn begins
 ```
-
-No single historical implementation solved every case perfectly, but testing clarified the information needed by later Open development.
 
 ---
 
-# 2.26 Corner Completion Testing
+# 2.28 Corner Completion Testing
 
-Timed turns can work under stable conditions, but they depend heavily on:
+Timed turns were useful during early testing but depended on:
 
 ```text
 speed
 
-battery
+battery condition
 
 friction
 
-starting angle
+entry orientation
 
 steering response
 ```
 
-A more robust corner completion condition uses physical feedback.
-
-This is one reason the current Open architecture returned to using the Gyro Sensor.
-
-Historical testing showed the limitation of treating:
+Therefore:
 
 ```text
 turn for N milliseconds
 ```
 
-as equivalent to:
+was not equivalent to:
 
 ```text
-vehicle rotated expected amount
+rotate vehicle by desired angle
 ```
 
-Those two conditions are not always the same.
+This historical limitation contributed to the current use of the Gyro Sensor during Open.
 
 ---
 
-# 2.27 Color-Sensor Event Testing
+# 2.29 Color-Sensor Event Testing
 
-Piolín used floor-color information as course-state evidence.
-
-A major issue appeared when one physical marking remained under the sensor for several control cycles.
-
-The sensor could report:
-
-```text
-BLUE
-
-BLUE
-
-BLUE
-
-BLUE
-```
-
-while the robot had crossed only:
-
-```text
-ONE physical landmark
-```
-
-A naive counter could therefore produce:
-
-```text
-1
-2
-3
-4
-```
-
-from one line.
-
-This revealed the distinction between:
+The downward Color Sensor generated another important distinction:
 
 ```text
 sensor sample
+≠
+physical course event
 ```
 
-and:
+For example:
 
 ```text
-physical event
+BLUE
+BLUE
+BLUE
+BLUE
+```
+
+could correspond to one physical marking.
+
+A naive counter could interpret this as several events.
+
+The required behavior was:
+
+```text
+one physical marking
+→ one logical event
 ```
 
 ---
 
-# 2.28 Event Latching
+# 2.30 Event Latching
 
-The solution was to introduce an event-latching concept.
+The event-latching concept became:
 
 ```text
-valid color detected
+detect valid color
       ↓
 count once
       ↓
 lock event
       ↓
-ignore repeated same-line samples
+ignore repeated samples
       ↓
-re-arm after sufficient physical separation
+move away from marking
+      ↓
+re-arm
 ```
 
-<div align="center">
+Possible release evidence included:
 
-<img
-  src="../../embed/legacy_color_event_latch.png"
-  alt="Legacy Piolín color event latching"
-  width="850"
-/>
+```text
+neutral floor
 
-<br>
+encoder displacement
 
-<sub><b>Figure L2.7.</b> Event latching prevented multiple software counts from one physical floor marking.</sub>
+course state
+```
 
-</div>
-
-Encoder movement or neutral-floor evidence could help determine when another color event should become valid.
-
-This lesson remains useful in the current course-progress logic.
+This lesson remains relevant to current course-progress logic.
 
 ---
 
-# 2.29 Color Sensor and Ambient Light
+# 2.31 Color Sensor and Ambient Light
 
 The downward Color Sensor also experienced environmental-light variation.
 
-Instead of only expanding software thresholds, Piolín added a physical casing around the sensor.
+Instead of solving the problem entirely through wider software thresholds, Piolín introduced a physical casing.
 
-The engineering sequence was:
+The reasoning was:
 
 ```text
-inconsistent optical environment
+unstable optical environment
       ↓
-color readings less repeatable
+less repeatable readings
       ↓
-physical light isolation added
+physical light isolation
       ↓
-more controlled measurement environment
+more controlled measurement conditions
 ```
 
-This was an important example of solving a sensing problem mechanically rather than exclusively through code.
+This was an important example of fixing a sensing problem at the mechanical level rather than compensating only in software.
 
 ---
 
-# 2.30 Ultrasonic Orientation Testing
+# 2.32 Ultrasonic Orientation Testing
 
-The ultrasonic sensors were tested in different physical orientations during development.
+Historical Piolín versions tested different ultrasonic orientations.
 
-Historical arrangements included:
+These included:
 
 ```text
-diagonal sensors
+diagonal arrangements
 
-lateral sensors
+lateral arrangements
 
-front sensor configurations
+front-sensor configurations
 ```
 
-A sensor orientation changes the physical meaning of the reported distance.
+Sensor orientation changes the physical meaning of the measurement.
 
 For a lateral sensor approximately perpendicular to a wall:
 
@@ -1311,95 +1395,85 @@ reading
 geometry-dependent line-of-sight distance
 ```
 
-Therefore the same controller cannot always be transferred between sensor orientations without modification.
+This is one reason the current architecture favors clearly lateral:
 
-The eventual preference for lateral sensors simplified interpretation.
+```text
+S2 LEFT
+
+S3 RIGHT
+```
+
+sensors.
 
 ---
 
-# 2.31 Initial-Position Testing
+# 2.33 Initial-Position Testing
 
-Another repeated issue was starting Piolín from different lateral positions.
+Another repeated issue occurred when starting from different lateral positions.
 
-A controller tuned for a center start could behave badly when started near an outer wall.
+A controller tuned near the center could behave aggressively when starting near a wall.
 
-A direct controller might see:
-
-```text
-large distance error
-```
-
-and immediately command:
+For example:
 
 ```text
-large steering correction
+large initial error
+      ↓
+large correction
+      ↓
+robot crosses corridor too aggressively
 ```
 
-causing the robot to cross the track too aggressively.
-
-This motivated a gradual acquisition concept.
+This encouraged the use of gradual acquisition rather than immediately demanding the final operating distance.
 
 ---
 
-# 2.32 Progressive Acquisition
+# 2.34 Progressive Acquisition
 
-Instead of instantly demanding the final wall target, a more stable approach was:
+A more controlled concept was:
 
 ```text
-measure current position
+measure starting geometry
       ↓
-start from current geometry
+begin from current position
       ↓
-move reference gradually
+shift desired reference gradually
       ↓
-approach desired operating position
+approach normal operating region
 ```
 
-<div align="center">
+The objective was to avoid one extreme initial steering command.
 
-<img
-  src="../../embed/legacy_progressive_acquire.png"
-  alt="Piolín gradual acquisition from different starting positions"
-  width="860"
-/>
-
-<br>
-
-<sub><b>Figure L2.8.</b> Progressive acquisition reduced the large initial steering command produced when the robot began far from its desired wall position.</sub>
-
-</div>
-
-This was particularly important because competition starting geometry may not always reproduce a laboratory placement exactly.
+This became especially useful because starting placement may vary slightly between tests.
 
 ---
 
-# 2.33 Mechanical Testing Before Software Tuning
+# 2.35 Mechanical Testing Before Software Tuning
 
-Software changes were sometimes used to compensate for mechanical problems.
+Another important improvement was checking the physical vehicle before modifying gains.
 
-This proved inefficient.
-
-A more appropriate diagnostic order became:
+A useful order became:
 
 ```text
-check steering freely moves
+check steering movement
 
-check wheels aligned
+check wheel alignment
 
 check drivetrain friction
 
 check sensor mounts
 
+check cable interference
+
 then tune software
 ```
 
-If Motor B command changes but the wheel angle does not respond consistently, changing a gain does not solve the mechanical cause.
+If Motor B rotates but the steering linkage does not respond consistently, increasing a software gain does not correct the mechanical problem.
 
 ---
 
-# 2.34 Steering Play and Ackermann Geometry
+# 2.36 Steering Play and Ackermann Geometry
 
-Piolín's steering mechanism contains passive mechanical elements.
+Piolín's steering system contains mechanical linkage and clearance.
 
 Therefore:
 
@@ -1410,7 +1484,7 @@ Motor B encoder angle
 is not identical to:
 
 ```text
-front wheel steering angle
+physical wheel angle
 ```
 
 The relationship depends on:
@@ -1420,189 +1494,160 @@ linkage geometry
 
 mechanical play
 
-connection points
-
 pivot friction
+
+connection points
 ```
 
-This explained why theoretically reasonable motor angles sometimes produced slightly different physical turns.
+This explained why theoretically similar motor commands could produce slightly different physical turns.
 
-It also reinforced the need for steering repeatability tests.
+Mechanical repeatability became a prerequisite for meaningful software calibration.
 
 ---
 
-# 2.35 Wheel and Steering Reinforcement
+# 2.37 Structural Reinforcement
 
-Mechanical reinforcement of the front-wheel and steering structure was part of development because physical flexibility could change wheel response.
+Reinforcing the steering and wheel assemblies sometimes improved repeatability without changing software.
 
-A stronger structure could improve repeatability without changing one line of software.
-
-This demonstrated the relationship:
+The relationship was:
 
 ```text
-mechanical consistency
+stronger structure
       ↓
-more repeatable actuator response
+less unintended movement
       ↓
-more meaningful software calibration
+more repeatable steering response
+      ↓
+better calibration
 ```
 
-The opposite is also true: a mechanically unstable platform makes software tuning much harder.
+This demonstrated that software performance can improve through mechanical changes.
 
 ---
 
-# 2.36 Drivetrain Testing
+# 2.38 Drivetrain Testing
 
-Motor A performance also required mechanical verification.
+Motor A also required independent physical verification.
 
-Unexpectedly slow motion could result from:
+Unexpectedly slow movement could result from:
 
 ```text
+software speed
+
 battery condition
 
 axle friction
 
 wheel rubbing
 
-misaligned drivetrain
-
-software speed setting
+drivetrain misalignment
 ```
 
-Testing the drivetrain independently helped determine whether a navigation problem originated before or after the propulsion motor.
+The propulsion system therefore needed to be checked separately before navigation behavior was blamed.
 
 ---
 
-# 2.37 Reverse-Maneuver Testing
+# 2.39 Reverse-Maneuver Testing
 
-Reverse movement was explored several times during obstacle development.
+Reverse movement was explored as a recovery technique.
 
-Potential uses included:
-
-```text
-creating additional space
-
-reacquiring pillar
-
-recovering from too-close approach
-
-repositioning before steering
-```
-
-However, reverse introduced additional state transitions.
+Possible uses included:
 
 ```text
-forward
-→ reverse
-→ steering change
-→ forward
+create additional obstacle distance
+
+reacquire target
+
+recover from close approach
+
+reposition before steering
 ```
 
-If each transition depended on time rather than physical state, variability could increase.
+However, reverse also introduced:
 
-Reverse therefore became a recovery technique rather than a universal solution.
+```text
+another direction state
+
+another steering transition
+
+another timing or encoder condition
+
+more recovery logic
+```
+
+Reverse was therefore treated as a tool for specific recovery cases rather than a universal fix.
 
 ---
 
-# 2.38 Parking Testing
+# 2.40 Parking Testing
 
-Parking was repeatedly more difficult when introduced before the main lap behavior was stable.
+Parking became difficult when introduced before basic navigation was stable.
 
-A program trying to solve simultaneously:
+A controller attempting to solve:
 
 ```text
 straight navigation
 
 corners
 
+course counting
+
+obstacles
+
 three laps
-
-color counting
-
-obstacle handling
 
 parking
 ```
 
-contained many interacting states.
+at the same time contained too many unresolved interactions.
 
-A stronger testing order became:
+A stronger sequence became:
 
 ```text
 stable movement
       ↓
-stable cornering
+stable corners
       ↓
-stable progress counting
+stable counting
       ↓
 complete laps
       ↓
 parking
 ```
 
-This reduced the number of unresolved variables at each development stage.
+Parking was therefore treated as the final state of a successful run rather than an isolated maneuver.
 
 ---
 
-# 2.39 Why Parking Was Delayed
+# 2.41 Communication Testing
 
-Parking depends on the quality of everything that occurs before it.
+The historical HuskyLens/Nano architecture also demonstrated the importance of preserving validated low-level interfaces.
 
-If Piolín arrives at the final region with:
-
-```text
-wrong heading
-
-wrong lateral position
-
-wrong counter
-
-wrong lap state
-```
-
-then even a well-designed parking routine may fail.
-
-Therefore parking was treated as:
-
-```text
-final state of a successful navigation sequence
-```
-
-rather than an isolated maneuver.
-
-This systems perspective remains relevant in current development.
-
----
-
-# 2.40 Communication Testing
-
-The historical HuskyLens–Nano system demonstrated the importance of preserving validated communication layers.
-
-A proven serial interface used lines formatted conceptually as:
+A known working communication path used formatted information such as:
 
 ```text
 ID,X,Y,W,H
 ```
 
-and a working EV3-side method used:
+and an EV3-side method based on:
 
 ```python
 nano.readline()
 ```
 
-Changing that acquisition method while simultaneously modifying obstacle logic introduced unnecessary uncertainty.
+Changing the acquisition method while simultaneously modifying obstacle logic introduced unnecessary uncertainty.
 
-The testing lesson was:
+The lesson became:
 
 > **Freeze known-good lower layers while tuning higher layers.**
 
 ---
 
-# 2.41 Runtime and Hardware Errors
+# 2.42 Runtime and Hardware Errors
 
-Not every failed run represented a navigation failure.
+Not every unsuccessful test was an autonomous-navigation failure.
 
-Development also encountered ordinary implementation errors such as:
+Development also encountered implementation errors such as:
 
 ```text
 NameError
@@ -1616,54 +1661,40 @@ TypeError
 incorrect sensor initialization
 ```
 
-These should be separated from autonomous-navigation analysis.
-
-A useful validation sequence is:
+A useful validation order became:
 
 ```text
-1. Program starts
+1. Program starts.
 
-2. Required hardware initializes
+2. Hardware initializes.
 
-3. Raw sensors produce plausible values
+3. Raw sensor values are plausible.
 
-4. Motors move in correct directions
+4. Motors move in correct directions.
 
-5. State transitions operate
+5. State transitions work.
 
-6. Full navigation is tested
+6. Autonomous navigation is tested.
 ```
 
-<div align="center">
-
-<img
-  src="../../embed/legacy_test_validation_layers.png"
-  alt="Piolín software and hardware validation layers before navigation testing"
-  width="850"
-/>
-
-<br>
-
-<sub><b>Figure L2.9.</b> Basic software execution and hardware validation should occur before autonomous-navigation performance is evaluated.</sub>
-
-</div>
+This prevents basic execution errors from being analyzed as control-system failures.
 
 ---
 
-# 2.42 The Cost of Changing Too Many Variables
+# 2.43 The Cost of Changing Too Many Variables
 
-One of the most significant development-method problems was modifying several parameters at once.
+One of the largest methodology problems was changing too many values at once.
 
-A new iteration might change:
+An iteration might simultaneously modify:
 
 ```text
 speed
 
-PID / correction gain
+wall correction
 
-corner angle
+corner strength
 
-reverse duration
+reverse behavior
 
 camera filter
 
@@ -1674,25 +1705,21 @@ recentering
 timeout
 ```
 
-Then:
+If the result became worse:
 
 ```text
-new version is worse
+which change caused it?
 ```
 
-but there is no clear answer to:
+was difficult to answer.
 
-```text
-which change caused the regression?
-```
-
-This made development slower and produced many code versions with difficult-to-trace behavior.
+This reduced the value of each test.
 
 ---
 
-# 2.43 One-Variable Testing
+# 2.44 One-Variable Testing
 
-A better method became:
+The improved method became:
 
 ```text
 KNOWN-GOOD BASELINE
@@ -1711,67 +1738,59 @@ IMPROVED?
  KEEP      REVERT
 ```
 
-<div align="center">
+This made cause-and-effect relationships much clearer.
 
-<img
-  src="../../embed/legacy_one_change_method.png"
-  alt="Piolín one-variable-at-a-time testing methodology"
-  width="850"
-/>
-
-<br>
-
-<sub><b>Figure L2.10.</b> Later testing preserved a known-good baseline and evaluated one meaningful modification at a time.</sub>
-
-</div>
-
-This approach made cause-and-effect relationships much easier to identify.
+The concept also made Git version history useful as experimental evidence rather than simply file storage.
 
 ---
 
-# 2.44 Rewriting Stable Code
+# 2.45 Avoid Rewriting Stable Code
 
-Another development problem was replacing large sections of working control logic to solve one isolated failure.
+Another recurring problem was replacing working sections of software to fix one isolated failure.
 
 The pattern could become:
 
 ```text
 A works
+
 B works
+
 C fails
+
       ↓
-rewrite A+B+C
+
+rewrite A + B + C
+
       ↓
+
 C changes
 but A and B regress
 ```
 
-This occurred particularly when navigation logic had already completed significant portions of the track.
-
-The stronger approach was:
+The stronger development approach became:
 
 ```text
 preserve working behavior
 
-identify failing subsystem
+identify failing region
 
-modify smallest justified region
+make smallest justified change
 ```
 
 This reduced regression risk.
 
 ---
 
-# 2.45 Known-Good Baselines
+# 2.46 Known-Good Baselines
 
-A code version that completes a meaningful behavior should be treated as an engineering asset.
+A version that successfully performs a meaningful behavior is an engineering asset.
 
 Examples include:
 
 ```text
 stable straight driving
 
-successful corner
+successful corner behavior
 
 three-lap completion
 
@@ -1781,100 +1800,100 @@ correct pillar pass
 A known-good version provides:
 
 ```text
-comparison point
-
-regression reference
+comparison baseline
 
 fallback implementation
+
+regression reference
 ```
 
-Version control is therefore not merely repository organization.
-
-It is part of the experimental method.
+Version control therefore became part of the testing method.
 
 ---
 
-# 2.46 Logs and Diagnostics
+# 2.47 Logs and Diagnostics
 
-Visual observation alone was often insufficient to explain failures.
+Visual observation alone was often insufficient.
 
-A more useful test included software output such as:
+Useful internal diagnostics included:
 
 ```text
 current state
 
-detected color / ID
+detected target
 
 left ultrasonic
 
 right ultrasonic
 
-heading when applicable
+gyro heading when applicable
 
-steering command
+steering request
 
-counter
+event counter
 
 target lock
 ```
 
-Then a physical failure could be compared with the program's internal interpretation.
-
 For example:
 
 ```text
-robot went left around Red
+robot passed left of RED
 ```
 
-with log:
+with:
 
 ```text
 TARGET = RED
 STEER_REQUEST = LEFT
 ```
 
-indicates a different problem from:
+suggests a passing-side or steering mapping problem.
+
+But:
 
 ```text
 TARGET = GREEN
 STEER_REQUEST = LEFT
 ```
 
-The first suggests maneuver mapping.
+suggests a perception or state problem.
 
-The second suggests perception/state interpretation.
+The physical symptom looks similar.
+
+The internal evidence identifies a different subsystem.
 
 ---
 
-# 2.47 Test Evidence Should Be Measured, Not Invented
+# 2.48 Evidence Must Be Measured, Not Invented
 
-The repository should distinguish between:
+The repository distinguishes between:
 
 ```text
-observed qualitative behavior
+qualitative observation
 ```
 
 and:
 
 ```text
-measured quantitative result
+quantitative measurement
 ```
 
-Statements such as:
+A statement such as:
 
 ```text
-Green was observed to be less consistent
+Green was observed to be less consistent than Red.
 ```
 
-can be preserved as historical qualitative observations.
+can accurately preserve a repeated historical observation.
 
-However, claims such as:
+A claim such as:
 
 ```text
-Green detection accuracy = 73%
+Green accuracy = 73%
 ```
 
-should only appear if a documented dataset actually produced that value.
+requires a documented dataset that actually supports that value.
 
 The same applies to:
 
@@ -1888,37 +1907,39 @@ camera latency
 corner error
 
 sensor noise
+
+statistical reliability
 ```
 
 No graph should imply measurements that were never collected.
 
 ---
 
-# 2.48 Recommended Historical Test Record
+# 2.49 Historical Test Record Structure
 
-A useful prototype test record can use the following structure:
+A useful prototype test record can use:
 
-| Field | Example of Information |
+| Field | Information |
 | :--- | :--- |
 | Test ID | Sequential identifier |
 | Date | Test date |
-| Code version | Exact file / commit |
+| Code version | Exact file or commit |
 | Hardware configuration | Sensors and port mapping |
 | Starting position | Inner / center / outer |
-| Main variable changed | One parameter or behavior |
-| Expected result | What should happen |
+| Variable changed | One parameter or behavior |
+| Expected result | Intended physical outcome |
 | Actual result | What physically happened |
-| Internal state | Important logs |
+| Internal state | Relevant logs |
 | Diagnosis | Most likely subsystem |
 | Decision | Keep / revert / retest |
 
-This format makes each run useful even when the robot fails.
+This allows unsuccessful runs to remain useful engineering evidence.
 
 ---
 
-# 2.49 Suggested Testing Sequence
+# 2.50 Recommended Testing Hierarchy
 
-A structured development sequence for an autonomous vehicle such as Piolín is:
+A structured autonomous-vehicle development sequence is:
 
 ```text
 LEVEL 1
@@ -1928,19 +1949,19 @@ LEVEL 2
 Raw sensor values
         ↓
 LEVEL 3
-Motor direction
+Motor directions
         ↓
 LEVEL 4
 Single subsystem
         ↓
 LEVEL 5
-Two-subsystem interaction
+Two-system interaction
         ↓
 LEVEL 6
-Single track feature
+Single course feature
         ↓
 LEVEL 7
-Multiple features
+Several course features
         ↓
 LEVEL 8
 Complete run
@@ -1949,13 +1970,11 @@ LEVEL 9
 Parking / final state
 ```
 
-This hierarchy avoids testing the entire system before its individual layers are understood.
+This prevents the team from debugging the entire autonomous vehicle when the real problem exists in one basic layer.
 
 ---
 
-# 2.50 Examples of Single-Subsystem Tests
-
-Useful isolated tests include:
+# 2.51 Examples of Isolated Tests
 
 ### Steering
 
@@ -1967,7 +1986,7 @@ center
 → center
 ```
 
-Observe repeatability.
+Observe physical repeatability.
 
 ### Ultrasonics
 
@@ -1975,79 +1994,63 @@ Place Piolín at known relative wall positions and compare readings.
 
 ### Color Sensor
 
-Cross Blue and Orange landmarks independently.
+Cross Blue and Orange markings independently.
 
-### Camera
+### Vision
 
-Present Red and Green targets at several positions without autonomous steering.
+Present Red and Green pillars at several image positions without autonomous steering.
 
 ### Propulsion
 
-Drive a fixed command on a simple straight section.
+Drive a simple straight command and verify free drivetrain motion.
 
-These tests isolate behavior before sensor fusion is introduced.
+These tests isolate a subsystem before more complex integration begins.
 
 ---
 
-# 2.51 Integration Tests
+# 2.52 Integration Tests
 
-Once individual systems behave correctly, paired integration can be tested.
+Once individual systems behave correctly, interactions can be tested progressively.
 
 Examples include:
 
 ```text
 Ultrasonics + steering
 
-Color + corner state
+Color + course state
+
+Gyro + steering
 
 Camera + steering
 
 Camera + ultrasonic safety
-
-Gyro + steering
 ```
 
-Only then should the robot move toward complete multi-state autonomous runs.
-
-This testing order makes it much easier to identify which new interaction caused a regression.
+Only after those combinations are understood should the robot move toward complete multi-state runs.
 
 ---
 
-# 2.52 The Most Repeated Global Failure Pattern
+# 2.53 Repeated Global Failure Pattern
 
-Across many Piolín versions, one pattern appeared repeatedly:
+Across several Piolín versions, one pattern appeared repeatedly:
 
 ```text
 sensor detects error
       ↓
 controller reacts strongly
       ↓
-vehicle crosses desired state
+robot crosses desired state
       ↓
-another sensor/controller reacts
+opposite error appears
       ↓
-opposite correction
+another correction begins
       ↓
-vehicle crosses again
+robot crosses again
       ↓
-oscillation / zig-zag
+oscillation
 ```
 
-<div align="center">
-
-<img
-  src="../../embed/legacy_global_failure_pattern.png"
-  alt="Repeated Piolín overcorrection and controller-conflict failure pattern"
-  width="870"
-/>
-
-<br>
-
-<sub><b>Figure L2.11.</b> A recurring development failure involved strong corrections triggering opposing corrections from another sensor or controller.</sub>
-
-</div>
-
-The long-term solution was not simply:
+The long-term solution was not:
 
 ```text
 add another correction
@@ -2056,22 +2059,24 @@ add another correction
 but:
 
 ```text
-simplify controller roles
+reduce overlapping authority
 
-reduce unnecessary authority overlap
+improve state separation
 
-use state-dependent priorities
+reduce unnecessary correction strength
 
-improve physical calibration
+improve mechanical repeatability
 ```
+
+This was one of the strongest systems-level lessons from the prototype period.
 
 ---
 
-# 2.53 Open Challenge Lessons
+# 2.54 Open Challenge Lessons
 
-Historical Open testing eventually clarified useful sensor responsibilities.
+Historical Open testing gradually clarified the value of separating sensing responsibilities.
 
-The current architecture moved toward:
+The current architecture uses:
 
 ```text
 ULTRASONICS
@@ -2083,79 +2088,80 @@ GYRO
 
 
 COLOR
-→ course progress / direction
+→ direction and course events
 
 
-MOTOR ENCODER
-→ motion reference
+ENCODERS
+→ relative actuator movement
 ```
 
-This separation is much cleaner than asking one sensor or one mathematical controller to solve every part of navigation.
+This is cleaner than expecting one controller or one sensor to solve every aspect of the course.
 
-The current Open use of a gyro also reflects historical testing showing that timed or purely geometric corner completion could be inconsistent.
+The return of the Gyro Sensor also reflects the observed limitations of relying only on timing or wall geometry for turn progress.
 
 ---
 
-# 2.54 Obstacle Challenge Lessons
+# 2.55 Obstacle Challenge Lessons
 
-Obstacle testing produced a similar separation of responsibilities.
+Obstacle development produced a similar separation.
 
 The later architecture moved toward:
 
 ```text
 VISION
-→ identify relevant pillar and passing objective
+→ target identity and passing objective
 
 
 ULTRASONICS
-→ wall safety, physical context, pass confirmation, recovery
+→ physical context, safety, pass confirmation, recovery
 
 
 COLOR
-→ course progress
+→ course events
 
 
-ENCODER
-→ relative vehicle movement
+ENCODERS
+→ relative movement
 ```
 
-This was a direct response to earlier situations where:
+This was partly a response to earlier versions in which:
 
 ```text
-camera
+camera control
 
-wall controller
+wall control
 
-recenter logic
+recenter control
 
-safety logic
+safety control
 ```
 
-all attempted to steer simultaneously.
+all attempted to influence Motor B simultaneously.
 
 ---
 
-# 2.55 Why the Current Architecture Became More Modular
+# 2.56 Why the Current Architecture Became More Modular
 
-A major result of prototype testing was that Piolín improved when subsystem roles became more explicit.
+Prototype testing showed that Piolín became easier to understand when subsystem roles were explicit.
 
 Instead of:
 
 ```text
-every sensor influences steering at all times
+every sensor always affects steering
 ```
 
 the architecture moved toward:
 
 ```text
-each state has a primary information source
+navigation state
+→ primary information source
 ```
 
 For example:
 
 ```text
 OPEN STRAIGHT
-→ US + gyro
+→ ultrasonic geometry + gyro
 
 
 OPEN CORNER
@@ -2171,14 +2177,14 @@ OBSTACLE PASS
 
 
 RECOVERY
-→ lateral US
+→ lateral ultrasonics
 ```
 
-This reduces ambiguity and makes debugging easier.
+This reduces ambiguity and improves debugging.
 
 ---
 
-# 2.56 Why the HuskyLens Architecture Was Eventually Replaced
+# 2.57 Why HuskyLens Was Replaced
 
 The HuskyLens stage should not be summarized as:
 
@@ -2186,15 +2192,15 @@ The HuskyLens stage should not be summarized as:
 camera failed
 ```
 
-because that would ignore the useful results it produced.
+because it successfully demonstrated useful visual recognition.
 
-The more accurate analysis is:
+A more accurate analysis is:
 
 ```text
-Husky could identify colors
+HuskyLens could identify pillar colors
 ```
 
-but dynamic track testing revealed a combined burden of:
+but moving-track testing revealed a combined burden of:
 
 ```text
 false detections
@@ -2227,50 +2233,52 @@ perception redesign
 and:
 
 ```text
-architecture simplification
+integration simplification
 ```
 
 ---
 
-# 2.57 Why the Front Ultrasonic Was Eventually Removed
+# 2.58 Why the Front Ultrasonic Was Removed
 
 Earlier versions used or explored a frontal ultrasonic sensor.
 
-Testing showed that every EV3 input had significant value.
+Testing demonstrated that EV3 sensor-port allocation had to prioritize the most valuable information.
 
-The final architecture needed specialized information from:
-
-```text
-gyro during Open
-```
-
-and:
+The current architecture retains:
 
 ```text
-Pixy during Obstacles
+S2 = LEFT Ultrasonic
+
+S3 = RIGHT Ultrasonic
+
+S4 = Color Sensor
 ```
 
-while still retaining:
+while S1 is used for:
 
 ```text
-S2 left US
-
-S3 right US
-
-S4 Color
+OPEN
+→ Gyro
 ```
 
-The front ultrasonic was therefore removed as part of a systems-level port-allocation decision.
+or:
 
-This is an example of testing leading to **hardware removal rather than hardware addition**.
+```text
+OBSTACLES
+→ Pixy2.1
+```
+
+The front ultrasonic was therefore removed as a systems-level architecture decision.
+
+This is an example of engineering development leading to **less hardware rather than more hardware**.
 
 ---
 
-# 2.58 Why Testing Led Back to the Gyro
+# 2.59 Why the Gyro Returned
 
-The gyro appeared in different stages of Piolín development and was also removed during some architectures.
+The Gyro Sensor appeared, disappeared, and later returned during Piolín's development.
 
-Historical Open testing continued to show that the vehicle benefited from a direct orientation reference for:
+Historical Open testing continued to demonstrate the usefulness of a direct orientation reference for:
 
 ```text
 heading stabilization
@@ -2280,7 +2288,13 @@ turn progress
 corner completion
 ```
 
-The current Open architecture therefore reintroduced the gyro on S1.
+The current Open architecture therefore uses:
+
+```text
+S1 = Gyro
+```
+
+again.
 
 This demonstrates that engineering evolution is not always linear.
 
@@ -2290,18 +2304,20 @@ A component can be:
 tested
 → removed
 → reconsidered
-→ returned in a more appropriate architecture
+→ returned
 ```
+
+when the system architecture changes.
 
 ---
 
-# 2.59 Why Pixy2.1 Could Return After Earlier Pixy Experiments
+# 2.60 Why Pixy2.1 Returned in a New Role
 
-The same principle applies to Pixy.
+Pixy technology also appeared in earlier experiments.
 
-Earlier Pixy experiments do not represent the current architecture.
+The current Pixy2.1 configuration should not be interpreted as identical to those earlier tests.
 
-Later development clarified that the required vision information included:
+Later development clarified that Piolín needed access to:
 
 ```text
 signature
@@ -2315,15 +2331,13 @@ width
 height
 ```
 
-and that a shorter communication path would be valuable.
+with a shorter communication path.
 
-The current Pixy2.1 architecture therefore revisited a previously explored technology under different requirements and integration conditions.
+The current system therefore revisited vision hardware under a better-defined set of requirements.
 
 ---
 
-# 2.60 Current vs. Historical Testing Context
-
-The following distinctions are important when reading historical test notes.
+# 2.61 Current vs. Historical Context
 
 | Historical Element | Current Status |
 | :--- | :--- |
@@ -2332,28 +2346,30 @@ The following distinctions are important when reading historical test notes.
 | Husky → Nano → USB | Legacy |
 | Front ultrasonic | Not current |
 | Three-ultrasonic configurations | Legacy |
-| Diagonal ultrasonic layouts | Legacy |
-| S2/S3 reversed mappings | Not current |
+| Diagonal ultrasonic arrangements | Legacy |
+| Alternative S2/S3 mappings | Not current |
 | Gyro-free Open concepts | Historical |
-| Current Open gyro | Current |
-| Current Pixy2.1 direct S1 | Current Obstacles |
+| Gyro on S1 during Open | Current |
+| Pixy2.1 on S1 during Obstacles | Current |
 | S2 LEFT / S3 RIGHT | Current |
 | Motor A drive / Motor B steering | Current |
 
-This prevents historical observations from being confused with present hardware instructions.
+Historical observations must always be interpreted according to the hardware version in which they occurred.
 
 ---
 
-# 2.61 Lessons About Engineering Method
+# 2.62 Engineering Method Lessons
 
-The most valuable legacy testing lessons were methodological.
+The strongest lessons from this prototype period were methodological.
 
-### Verify the physical robot before changing code
+### Verify hardware first
 
 ```text
-hardware first
-software second
+physical robot
+→ software
 ```
+
+not the reverse.
 
 ### Test one layer at a time
 
@@ -2362,82 +2378,90 @@ sensor
 → communication
 → interpretation
 → control
-→ physical motion
+→ motion
 ```
 
 ### Preserve known-good versions
 
-Do not destroy a stable baseline while fixing an unrelated problem.
+A stable baseline should remain available.
 
-### Change one meaningful variable at a time
+### Change one meaningful variable
 
 Otherwise cause and effect become unclear.
 
-### Use physical feedback
+### Prefer physical feedback over assumption
 
-A timer is not the same as a measured physical state.
+```text
+elapsed time
+≠
+guaranteed physical state
+```
 
 ### Separate controller responsibilities
 
-More simultaneous corrections can produce less control.
+More simultaneous corrections can produce less stability.
 
 ### Distinguish recognition from navigation
 
-Seeing the correct target does not guarantee the correct trajectory.
+```text
+correct target
+≠
+correct trajectory
+```
 
 ### Record failures
 
-A failed run is useful if its state, configuration, and cause can be analyzed.
+A failed run becomes useful when its state and configuration are known.
 
 ---
 
-# 2.62 Failure Analysis Matrix
+# 2.63 Failure Analysis Matrix
 
 A condensed historical diagnostic matrix is:
 
 | Symptom | Possible Perception Cause | Possible Control Cause | Possible Hardware Cause |
 | :--- | :--- | :--- | :--- |
-| Wrong pillar side | Wrong ID / stale target | Sign/mapping error | — |
-| No pillar response | Target not detected | State rejected detection | Camera/communication |
+| Wrong pillar side | Wrong ID / stale target | Sign or mapping error | — |
+| No pillar response | Target not detected | State rejected detection | Camera / communication |
 | Zig-zag | Intermittent target | Controllers fighting | Steering play |
-| Late avoidance | Late target visibility | Excess confirmation | FOV/mount |
-| Hits wall after pass | — | Recovery incorrect | US orientation |
-| Double corner count | — | Event latch missing | Color positioning |
-| Wide corner | — | Weak/late steering | Steering mechanics |
+| Late avoidance | Late visibility | Excessive confirmation | Camera FOV / mount |
+| Hits wall after pass | — | Recovery incorrect | US geometry |
+| Double course count | — | Event latch missing | Color-sensor positioning |
+| Wide corner | — | Weak / late steering | Steering mechanics |
 | Tight corner | — | Excess steering | Steering mechanics |
-| Different start behavior | — | Initial error too large | Different placement |
-| Sensor appears reversed | — | Port interpretation | S2/S3 wiring |
-| Slow vehicle | — | Low command | Battery/drivetrain friction |
+| Different start behavior | — | Large initial correction | Starting placement |
+| Sensor appears reversed | — | Port interpretation | S2/S3 mapping |
+| Slow vehicle | — | Low command | Battery / drivetrain |
 
-The matrix is not intended to automatically diagnose every failure.
+The matrix does not automatically diagnose each failure.
 
-It demonstrates why several subsystem hypotheses should be checked before changing code.
+Its purpose is to show that several hypotheses may need to be tested before software is changed.
 
 ---
 
-# 2.63 Legacy Evidence and Quantitative Claims
+# 2.64 Legacy Evidence and Quantitative Claims
 
-Many historical observations were qualitative because the development priority was achieving working competition behavior under significant time constraints.
+Many historical tests produced qualitative observations rather than complete quantitative datasets.
 
-The repository should preserve those observations honestly.
+This should be preserved honestly.
 
-It should not retroactively invent:
+The repository should not retroactively invent:
 
 ```text
 success percentages
 
-precision values
-
-latency values
+latency measurements
 
 mean error
 
 standard deviation
+
+sensor accuracy
 ```
 
-for tests where those measurements were not collected.
+when those measurements were not recorded.
 
-If real logs or videos allow those values to be reconstructed later, they may be added with a clear methodology.
+If historical logs or videos later provide enough evidence for formal measurements, they can be added with a documented method.
 
 Until then:
 
@@ -2445,7 +2469,7 @@ Until then:
 observed repeatedly
 ```
 
-should remain distinct from:
+must remain distinct from:
 
 ```text
 measured statistically
@@ -2453,11 +2477,11 @@ measured statistically
 
 ---
 
-# 2.64 Recommended Future Testing Standard
+# 2.65 Recommended Current Testing Standard
 
-The lessons from this legacy period suggest a stronger testing standard for the current robot.
+The lessons from this period suggest a stronger current test record.
 
-A test should ideally record:
+Each test should ideally include:
 
 ```text
 date
@@ -2472,20 +2496,20 @@ track setup
 
 starting position
 
-parameter changed
+single variable changed
 
-expected behavior
+expected result
 
-actual behavior
+actual result
 
-important sensor logs
+important logs
 
-result
+diagnosis
 
-next action
+decision
 ```
 
-The development sequence should then be:
+The development process becomes:
 
 ```text
 BASELINE
@@ -2496,32 +2520,20 @@ ONE CHANGE
    ↓
 CONTROLLED TEST
    ↓
-DATA
+EVIDENCE
    ↓
 DECISION
 ```
 
-<div align="center">
-
-<img
-  src="../../embed/testing_workflow.png"
-  alt="Current recommended Piolín engineering testing workflow"
-  width="870"
-/>
-
-<br>
-
-<sub><b>Figure L2.12.</b> Legacy experience informed a more controlled testing methodology for current Piolín development.</sub>
-
-</div>
+No additional diagram is required here because the same engineering process is already represented by **Figure L2.1**.
 
 ---
 
-# 2.65 How Legacy Testing Shaped the Current Robot
+# 2.66 How Legacy Testing Shaped the Current Robot
 
-The current Piolín architecture reflects many direct conclusions from these experiments.
+Several current design decisions can be traced directly to the prototype period.
 
-### Two fixed lateral ultrasonics
+### Two fixed lateral ultrasonic sensors
 
 ```text
 S2 = LEFT
@@ -2529,7 +2541,7 @@ S2 = LEFT
 S3 = RIGHT
 ```
 
-because lateral geometry is easier to interpret consistently than several changing ultrasonic layouts.
+because their geometry is easier to interpret consistently than several changing ultrasonic configurations.
 
 ### Modular S1
 
@@ -2542,35 +2554,35 @@ OBSTACLES
 → Pixy2.1
 ```
 
-because the most useful specialized sensor changes by round.
+because the most valuable specialized measurement changes between rounds.
 
 ### No permanent front ultrasonic
 
-EV3 port allocation favored more valuable round-specific information.
+The available EV3 input was better used for the round-specific sensor.
 
 ### No HuskyLens + Nano bridge
 
-The current vision architecture uses a shorter communication path.
+The current vision architecture uses a shorter communication chain.
 
 ### Color Sensor casing
 
-Physical control of lighting improved measurement conditions.
+A mechanical solution improved the optical measurement environment.
 
 ### State-dependent control
 
-Different navigation phases assign clearer responsibilities to different sensors.
+Different navigation states assign clearer authority to different sensor systems.
 
-### Stronger version discipline
+### Stronger baseline discipline
 
-Known-good behavior is preserved while isolated changes are tested.
+Working versions are preserved while isolated changes are evaluated.
 
 ---
 
-# 2.66 Final Engineering Analysis
+# 2.67 Final Engineering Analysis
 
-The most important result of Piolín's prototype-testing period was not a single set of parameters.
+The most important result of Piolín's prototype-testing period was not a particular threshold or steering value.
 
-It was a better model of how the robot should be engineered.
+It was a better understanding of the complete autonomous system.
 
 Early development often treated failures as isolated software problems:
 
@@ -2584,12 +2596,12 @@ camera misses target
 
 
 robot oscillates
-→ add another correction
+→ add correction
 ```
 
-Repeated testing showed that these failures were frequently interactions between multiple layers.
+Repeated testing showed that many failures were interactions across layers.
 
-A more accurate model became:
+A more useful model became:
 
 ```text
 PHYSICAL ENVIRONMENT
@@ -2598,55 +2610,65 @@ SENSORS
         ↓
 PERCEPTION / GEOMETRY
         ↓
-STATE
+NAVIGATION STATE
         ↓
-CONTROL PRIORITY
+CONTROL AUTHORITY
         ↓
 MOTOR COMMAND
         ↓
 MECHANICAL RESPONSE
         ↓
 NEW PHYSICAL STATE
-        └───────────────┐
-                        │
-                        └── feedback to sensors
+        ↓
+NEW SENSOR INPUT
 ```
 
-<div align="center">
+This explains several recurring development observations:
 
-<img
-  src="../../embed/legacy_system_feedback_loop.png"
-  alt="Piolín complete sensing control mechanical feedback loop"
-  width="900"
-/>
+```text
+camera problem
+→ can become steering problem
 
-<br>
 
-<sub><b>Figure L2.13.</b> Piolín's behavior is produced by a closed interaction between environment, sensing, software state, control decisions, and mechanical response.</sub>
+steering problem
+→ can become camera FOV problem
 
-</div>
 
-This explains several recurring development patterns.
+mechanical misalignment
+→ can appear as wall-control problem
 
-A camera problem could become a steering problem.
 
-A steering problem could become a camera FOV problem.
+port-mapping error
+→ can appear as mathematical error
 
-A mechanical alignment problem could appear to be a wall-controller problem.
 
-A port-mapping error could appear to be a mathematical error.
+wall controller
+→ can prevent correct obstacle maneuver
+```
 
-A strong wall controller could prevent a correct obstacle controller from performing its maneuver.
+The strongest engineering improvement was therefore not simply adding more software.
 
-The strongest engineering improvement was therefore not simply adding more code.
+It was learning to:
 
-It was learning to simplify and separate responsibilities.
+```text
+separate responsibilities
 
-The final historical lesson can be summarized as:
+test layers independently
 
-> **Piolín became more reliable when testing moved from repeatedly changing symptoms to identifying the physical subsystem responsible for each behavior, preserving known-good baselines, modifying one variable at a time, and assigning clear control authority according to navigation state.**
+preserve working baselines
 
-The legacy prototypes remain in the repository because they demonstrate the experimental process through which these conclusions were discovered.
+modify one variable at a time
+
+use physical evidence
+
+classify failures before changing code
+```
+
+The final lesson is:
+
+> **Piolín became easier to improve when testing moved away from repeatedly modifying visible symptoms and toward identifying the physical subsystem responsible for each behavior. Known-good baselines, layered diagnostics, one-variable testing, and state-dependent control authority became central parts of the engineering process.**
+
+The legacy prototypes remain documented because they provide evidence of how those conclusions were discovered.
 
 ---
 
