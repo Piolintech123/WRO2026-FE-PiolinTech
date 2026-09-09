@@ -1,1884 +1,789 @@
-# 3. Color Sensor Detection and Course-State Processing
+# 3. Color Sensor
 
-Piolín uses a **LEGO Color Sensor connected to EV3 input S4** as the main floor-event sensor for the WRO Future Engineers course.
+<div align="center">
 
-The sensor is mounted underneath the robot and faces downward toward the track surface.
+<img
+  src="../../v-photos/v4/color_sensor_s4_installed.jpg"
+  alt="EV3 Color Sensor installed underneath Piolín on Sensor Port S4"
+  width="680"
+/>
 
-Its current responsibilities are:
+<br>
 
-```text
-Detect BLUE floor markings
+<sub><b>Figure 3.1.</b> Piolín's downward-facing LEGO Mindstorms EV3 Color Sensor permanently connected to Sensor Port S4.</sub>
 
-Detect ORANGE floor markings
+</div>
 
-Determine initial travel direction
+Piolín uses one **LEGO Mindstorms EV3 Color Sensor** mounted underneath the chassis and permanently connected to **Sensor Port S4**. Unlike the lateral ultrasonic sensors, which observe the geometry surrounding the robot, the Color Sensor observes the competition surface directly below the vehicle.
 
-Track valid course events
+Its main role is to detect the colored floor references used by the WRO Future Engineers track.
 
-Support corner / lap progression
-
-Support the final run state
-```
-
-The color sensor does **not** directly control Motor B or determine the physical steering angle.
-
-Instead, it provides information about **where Piolín is in the course sequence**.
-
-The complete relationship is:
-
-```text
-TRACK FLOOR
-     ↓
-COLOR SENSOR S4
-     ↓
-COLOR MEASUREMENT
-     ↓
-EVENT CLASSIFICATION
-     ↓
-COURSE STATE
-     ↓
-LEGO EV3
-     ↓
-NAVIGATION BEHAVIOR
-```
-
-This makes the color sensor a **state sensor** rather than a direct wall-navigation sensor.
-
-For the complete sensor architecture, see:
-
-[Power and Sensor Configuration](01_PowerSensorconfig.md)
-
-For component-level information, see:
-
-[Color Sensor Hardware](../components/06_ColorSensor.md)
-
----
-
-## 3.1 Current Color Sensor Configuration
-
-The confirmed current configuration is:
-
-| Parameter | Current Configuration |
-| :--- | :--- |
-| **EV3 Port** | S4 |
-| **Sensor** | LEGO Color Sensor |
-| **Orientation** | Downward-facing |
-| **Observed Surface** | Competition track floor |
-| **Primary colors used** | Blue and Orange |
-| **Direction role** | Determines initial course direction |
-| **Progress role** | Detects valid floor-marking events |
-| **Direct steering role** | None |
-| **Mechanical light control** | Dedicated surrounding casing |
-
-The physical arrangement is approximately:
-
-```text
-              [ PIOLÍN ]
-                  │
-                  │
-                 S4
-                  ▼
-             COLOR SENSOR
-                  │
-                  ▼
-        ─────────────────────
-              TRACK FLOOR
-```
-
-The sensor observes the region immediately beneath the robot.
-
----
-
-# 3.2 Why the Sensor Faces Downward
-
-The color sensor is intended to observe:
-
-```text
-TRACK MARKINGS
-```
-
-rather than:
-
-```text
-Walls
-
-Pillars
-
-Objects ahead
-```
-
-Its downward orientation separates its role from the other perception systems.
-
-```text
-ULTRASONICS
-      ↓
-Track geometry
-
-
-HUSKYLENS
-      ↓
-Obstacle identity
-
-
-COLOR SENSOR
-      ↓
-Floor / course state
-```
-
-This division gives each sensing technology a specific environmental reference.
-
----
-
-# 3.3 Floor Markings as Navigation Events
-
-A floor color is useful because it represents more than a visual color.
-
-For Piolín, a valid marking is interpreted as a **course event**.
-
-Conceptually:
-
-```text
-BLUE / ORANGE REGION
-        ↓
-S4 detects color
-        ↓
-EV3 recognizes valid event
-        ↓
-Course state changes
-```
-
-Therefore:
-
-```text
-COLOR VALUE
-```
-
-is converted into:
-
-```text
-NAVIGATION INFORMATION
-```
-
-before it influences robot behavior.
-
----
-
-# 3.4 Initial Direction Detection
-
-At the beginning of the run, Piolín uses the first relevant floor marking to determine travel direction.
-
-The current rule is:
-
-```text
-BLUE FIRST
-    ↓
-COUNTERCLOCKWISE
-```
-
-and:
-
-```text
-ORANGE FIRST
-     ↓
-CLOCKWISE
-```
-
-This initial color decision affects the interpretation of the lateral ultrasonic sensors.
-
----
-
-# 3.5 Blue-First Configuration
-
-When the initial valid marking indicates blue:
+The current important markings are:
 
 ```text
 BLUE
-  ↓
-COUNTERCLOCKWISE
-```
 
-the navigation geometry becomes:
-
-```text
-S3 LEFT
-=
-INNER SENSOR
-```
-
-and:
-
-```text
-S2 RIGHT
-=
-OUTER SENSOR
-```
-
-The information flow is:
-
-```text
-BLUE detected
-      ↓
-direction = COUNTERCLOCKWISE
-      ↓
-LEFT = INNER
-RIGHT = OUTER
-      ↓
-Wall-following interpretation established
-```
-
-The color sensor therefore indirectly configures the ultrasonic navigation system.
-
----
-
-# 3.6 Orange-First Configuration
-
-When the initial valid marking indicates orange:
-
-```text
 ORANGE
-   ↓
-CLOCKWISE
 ```
 
-the sensor roles become:
+These markings provide information about:
 
 ```text
-S2 RIGHT
-=
-INNER SENSOR
+initial course direction
+
+course progression
+
+corner / section progression
+
+lap counting support
+
+final run-state decisions
+```
+
+The Color Sensor remains installed in the same position during both the **Open Challenge** and the **Obstacle Challenge**.
+
+Its electrical mapping never changes:
+
+```text
+S4 = Color Sensor
+```
+
+This makes S4 one of the stable sensing references shared by both competition configurations.
+
+---
+
+## 3.1 Sensor Role in Piolín
+
+The Color Sensor performs a fundamentally different function from the other sensors.
+
+During Open:
+
+```text
+Gyro
+→ heading
+
+Ultrasonics
+→ lateral geometry
+
+Color Sensor
+→ course-state landmarks
+```
+
+During Obstacles:
+
+```text
+Pixy2.1
+→ pillar identity and image position
+
+Ultrasonics
+→ lateral geometry
+
+Color Sensor
+→ course-state landmarks
+```
+
+The Color Sensor therefore does not try to determine:
+
+```text
+vehicle heading
+
+wall distance
+
+pillar color
+```
+
+Instead, it answers a different question:
+
+> **What important floor reference has Piolín just crossed?**
+
+This division of responsibilities simplifies the navigation architecture because each sensor is used for the type of physical information it measures most directly.
+
+---
+
+# 3.2 Permanent S4 Configuration
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/ev3_sensor_ports.jpg"
+  alt="EV3 sensor ports showing Piolín permanent S4 Color Sensor connection"
+  width="660"
+/>
+
+<br>
+
+<sub><b>Figure 3.2.</b> The Color Sensor remains assigned to S4 regardless of competition round.</sub>
+
+</div>
+
+Piolín's fixed sensor convention includes:
+
+```text
+S2 = LEFT Ultrasonic
+
+S3 = RIGHT Ultrasonic
+
+S4 = Color Sensor
+```
+
+Only S1 changes between rounds.
+
+```text
+OPEN
+S1 = Gyro
+```
+
+```text
+OBSTACLES
+S1 = Pixy2.1
+```
+
+S4 does not need to change because floor-state information is useful in both navigation strategies.
+
+Keeping the same sensor in the same port also reduces the risk of introducing wiring or software inconsistencies when Piolín is converted from one round to another.
+
+---
+
+# 3.3 Downward-Facing Installation
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/color_sensor_bottom_view.jpg"
+  alt="Bottom view of Piolín showing the downward-facing Color Sensor"
+  width="680"
+/>
+
+<br>
+
+<sub><b>Figure 3.3.</b> Bottom view showing the Color Sensor positioned to observe the track surface directly beneath the vehicle.</sub>
+
+</div>
+
+The sensor is mounted facing downward because the relevant information is located on the floor.
+
+This geometry allows Piolín to detect a marking when the chassis physically crosses over it.
+
+The sensing sequence is approximately:
+
+```text
+Piolín approaches marking
+        ↓
+marking enters sensor field
+        ↓
+S4 measurement changes
+        ↓
+EV3 classifies floor state
+        ↓
+event is confirmed
+        ↓
+navigation state is updated
+```
+
+The exact moment at which the robot recognizes the marking depends on the physical location of the sensor relative to the rest of the chassis.
+
+Therefore Color Sensor placement is part of the navigation geometry.
+
+---
+
+# 3.4 Why Sensor Position Matters
+
+The Color Sensor does not sit at the exact center of the vehicle.
+
+As a result:
+
+```text
+sensor crosses line
 ```
 
 and:
 
 ```text
-S3 LEFT
-=
-OUTER SENSOR
+vehicle center crosses line
 ```
 
-The corresponding information flow is:
+do not occur at exactly the same physical moment.
+
+This becomes important when a floor event is used near a corner.
+
+The controller must understand that the detection represents:
 
 ```text
-ORANGE detected
-       ↓
-direction = CLOCKWISE
-       ↓
-RIGHT = INNER
-LEFT = OUTER
-       ↓
-Wall-following interpretation established
-```
-
-The physical ultrasonic sensors do not move.
-
-Only their logical roles change.
-
----
-
-# 3.7 Color Does Not Directly Steer Piolín
-
-An important architectural distinction is:
-
-```text
-COLOR DETECTION
-      ≠
-STEERING COMMAND
-```
-
-The color sensor reports a course event.
-
-The EV3 then uses the current state to decide what that event means.
-
-The complete chain is:
-
-```text
-Floor marking
-      ↓
-S4
-      ↓
-Color event
-      ↓
-Navigation state
-      ↓
-EV3 logic
-      ↓
-Motor A / Motor B behavior
-```
-
-Therefore, statements such as:
-
-```text
-"Blue makes the robot turn left"
-```
-
-would oversimplify the actual system.
-
-Blue primarily establishes or updates **course interpretation**.
-
----
-
-# 3.8 Sensor Measurement vs. Color Classification
-
-The color sensor first produces optical measurement data.
-
-The software must then classify that information into a useful category.
-
-Conceptually:
-
-```text
-RAW OPTICAL DATA
-       ↓
-COLOR CLASSIFICATION
-       ↓
-BLUE / ORANGE / OTHER
-       ↓
-EVENT PROCESSING
-```
-
-This separation is important.
-
-A raw sensor measurement is not automatically a navigation event.
-
----
-
-# 3.9 RGB Representation
-
-When RGB-style measurements are used, a color sample can be represented as:
-
-```text
-R = red-channel response
-
-G = green-channel response
-
-B = blue-channel response
-```
-
-or:
-
-```text
-COLOR_SAMPLE =
-(R, G, B)
-```
-
-Different floor colors produce different relationships between these channels.
-
-Conceptually:
-
-```text
-BLUE SURFACE
-      ↓
-Different RGB pattern
-than
-ORANGE SURFACE
-```
-
-The exact current classification thresholds should come from the final calibrated software rather than from assumed generic RGB values.
-
----
-
-# 3.10 Why Absolute RGB Values Are Not Universal
-
-A color sensor does not necessarily produce the exact same numerical RGB readings under every condition.
-
-Measurements can be affected by:
-
-```text
-Ambient lighting
-
-Sensor height
-
-Sensor orientation
-
-Surface reflectivity
-
-Sensor casing
-
-Track material
-
-Battery / electronics conditions
-
-Movement speed
-```
-
-Therefore:
-
-```text
-BLUE = one universal RGB number
-```
-
-is not a safe assumption.
-
-Instead, Piolín's thresholds should be based on measurements from the **actual mounted sensor and actual competition-style surface**.
-
----
-
-# 3.11 Relative Channel Relationships
-
-In addition to absolute channel values, color classification can consider relationships between channels.
-
-Conceptually:
-
-```text
-BLUE candidate
-    ↓
-Blue channel relationship differs
-from Red / Green channels
-```
-
-while:
-
-```text
-ORANGE candidate
-     ↓
-Red / Green relationship differs
-from Blue
-```
-
-The exact mathematical rules belong to the current calibrated code.
-
-The engineering principle is:
-
-```text
-RAW RGB
-   ↓
-PATTERN / THRESHOLD CHECK
-   ↓
-COLOR CLASS
-```
-
-rather than assuming one single unchanging sensor value.
-
----
-
-# 3.12 Color Classification Output
-
-A useful software abstraction is:
-
-```text
-COLOR_BLUE
-
-COLOR_ORANGE
-
-COLOR_OTHER
-```
-
-or similar state values.
-
-For example:
-
-```python
-if is_blue(r, g, b):
-    detected_color = BLUE
-
-elif is_orange(r, g, b):
-    detected_color = ORANGE
-
-else:
-    detected_color = OTHER
-```
-
-This keeps the color-detection layer separated from course-state logic.
-
-The exact implementation may differ in the active competition code.
-
----
-
-# 3.13 Classification and Navigation Should Be Separate
-
-A robust architecture separates two questions.
-
-### Perception question
-
-```text
-What color is currently beneath S4?
-```
-
-### Navigation question
-
-```text
-What does that color mean right now?
-```
-
-The relationship is:
-
-```text
-RGB / optical reading
-        ↓
-Color classifier
-        ↓
-BLUE / ORANGE
-        ↓
-Course-state processor
-        ↓
-Direction / progress event
-```
-
-This makes the software easier to debug.
-
-If the color is classified correctly but the course counter changes incorrectly, the error is likely in event logic rather than sensing.
-
----
-
-# 3.14 Physical Marking vs. Sensor Samples
-
-While Piolín crosses one colored strip, the program may read the sensor many times.
-
-For example:
-
-```text
-Physical BLUE strip
-────────────────────
-
-Sensor samples:
-
-BLUE
-BLUE
-BLUE
-BLUE
-BLUE
-```
-
-These are:
-
-```text
-Five sensor readings
-```
-
-but only:
-
-```text
-One physical marking
-```
-
-The software must therefore distinguish repeated samples from independent course events.
-
----
-
-# 3.15 Why Direct Counting Fails
-
-A naive implementation could do:
-
-```python
-if detected_color == BLUE:
-    blue_count += 1
-```
-
-on every program cycle.
-
-If the robot remains over the same blue region for several cycles:
-
-```text
-ONE BLUE MARKING
-       ↓
-BLUE
-BLUE
-BLUE
-BLUE
-       ↓
-COUNT = 4
-```
-
-This would produce false progress.
-
-Therefore, course tracking requires **event detection**, not simply raw sample counting.
-
----
-
-# 3.16 Color Event Lock
-
-One solution is to introduce a lock while the sensor remains over the same marking.
-
-Conceptually:
-
-```text
-Neutral floor
-     ↓
-BLUE detected
-     ↓
-Count BLUE event
-     ↓
-LOCK BLUE
-     ↓
-More BLUE samples ignored
-     ↓
-Leave marking
-     ↓
-Unlock
-```
-
-This converts:
-
-```text
-Many samples
-```
-
-into:
-
-```text
-One event
-```
-
-A conceptual implementation is:
-
-```python
-if detected_color == BLUE and not color_locked:
-    register_blue_event()
-    color_locked = True
-```
-
-The lock is released only after the marking is considered cleared according to the active detection logic.
-
----
-
-# 3.17 Edge-Based Event Detection
-
-Another way to describe the same principle is detecting a **transition**.
-
-Instead of asking:
-
-```text
-Is the sensor blue?
-```
-
-every cycle, the system asks:
-
-```text
-Did the sensor transition
-from non-blue to blue?
-```
-
-Conceptually:
-
-```text
-OTHER
-  ↓
-OTHER
-  ↓
-BLUE  ← event begins
-  ↓
-BLUE
-  ↓
-BLUE
-  ↓
-OTHER ← marking cleared
-```
-
-Only the first valid transition represents the new event.
-
-This can be written conceptually as:
-
-```python
-if current_color == BLUE and previous_color != BLUE:
-    register_blue_event()
-```
-
-A real implementation may also use confirmation or cooldown logic for additional robustness.
-
----
-
-# 3.18 Cooldown Logic
-
-A cooldown can provide additional protection against duplicate detections.
-
-Conceptually:
-
-```text
-Valid color event
-      ↓
-Register event
-      ↓
-Start cooldown
-      ↓
-Ignore duplicate event triggers
-      ↓
-Cooldown expires
-```
-
-This is useful when sensor readings fluctuate at the boundary of a marking:
-
-```text
-BLUE
-OTHER
-BLUE
-OTHER
-BLUE
-```
-
-Without protection, one physical strip could be interpreted as several separate markings.
-
-The exact current cooldown duration should come from the final competition code and is intentionally not assigned a value here.
-
----
-
-# 3.19 Lock and Cooldown Are Different Concepts
-
-These two mechanisms solve related but slightly different problems.
-
-### Lock
-
-Prevents:
-
-```text
-BLUE
-BLUE
-BLUE
-BLUE
-```
-
-from generating multiple events while remaining on the same marking.
-
-### Cooldown
-
-Prevents short boundary fluctuations such as:
-
-```text
-BLUE
-OTHER
-BLUE
-```
-
-from generating immediate duplicate events.
-
-Conceptually:
-
-```text
-COLOR CLASSIFICATION
-       ↓
-EVENT LOCK
-       ↓
-COOLDOWN / TRANSITION CONTROL
-       ↓
-VALID COURSE EVENT
-```
-
-The current code may implement one or both ideas depending on the final version.
-
----
-
-# 3.20 Confirmation Samples
-
-Another technique is requiring more than one consistent sample before accepting a color classification.
-
-Conceptually:
-
-```text
-Sample 1 = BLUE
-Sample 2 = BLUE
-        ↓
-Confirmed BLUE
+the sensor reaching the marking
 ```
 
 rather than:
 
 ```text
-One isolated BLUE reading
-        ↓
-Immediate course event
+the complete vehicle reaching exactly the same point
 ```
 
-This can reduce false detections caused by brief optical disturbances.
-
-However:
+This physical offset can influence:
 
 ```text
-More confirmations
-       ↓
-Greater robustness
+corner timing
+
+state transitions
+
+parking logic
+
+progress counting
+```
+
+and should be considered when tuning the final controller.
+
+---
+
+# 3.5 Color Sensor Light-Isolation Casing
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/color_sensor_casing.jpg"
+  alt="Piolín Color Sensor light isolation casing"
+  width="660"
+/>
+
+<br>
+
+<sub><b>Figure 3.4.</b> Physical casing surrounding the Color Sensor to reduce uncontrolled ambient illumination.</sub>
+
+</div>
+
+One of the most important modifications to Piolín's floor-sensing system is the light-isolation casing surrounding the Color Sensor.
+
+A color measurement depends on the light reaching the sensing area.
+
+Without physical isolation, readings can change because of:
+
+```text
+room lighting
+
+sunlight
+
+shadows
+
+reflections
+
+robot orientation
+
+nearby objects
+```
+
+Instead of trying to solve all of these effects using increasingly broad software thresholds, Piolín also improves the physical measurement environment.
+
+The design principle is:
+
+```text
+reduce uncontrolled light
+        ↓
+reduce measurement variation
+        ↓
+improve classification consistency
+```
+
+This is an example of using mechanical design to improve sensor quality before software processing begins.
+
+---
+
+# 3.6 Why Physical Isolation Is Useful
+
+Suppose the same blue marking is measured under two different lighting conditions.
+
+Without sufficient isolation:
+
+```text
+same physical blue
++
+different environmental light
+=
+different sensor values
+```
+
+If the difference becomes large enough, the software may need very broad classification ranges.
+
+Broad ranges create another problem:
+
+```text
+more tolerance
 ```
 
 can also produce:
 
 ```text
-More detection delay
+more overlap between categories
 ```
 
-so confirmation count must be balanced against vehicle speed.
+The casing helps reduce this problem by making the local optical environment around the sensor more controlled.
 
-No final current confirmation count is claimed here.
+This does not eliminate the need for calibration.
+
+It improves the conditions under which calibration is performed.
 
 ---
 
-# 3.21 Vehicle Speed and Color Detection
+# 3.7 Blue Course Reference
 
-The faster Piolín moves, the less time the sensor remains over a colored region.
+<div align="center">
+
+<img
+  src="../../v-photos/v4/color_sensor_blue_mark.jpg"
+  alt="Piolín Color Sensor positioned over a blue course marking"
+  width="660"
+/>
+
+<br>
+
+<sub><b>Figure 3.5.</b> S4 observing a real blue floor reference used by the navigation system.</sub>
+
+</div>
+
+A valid **Blue** event has special importance during Open because the first recognized course color establishes the navigation direction.
+
+The current rule used by Piolín is:
+
+```text
+BLUE first
+→ COUNTERCLOCKWISE
+```
+
+This means Blue is not merely a visual label.
+
+At the beginning of an Open run, it can initialize an important persistent software state.
 
 Conceptually:
 
 ```text
-LOWER SPEED
-      ↓
-More samples over marking
+direction = UNKNOWN
+        ↓
+BLUE detected first
+        ↓
+direction = COUNTERCLOCKWISE
 ```
 
-while:
-
-```text
-HIGHER SPEED
-      ↓
-Fewer samples over marking
-```
-
-Therefore, color-detection reliability depends on the interaction between:
-
-```text
-Sensor sampling
-
-Vehicle speed
-
-Marking width
-
-Confirmation logic
-
-Cooldown logic
-```
-
-This is why color processing cannot be tuned completely independently from mobility.
+Once this state has been established, later color events should not continuously reverse the navigation direction.
 
 ---
 
-# 3.22 Color Sensor Casing
+# 3.8 Orange Course Reference
 
-Piolín uses a casing around the color sensor to reduce unwanted surrounding light reaching the observed floor region.
+<div align="center">
+
+<img
+  src="../../v-photos/v4/color_sensor_orange_mark.jpg"
+  alt="Piolín Color Sensor positioned over an orange course marking"
+  width="660"
+/>
+
+<br>
+
+<sub><b>Figure 3.6.</b> S4 observing a real orange floor reference.</sub>
+
+</div>
+
+The opposite Open initialization rule is:
+
+```text
+ORANGE first
+→ CLOCKWISE
+```
 
 Conceptually:
 
 ```text
-      AMBIENT LIGHT
-       ↘       ↙
-
-       ┌─────────┐
-       │ CASING  │
-       │   S4    │
-       └────┬────┘
-            │
-            ▼
-        TRACK FLOOR
-```
-
-The casing creates a more controlled local optical environment around the sensor.
-
-This is an example of solving a sensing problem partly through **mechanical design** rather than only through software thresholds.
-
----
-
-# 3.23 Why Ambient Light Matters
-
-Optical sensors respond to light reflected from the surface.
-
-If external illumination changes:
-
-```text
-Incident light changes
+direction = UNKNOWN
         ↓
-Reflected light changes
+ORANGE detected first
         ↓
-Sensor values may shift
+direction = CLOCKWISE
 ```
 
-This means identical floor material can produce somewhat different measurements under:
+Once direction has been established, Blue and Orange can continue to provide progress information without redefining which physical ultrasonic sensor is left or right.
+
+The physical sensor mapping always remains:
 
 ```text
-Bright overhead lighting
+S2 = LEFT
 
-Shadow
-
-Directional light
-
-Nearby reflections
+S3 = RIGHT
 ```
 
-The casing helps reduce this uncontrolled variation.
+Only the logical interpretation of:
+
+```text
+INNER
+
+OUTER
+```
+
+changes according to the course direction.
 
 ---
 
-# 3.24 Mechanical Light Isolation
+# 3.9 Direction Is a Persistent State
 
-The design relationship is:
+The first valid course marking should initialize direction only once.
+
+A weak implementation could behave like:
 
 ```text
-External environment
-       ↓
-Mechanical casing
-       ↓
-Reduced direct ambient influence
-       ↓
-More controlled sensor region
+see Blue
+→ CCW
+
+later see Orange
+→ CW
+
+later see Blue
+→ CCW
 ```
 
-The casing does not make the color sensor completely independent of lighting.
+That would continuously invert the interpretation of the track.
 
-Instead, it helps improve consistency by limiting the amount of uncontrolled external light entering the measurement area.
+Instead, Piolín should conceptually use:
 
-The current model is available at:
+```text
+IF direction is UNKNOWN:
+    first valid Blue/Orange
+    sets direction
 
-[Color Sensor Casing STL](../../models/3dprint/ColorSensorCasing.stl)
+ELSE:
+    keep existing direction
+```
+
+Later floor detections then become **course-progress events** rather than direction-selection events.
+
+This distinction is essential for stable multi-lap navigation.
 
 ---
 
-# 3.25 Sensor Height
+# 3.10 Color as Course-State Information
 
-Color measurements also depend on the physical distance between the sensor and floor.
+Once course direction is established, the Color Sensor becomes a physical landmark detector.
+
+Rather than trying to estimate progress entirely through:
+
+```text
+time
+
+motor rotation
+
+assumed distance
+```
+
+Piolín can use real features on the course.
+
+This provides a state transition based on:
+
+```text
+robot physically crossed a known floor reference
+```
+
+which is often more meaningful than:
+
+```text
+approximately enough time has passed
+```
+
+The Color Sensor therefore helps connect internal software state to physical track progress.
+
+---
+
+# 3.11 Progress Counting
+
+The WRO Open course requires Piolín to complete multiple corners and laps.
+
+A color event can contribute to the progress counter.
 
 Conceptually:
 
 ```text
-Sensor too high
-      ↓
-Larger / weaker observed region
-      ↓
-Greater environmental influence
-```
-
-while:
-
-```text
-Sensor too low
-      ↓
-Risk of physical floor contact
-```
-
-The chassis therefore needs to maintain a stable sensor position.
-
-No final numerical S4-to-floor distance is claimed here because it has not been established as a confirmed current measurement.
-
----
-
-# 3.26 Sensor Orientation
-
-The sensor should remain directed toward the floor.
-
-If it tilts:
-
-```text
-Observed region changes
+valid marking crossed
         ↓
-Reflected light distribution changes
+new course event
         ↓
-Color values can change
+progress counter updated
 ```
 
-Therefore:
+The exact relationship between individual Blue/Orange events and the final corner-count implementation depends on the active Open controller.
 
-```text
-Mechanical sensor stability
-        ↓
-Optical measurement stability
-```
-
-The color-sensor mount is consequently part of the sensing architecture.
+The important design principle is that the software should count **physical events**, not repeated sensor samples from the same physical marking.
 
 ---
 
-# 3.27 Current Course Marking Structure
+# 3.12 Why One Marking Can Be Read Many Times
 
-Piolín's current course-progress logic is designed around the blue and orange floor markings encountered around the course.
-
-Across three laps, the intended course sequence includes:
-
-```text
-12 valid BLUE events
-
-12 valid ORANGE events
-```
-
-corresponding to the repeated colored corner markings around the track.
-
-This means the sensor may produce many raw blue/orange samples during the run, but the course-state system should only register the valid physical events.
-
-The distinction is:
-
-```text
-RAW DETECTIONS
-      ↓
-Potentially many samples
-
-
-VALID EVENTS
-      ↓
-12 BLUE + 12 ORANGE
-across three laps
-```
-
-for the complete intended three-lap progression.
-
----
-
-# 3.28 Why Both Colors Are Tracked
-
-Tracking both colors provides more course-state information than counting only one color.
-
-Conceptually:
-
-```text
-BLUE EVENTS
-     +
-ORANGE EVENTS
-     ↓
-Course progression evidence
-```
-
-The system can therefore verify that the expected sequence of track markings is being crossed as Piolín moves around the circuit.
-
-This information is useful for:
-
-```text
-Corner progression
-
-Lap progression
-
-Final-run state
-```
-
-without using the color sensor as a steering-angle sensor.
-
----
-
-# 3.29 Color Event Counters
-
-A conceptual data structure can include:
-
-```text
-blue_count
-
-orange_count
-```
-
-Each counter changes only after a **new valid event**.
+When Piolín drives over a colored region, the sensor may remain above that color for more than one program loop.
 
 For example:
 
-```python
-if new_blue_event:
-    blue_count += 1
-
-if new_orange_event:
-    orange_count += 1
+```text
+LOOP 1 → BLUE
+LOOP 2 → BLUE
+LOOP 3 → BLUE
+LOOP 4 → BLUE
 ```
 
-The event-validation layer should occur before the counters are updated.
-
-Therefore:
+If every loop increments the counter:
 
 ```text
-RAW COLOR
-    ↓
-VALIDATE EVENT
-    ↓
-UPDATE COUNTER
+one physical marking
+→ four software events
 ```
 
-rather than:
+This would corrupt lap and corner progression.
+
+Therefore color recognition needs an event mechanism that distinguishes:
 
 ```text
-RAW COLOR
-    ↓
-UPDATE COUNTER
-```
-
----
-
-# 3.30 Corner Progress
-
-Because the colored markings are associated with repeated locations around the course, the event counters can help determine how much of the run has been completed.
-
-Conceptually:
-
-```text
-Valid color event
-       ↓
-Progress changes
-       ↓
-Current course phase updated
-```
-
-This information can be combined with:
-
-```text
-Ultrasonic corner geometry
-```
-
-rather than replacing it.
-
-The two sensing systems answer different questions.
-
-```text
-ULTRASONICS
-      ↓
-What geometry is present?
-
-
-COLOR SENSOR
-      ↓
-Which course event was crossed?
-```
-
----
-
-# 3.31 Color and Corner Geometry
-
-A robust architecture should not assume:
-
-```text
-Color alone = physical steering geometry
-```
-
-The lateral ultrasonic sensors provide the actual wall transition information used for corner behavior.
-
-The color sensor can provide:
-
-```text
-Course progress
-
-Event confirmation
-
-Direction information
-```
-
-The combined architecture is:
-
-```text
-COLOR EVENT
-      +
-WALL GEOMETRY
-      ↓
-Navigation state
-```
-
-This reduces dependence on one sensor modality.
-
----
-
-# 3.32 Example Course-State Flow
-
-A simplified course-state sequence can be represented as:
-
-```text
-START
-  ↓
-Read first valid color
-  ↓
-Determine direction
-  ↓
-Assign inner / outer ultrasonic roles
-  ↓
-Navigate straight
-  ↓
-Detect wall geometry change
-  ↓
-Execute corner
-  ↓
-Cross valid color marking
-  ↓
-Update progress
-  ↓
-Continue
-```
-
-The exact order of physical wall and color events can vary according to robot trajectory and sensor mounting, so the software should not treat every sensing event as occurring at exactly the same instant.
-
----
-
-# 3.33 Color Sensor and Lap Counting
-
-Course progression eventually needs to distinguish:
-
-```text
-Corner events
+currently seeing Blue
 ```
 
 from:
 
 ```text
-Complete laps
+a NEW Blue crossing occurred
 ```
 
-A lap consists of multiple repeated corner/marking events.
+---
+
+# 3.13 Event Lock
+
+A useful conceptual solution is a detection lock.
+
+```text
+neutral floor
+      ↓
+Blue detected
+      ↓
+count one Blue event
+      ↓
+lock Blue event
+      ↓
+continue over marking
+      ↓
+do not count again
+      ↓
+leave marking
+      ↓
+unlock for next event
+```
+
+The same concept applies to Orange.
+
+This prevents one physical region from being counted several times because of the sensor's sampling rate.
+
+---
+
+# 3.14 Debouncing and Confirmation
+
+A color event should also avoid reacting to one uncertain sample if that sample is not representative.
+
+A conceptual confirmation process is:
+
+```text
+possible Blue
+      ↓
+check classification consistency
+      ↓
+confirm event
+```
+
+However, confirmation creates a trade-off.
+
+Too little confirmation can cause:
+
+```text
+false detections
+```
+
+Too much confirmation can cause:
+
+```text
+late detection
+```
+
+At vehicle speed, late detection corresponds to additional physical travel.
+
+The best confirmation strategy is therefore not necessarily the longest one.
+
+It should be sufficient to reject unstable samples without making the course-state event occur too late.
+
+---
+
+# 3.15 Neutral Floor and Re-Arming
+
+One way to identify that Piolín has left a colored marking is to observe the normal floor again.
 
 Conceptually:
 
 ```text
-Valid corner events
-      ↓
-Progress accumulated
-      ↓
-One complete circuit
-      ↓
-Lap count changes
+BLUE
+→ locked
+→ normal floor returns
+→ Blue detector re-armed
 ```
 
-Across the intended Open Challenge run:
+The exact current implementation can vary because physical floor readings may not always produce one perfectly uniform neutral value.
 
-```text
-3 complete laps
-```
+The broader engineering requirement is:
 
-must be distinguished from intermediate course positions.
+> **A second event should only be accepted after there is convincing evidence that Piolín has left the previous physical marking.**
 
-The color counters provide one source of progression information for this purpose.
+This reduces double counting.
 
 ---
 
-# 3.34 Why Duplicate Counts Are Dangerous
+# 3.16 Classification Pipeline
 
-A false extra color event can create a larger system error than a simple incorrect sensor reading.
+The conceptual Color Sensor pipeline is:
+
+```text
+PHYSICAL FLOOR
+      ↓
+LIGHT-ISOLATION CASING
+      ↓
+EV3 COLOR SENSOR
+      ↓
+RAW / COLOR MEASUREMENT
+      ↓
+CLASSIFICATION
+      ↓
+TEMPORAL CONFIRMATION
+      ↓
+EVENT LOCK
+      ↓
+COURSE-STATE UPDATE
+```
+
+Each stage solves a different problem.
+
+```text
+Casing
+→ physical measurement stability
+
+Classification
+→ Blue / Orange / other
+
+Confirmation
+→ reject unstable events
+
+Lock
+→ avoid duplicate counting
+
+State logic
+→ decide what detection means
+```
+
+This separation makes the system easier to debug.
+
+---
+
+# 3.17 Raw Measurement vs. Navigation Event
+
+It is useful to distinguish three levels.
+
+### Measurement
+
+```text
+sensor reports optical information
+```
+
+### Classification
+
+```text
+software decides:
+Blue / Orange / Other
+```
+
+### Event
+
+```text
+software decides:
+a NEW meaningful marking was crossed
+```
+
+These are not the same thing.
 
 For example:
 
 ```text
-One physical marking
-       ↓
-Counted twice
-       ↓
-Progress counter becomes incorrect
-       ↓
-Robot believes it is farther into run
-       ↓
-Final-state behavior may occur early
+100 consecutive Blue measurements
 ```
 
-Therefore:
+may correspond to:
 
 ```text
-COURSE EVENT RELIABILITY
+one Blue event
 ```
 
-is more important than simply detecting color as quickly as possible.
-
-This justifies lock, transition, confirmation, and cooldown logic.
+This distinction is particularly important when debugging progression errors.
 
 ---
 
-# 3.35 Missing Events Are Also Dangerous
+# 3.18 Classification Calibration
 
-The opposite failure is:
+Color classification should be based on measurements from the actual V4 robot.
 
-```text
-Physical marking crossed
-       ↓
-No valid event registered
-       ↓
-Course counter remains behind
-```
-
-The robot may then believe it has completed fewer corners or laps than it physically has.
-
-This creates a trade-off:
+Calibration should use:
 
 ```text
-Detection too permissive
-      ↓
-False extra counts
+current sensor
 
+current sensor height
 
-Detection too strict
-      ↓
-Missed counts
+current casing
+
+real competition-style Blue
+
+real competition-style Orange
+
+representative lighting
 ```
 
-Calibration must find a practical region between these two failure modes.
+A calibration performed before changing the casing or sensor mounting may no longer represent the current system.
+
+The repository should therefore avoid copying old threshold values automatically into the final documentation.
 
 ---
 
-# 3.36 Event-Detection Balance
+# 3.19 Recommended Calibration Samples
 
-The desired processing behavior is:
-
-```text
-REAL MARKING
-      ↓
-Detected reliably
-
-
-NO REAL MARKING
-      ↓
-No event
-
-
-SAME MARKING
-      ↓
-Only one event
-```
-
-This can be summarized as three requirements:
+A useful calibration dataset should include repeated measurements of:
 
 ```text
-DETECT
+Blue
 
-REJECT
+Orange
 
-DE-DUPLICATE
+normal floor
 ```
 
-A useful color-event system needs all three.
+rather than only one reading from each.
+
+A table can later be used:
+
+| Surface | Trial | Sensor Reading | Classification Result |
+| :--- | :---: | :--- | :--- |
+| Blue | 1 | — | — |
+| Blue | 2 | — | — |
+| Blue | 3 | — | — |
+| Orange | 1 | — | — |
+| Orange | 2 | — | — |
+| Orange | 3 | — | — |
+| Normal floor | 1 | — | — |
+| Normal floor | 2 | — | — |
+
+Only real V4 measurements should populate this table.
+
+The goal is to understand the **range of readings**, not merely one ideal value.
 
 ---
 
-# 3.37 State Machine Representation
+# 3.20 Why RGB or Raw Values Can Be Useful
 
-The color-event subsystem can be described using a simple state machine.
+A predefined color-name mode can be useful, but raw or RGB-style measurements can provide greater control when the physical colors do not match ideal sensor categories perfectly.
 
-```text
-             ┌─────────────┐
-             │   FLOOR     │
-             └──────┬──────┘
-                    │
-             Valid color detected
-                    │
-                    ▼
-             ┌─────────────┐
-             │ ON MARKING  │
-             └──────┬──────┘
-                    │
-              Register once
-                    │
-                    ▼
-             ┌─────────────┐
-             │   LOCKED    │
-             └──────┬──────┘
-                    │
-             Marking cleared
-                    │
-                    ▼
-             ┌─────────────┐
-             │   FLOOR     │
-             └─────────────┘
-```
-
-This is a conceptual architecture rather than a requirement that the final source code use these exact state names.
-
----
-
-# 3.38 Previous and Current Color
-
-Another useful representation stores:
-
-```text
-previous_color
-
-current_color
-```
-
-The transition can then be evaluated.
-
-Conceptually:
-
-```python
-new_blue_event = (
-    current_color == BLUE
-    and previous_color != BLUE
-)
-
-new_orange_event = (
-    current_color == ORANGE
-    and previous_color != ORANGE
-)
-```
-
-This naturally makes the system sensitive to **edges** rather than continuously counting a sustained color.
-
-Additional confirmation may still be used if required.
-
----
-
-# 3.39 Neutral / Other Surface
-
-The system also needs to recognize when the sensor is not currently on a valid blue or orange marking.
-
-This state can be represented conceptually as:
-
-```text
-OTHER
-
-FLOOR
-
-NEUTRAL
-```
-
-depending on the software naming convention.
-
-The important function is:
-
-```text
-Valid marking cleared
-        ↓
-System becomes ready
-for next event
-```
-
-The exact appearance of the normal floor should be calibrated from the actual competition surface.
-
----
-
-# 3.40 Color Boundary Behavior
-
-At the edge between ordinary floor and a colored marking, the sensor can temporarily observe a mixture of regions.
-
-Conceptually:
-
-```text
-FLOOR | BLUE
-        ↑
-     sensor field
-partially overlaps both
-```
-
-This can produce intermediate measurements.
-
-Therefore, classification should tolerate the fact that transitions are not infinitely sharp.
-
-This is another reason event logic should not depend on one single exact RGB tuple.
-
----
-
-# 3.41 Sensor Sampling While Turning
-
-The color sensor is attached to the chassis, so during a turn its path over the floor differs from the path of the vehicle center.
-
-The physical sequence may be:
-
-```text
-Vehicle begins turning
-       ↓
-S4 follows curved floor path
-       ↓
-Colored marking enters sensor region
-       ↓
-Event occurs
-```
-
-Therefore, color timing depends partly on:
-
-```text
-Vehicle geometry
-
-Sensor position
-
-Steering path
-```
-
-The color event should be interpreted as a course observation, not as an exact vehicle-center coordinate.
-
----
-
-# 3.42 Sensor Offset and Course Events
-
-Because S4 is not necessarily located exactly at the vehicle's geometric center:
-
-```text
-Color sensor crosses marking
-```
-
-does not mean:
-
-```text
-Vehicle center is exactly above marking
-```
-
-The physical offset introduces a difference between:
-
-```text
-Sensor event location
-```
-
-and:
-
-```text
-Vehicle reference-point location
-```
-
-No final numerical sensor offset is claimed here because it has not been confirmed for the final robot.
-
----
-
-# 3.43 Color Sensor and Vehicle Speed
-
-At higher speed:
-
-```text
-Colored strip remains beneath sensor
-for less time
-```
-
-which means:
-
-```text
-Fewer samples are available
-```
-
-At lower speed:
-
-```text
-More samples are available
-```
-
-but a naive counting system would also be more likely to count the same marking repeatedly.
-
-Therefore:
-
-```text
-Higher speed
-      ↓
-Miss risk can increase
-
-
-Lower speed
-      ↓
-Duplicate-sample exposure increases
-```
-
-Event processing is needed in both cases.
-
----
-
-# 3.44 Color Sensor and Steering
-
-Steering changes the physical path followed by the downward sensor.
-
-During an ideal straight:
-
-```text
-S4 path
-≈
-longitudinal track path
-```
-
-During a turn:
-
-```text
-S4 follows an arc
-```
-
-This can change:
-
-```text
-Where the marking is crossed
-
-How long the sensor remains over it
-
-Which part of the marking is observed
-```
-
-Color calibration should therefore be validated under real movement rather than only with the stationary robot.
-
----
-
-# 3.45 Course Direction Should Be Locked
-
-Once the initial direction is correctly established, ordinary later color events should not repeatedly reverse the course interpretation.
-
-Conceptually:
-
-```text
-START
-  ↓
-First valid direction color
-  ↓
-Set direction
-  ↓
-LOCK DIRECTION
-```
-
-After this:
-
-```text
-BLUE / ORANGE events
-```
-
-are primarily progress events rather than instructions to redefine the entire travel direction.
-
-This prevents later markings from corrupting the established inner/outer ultrasonic mapping.
-
----
-
-# 3.46 Direction Variable
-
-A conceptual variable can be:
-
-```text
-direction
-```
-
-with states:
-
-```text
-UNKNOWN
-
-CLOCKWISE
-
-COUNTERCLOCKWISE
-```
-
-At startup:
-
-```text
-direction = UNKNOWN
-```
-
-Then:
-
-```python
-if direction == UNKNOWN:
-
-    if new_blue_event:
-        direction = COUNTERCLOCKWISE
-
-    elif new_orange_event:
-        direction = CLOCKWISE
-```
-
-After assignment, the lateral ultrasonic roles can be mapped accordingly.
-
-The exact code structure may differ, but the state concept is useful.
-
----
-
-# 3.47 Sensor Role After Direction Lock
-
-After travel direction is known, the color subsystem continues operating but its role changes.
-
-### Before direction is known
-
-```text
-Color
-  ↓
-Determine direction
-```
-
-### After direction is known
-
-```text
-Color
-  ↓
-Track course progression
-```
-
-This is a state-dependent sensor responsibility.
-
-The same physical sensor provides different information at different points in the run.
-
----
-
-# 3.48 Open Challenge Role
-
-During the Open Challenge, S4 contributes:
-
-```text
-Initial direction
-
-Progress events
-
-Lap / corner progression
-
-Final run-state support
-```
-
-while:
-
-```text
-S2 + S3
-```
-
-provide lateral wall navigation and:
-
-```text
-S1
-```
-
-provides frontal safety.
-
-The Open sensing architecture is therefore:
-
-```text
-S1
-↓
-Safety
-
-
-S2 + S3
-↓
-Geometry
-
-
-S4
-↓
-Course state
-```
-
-No camera information is required for ordinary Open-round wall navigation.
-
----
-
-# 3.49 Obstacle Challenge Role
-
-The color sensor remains useful during the Obstacle Challenge.
-
-The architecture becomes:
-
-```text
-S4
-↓
-Course state
-
-
-HuskyLens
-↓
-Obstacle identity
-
-
-S2 + S3
-↓
-Wall geometry
-
-
-S1
-↓
-Frontal safety
-```
-
-The HuskyLens does not replace the color sensor because the two systems observe different environmental information.
-
----
-
-# 3.50 Color and HuskyLens Must Not Be Confused
-
-Both systems involve optical perception, but their responsibilities are different.
-
-| System | Observes | Main Information |
-| :--- | :--- | :--- |
-| **Color Sensor S4** | Floor below robot | Course-state markings |
-| **HuskyLens** | Region ahead of robot | Pillar identity |
-
-Therefore:
-
-```text
-S4 BLUE
-```
-
-does not mean:
-
-```text
-HuskyLens obstacle ID
-```
-
-and:
-
-```text
-HuskyLens GREEN ID 1
-```
-
-does not correspond to a floor course event.
-
-Keeping these classifications separate prevents software ambiguity.
-
----
-
-# 3.51 Color and Ultrasonic Sensor Fusion
-
-A course event becomes more useful when interpreted together with current geometry.
-
-For example:
-
-```text
-Valid marking crossed
-       +
-Known navigation state
-       +
-Current wall geometry
-       ↓
-Course progress updated
-```
-
-The sensor architecture therefore follows:
-
-```text
-COLOR
-      ↓
-WHEN / WHERE IN COURSE?
-
-
-ULTRASONIC
-      ↓
-WHAT GEOMETRY EXISTS NOW?
-```
-
-Combining both produces stronger state information than either one alone.
-
----
-
-# 3.52 Why Color Alone Should Not Determine a Corner Turn
-
-A color marking is an important event, but using it as the only physical trigger for steering could create several problems.
-
-For example:
-
-```text
-Color detected slightly early
-        ↓
-Turn begins before correct geometry
-```
-
-or:
-
-```text
-Color detection delayed
-        ↓
-Turn begins too late
-```
-
-The current architecture therefore emphasizes actual wall geometry for vehicle motion while using color for course-state awareness.
-
-Conceptually:
-
-```text
-COLOR
-   ↓
-Progress / state
-
-
-WALLS
-   ↓
-Physical steering geometry
-```
-
----
-
-# 3.53 Color Event Reliability
-
-A reliable course-state event should satisfy:
-
-```text
-Correct classification
-
-Sufficient confirmation
-
-No duplicate count
-
-Correct state interpretation
-```
-
-Conceptually:
-
-```text
-RAW SAMPLE
-    ↓
-CLASSIFY
-    ↓
-CONFIRM
-    ↓
-CHECK LOCK
-    ↓
-CHECK COURSE STATE
-    ↓
-REGISTER EVENT
-```
-
-A failure at any of these stages can create a wrong progress count.
-
----
-
-# 3.54 Data Logging
-
-During development, useful color-sensor logging can include:
+A custom classifier can conceptually compare:
 
 ```text
 R
@@ -1886,713 +791,1122 @@ R
 G
 
 B
-
-Detected color
-
-Previous color
-
-Lock state
-
-Blue count
-
-Orange count
-
-Direction
-
-Current navigation state
 ```
 
-A conceptual diagnostic output could be:
+or other available sensor values.
+
+This allows the team to create thresholds matched to:
 
 ```text
-RGB=(..., ..., ...)
-COLOR=BLUE
-LOCK=1
-BLUE_COUNT=...
-ORANGE_COUNT=...
-DIR=CCW
-STATE=...
+the actual mat
+
+the actual casing
+
+the actual mounting
 ```
 
-Actual values should come from the active robot.
+rather than relying only on generic color definitions.
 
-Logging both raw and interpreted data helps separate classification problems from event-processing problems.
+The final classification method should be the one that proves most repeatable under real testing.
 
 ---
 
-# 3.55 Debugging Classification vs. Counting
+# 3.21 Relative Color Relationships
 
-Suppose the robot reports:
+A classifier does not always need to rely only on one absolute threshold.
 
-```text
-BLUE
-```
-
-correctly but the count increases twice.
-
-Then:
+For example, a color may be identified through relationships between channels rather than:
 
 ```text
-Classification works
+R > one fixed number
 ```
 
-but:
+alone.
 
-```text
-Event de-duplication failed
-```
+This can sometimes make classification more tolerant of moderate brightness changes.
 
-By contrast, if the raw reading appears correct but software reports:
-
-```text
-OTHER
-```
-
-the issue is more likely in:
-
-```text
-Classification thresholds
-```
-
-This separation makes debugging much faster.
+However, no final mathematical classification rule should be documented as validated until actual current sensor data supports it.
 
 ---
 
-# 3.56 Common Failure Modes
+# 3.22 Lighting Variation
 
-Color-sensor problems can be divided into several categories.
+Even with the casing, lighting can still influence measurements.
 
-| Failure Mode | Possible Result |
-| :--- | :--- |
-| **Ambient-light variation** | RGB values shift |
-| **Loose S4 mount** | Observed floor region changes |
-| **Sensor too high** | Weaker / broader reading |
-| **Casing contacts floor** | Mechanical disturbance |
-| **Threshold too narrow** | Missed marking |
-| **Threshold too broad** | False detection |
-| **No event lock** | Duplicate counts |
-| **Cooldown too restrictive** | Valid next event may be delayed |
-| **Direction not locked** | Later colors could corrupt direction |
-| **Incorrect counter logic** | Wrong lap/course state |
-| **High speed** | Fewer samples across marking |
+Possible environmental changes include:
 
-These failure modes should be isolated rather than solved by changing every parameter simultaneously.
+```text
+different room
+
+different overhead lights
+
+sunlight entering room
+
+shadows
+
+reflections from nearby surfaces
+```
+
+Therefore calibration should not be evaluated using only one ideal stationary test.
+
+The final classifier should also be tested during actual driving.
 
 ---
 
-# 3.57 Diagnostic Sequence
+# 3.23 Static vs. Dynamic Detection
 
-When course-color behavior becomes unreliable, a useful investigation order is:
+A stationary calibration test answers:
 
 ```text
-1. Verify S4 physical connection
-        ↓
-2. Verify sensor faces floor
-        ↓
-3. Verify casing and clearance
-        ↓
-4. Read raw sensor values
-        ↓
-5. Verify BLUE classification
-        ↓
-6. Verify ORANGE classification
-        ↓
-7. Verify neutral-floor classification
-        ↓
-8. Verify event lock
-        ↓
-9. Verify cooldown / transition handling
-        ↓
-10. Verify counters
-        ↓
-11. Verify course-state interpretation
+Can the sensor distinguish the colors
+while Piolín is not moving?
 ```
 
-This prevents a course-counting problem from being incorrectly treated as a sensor-hardware problem.
+A dynamic test answers:
+
+```text
+Can the system detect the marking
+while Piolín crosses it at real speed?
+```
+
+The second is essential.
+
+During motion:
+
+```text
+sensor spends limited time above marking
+
+sampling position changes
+
+vehicle vibration exists
+
+lighting can change slightly
+```
+
+A classifier that works perfectly while stationary can still miss markings during a real run.
 
 ---
 
-# 3.58 Calibration Philosophy
+# 3.24 Vehicle Speed and Detection Window
 
-Color calibration should be performed on the **current final installation** because the complete optical system includes:
+The faster Piolín travels, the less time the Color Sensor remains over a floor marking.
 
-```text
-Sensor
-
-Mounting height
-
-Sensor angle
-
-Casing
-
-Track material
-
-Lighting environment
-```
-
-Changing one of these can change the measured values.
-
-Therefore:
+Conceptually:
 
 ```text
-Sensor calibration
-      belongs to
-complete mounted system
+higher speed
+→ shorter observation time
 ```
 
-rather than the sensor alone.
+which means:
 
-Detailed calibration procedures are documented in:
+```text
+fewer available sensor samples
+```
 
-[Sensor Calibration](05_Calibration.md)
+before the robot leaves the colored region.
 
-[How to Calibrate](../reproducibility/06_HowToCalibrate.md)
+This creates another design trade-off.
+
+```text
+more confirmation
+→ stronger noise rejection
+→ but slower event recognition
+```
+
+At higher vehicle speed, an overly slow confirmation method may cause the event to occur after Piolín has already traveled too far.
+
+Color logic should therefore be validated at representative operating speed.
 
 ---
 
-# 3.59 Calibration Data Categories
+# 3.25 Sensor Height
 
-For color calibration, the useful measurement categories are conceptually:
+The physical distance between the sensor and the floor affects the optical measurement.
+
+If the sensor height changes:
 
 ```text
-BLUE samples
+illumination geometry changes
 
-ORANGE samples
+reflected light changes
 
-NORMAL FLOOR samples
+field observed can change
 ```
 
-These allow the team to compare:
+This means a chassis modification that moves S4 vertically can invalidate previous calibration.
+
+The Color Sensor mount should therefore remain mechanically stable after thresholds have been tuned.
+
+---
+
+# 3.26 Casing Clearance
+
+The casing must reduce unwanted light without interfering with vehicle motion.
+
+It should not:
 
 ```text
-Within-color variation
+drag on the floor
+
+catch on track features
+
+push the sensor out of alignment
+```
+
+A useful physical design therefore balances:
+
+```text
+light isolation
+```
+
+with:
+
+```text
+safe ground clearance
+```
+
+The casing is both an optical and mechanical component.
+
+---
+
+# 3.27 Color Sensor During Open Challenge
+
+During Open, S4 has two major responsibilities.
+
+First:
+
+```text
+determine initial course direction
+```
+
+Second:
+
+```text
+provide physical progression landmarks
+```
+
+The complete Open sensing context is:
+
+```text
+S1 Gyro
+→ orientation
+
+S2/S3 Ultrasonics
+→ wall geometry
+
+S4 Color
+→ track-state events
+```
+
+This allows Piolín to combine:
+
+```text
+continuous information
+```
+
+from the gyro and ultrasonics with:
+
+```text
+discrete landmarks
+```
+
+from the floor.
+
+---
+
+# 3.28 Continuous vs. Discrete Sensors
+
+This distinction is useful.
+
+The ultrasonic and gyro sensors provide values that can change continuously while Piolín moves.
+
+The Color Sensor often produces navigation information as discrete events:
+
+```text
+Blue crossed
+
+Orange crossed
+```
+
+The controller therefore combines two different forms of information.
+
+```text
+CONTINUOUS
+→ where / how am I moving?
+
+
+DISCRETE
+→ what important course point did I cross?
+```
+
+This is one reason floor sensing is valuable even when the robot already has wall and heading sensors.
+
+---
+
+# 3.29 Color and Corner Handling
+
+Floor markings can contribute to corner-state logic.
+
+However, the Color Sensor should not be treated as the only source of corner geometry.
+
+A strong Open corner decision can combine:
+
+```text
+course progress from S4
+
+ultrasonic geometry
+
+gyro heading / rotation
+```
+
+The Color Sensor can indicate:
+
+```text
+a relevant course landmark has been reached
+```
+
+while the other sensors help determine:
+
+```text
+how the vehicle should physically complete the turn
+```
+
+This prevents one sensor type from being responsible for the entire corner maneuver.
+
+---
+
+# 3.30 Color and Gyro Complementarity
+
+During Open:
+
+```text
+Color
+→ tells Piolín that a course event occurred
+```
+
+while:
+
+```text
+Gyro
+→ tells Piolín how much the vehicle has rotated
+```
+
+These are different pieces of information.
+
+For example, a floor event may begin a corner state, but the gyro can help determine whether the vehicle has actually rotated enough to begin exiting that state.
+
+This produces a stronger relationship than either sensor alone.
+
+---
+
+# 3.31 Color and Ultrasonic Complementarity
+
+Similarly:
+
+```text
+Color
+→ progress landmark
 ```
 
 and:
 
 ```text
-Between-color separation
+Ultrasonics
+→ wall geometry
 ```
 
-The final thresholds should be chosen from real measurements rather than generated theoretical values.
+A color event may indicate that Piolín has reached the region where a corner is expected, while S2/S3 help determine whether the surrounding geometry is consistent with that interpretation.
+
+Combining them reduces dependence on one sensor reading.
 
 ---
 
-# 3.60 Classification Margin
+# 3.32 Color Sensor During Obstacle Challenge
 
-A robust classifier should ideally leave separation between typical measurements of different surfaces.
+The Color Sensor remains on S4 during Obstacles.
 
-Conceptually:
-
-```text
-BLUE RANGE
-
-████████
-
-
-            separation
-
-
-                    ████████
-
-                 ORANGE RANGE
-```
-
-If the measured distributions overlap heavily:
+The active configuration becomes:
 
 ```text
-Classification becomes less reliable
+S1 = Pixy2.1
+
+S2 = Left Ultrasonic
+
+S3 = Right Ultrasonic
+
+S4 = Color Sensor
 ```
 
-Possible responses include:
+Pixy is responsible for visual pillar information.
+
+The Color Sensor remains responsible for the floor.
+
+Therefore:
 
 ```text
-Improve lighting isolation
-
-Adjust sensor position
-
-Use multiple channel conditions
-
-Modify threshold logic
+Pixy Red
 ```
 
-This is why the casing and software calibration are complementary solutions.
+and:
+
+```text
+Color Sensor Orange
+```
+
+are completely different sensing events even though both involve color.
 
 ---
 
-# 3.61 Mechanical Solution Before Software Complexity
+# 3.33 Color Sensor vs. Pixy2.1
 
-One important lesson from Piolín's color sensing development is that not every sensor problem should be solved with more complicated code.
+The distinction is essential.
 
-If ambient lighting causes large variation:
-
-```text
-Software thresholds become difficult
-```
-
-A mechanical casing can reduce the variation before the signal reaches software.
-
-The engineering chain is:
+### EV3 Color Sensor
 
 ```text
-PHYSICAL CAUSE
-      ↓
-MECHANICAL MITIGATION
-      ↓
-MORE CONSISTENT DATA
-      ↓
-SIMPLER CLASSIFICATION
+looks downward
+
+observes floor directly underneath Piolín
+
+detects track markings
 ```
 
-This is a good example of systems engineering between mechanical and sensing design.
+### Pixy2.1
+
+```text
+looks forward
+
+observes objects ahead
+
+detects visual signatures
+```
+
+The two devices solve different physical problems.
+
+The Color Sensor should not be used to identify obstacle pillars because it cannot observe them ahead of the robot.
+
+Pixy should not replace S4 for precise floor crossings because its visual geometry is entirely different.
 
 ---
 
-# 3.62 Color Sensor and Reproducibility
+# 3.34 Parking and Course Progress
 
-For another team or judge to reproduce the sensor behavior, documentation should identify:
+The Color Sensor can also support parking by helping determine whether the robot has completed the required course progression before the final positioning sequence begins.
 
-```text
-S4 port
-
-Downward orientation
-
-Casing
-
-Floor colors used
-
-Direction mapping
-
-Event-processing concept
-
-Calibration procedure
-```
-
-Simply stating:
+A safe parking condition should not be:
 
 ```text
-"Use a color sensor"
+see one relevant color
+→ immediately stop
 ```
 
-would not be sufficient.
-
-The reproducible architecture is:
+Instead, course state can contribute to a larger decision containing:
 
 ```text
-INSTALL
-   ↓
-CALIBRATE
-   ↓
-CLASSIFY
-   ↓
-DE-DUPLICATE
-   ↓
-INTERPRET COURSE STATE
+expected progress reached
+
+correct lap / corner count
+
+parking condition active
+
+vehicle positioned appropriately
 ```
+
+The final parking implementation remains under development, so this document does not claim one finished event sequence.
 
 ---
 
-# 3.63 Current vs. Legacy Color Logic
+# 3.35 Three-Lap Progression
 
-Earlier Piolín development versions used different:
-
-```text
-Detection thresholds
-
-Confirmation counts
-
-Cooldown durations
-
-Corner logic
-
-Sensor configurations
-```
-
-These historical parameters should not automatically be copied into the final system.
-
-The current confirmed architecture is:
+For Open, Piolín's intended full run consists of:
 
 ```text
-S4
-↓
-Downward color sensing
+3 laps
 
-
-BLUE FIRST
-↓
-COUNTERCLOCKWISE
-
-
-ORANGE FIRST
-↓
-CLOCKWISE
-
-
-VALID COLOR EVENTS
-↓
-Course progression
+12 corners
 ```
 
-Current numerical thresholds should come from the active final calibration/code.
+The Color Sensor provides physical events that can help the controller maintain awareness of this progression.
+
+A useful state concept is:
+
+```text
+START
+ ↓
+direction established
+ ↓
+course events counted
+ ↓
+lap / corner progress updated
+ ↓
+12-corner condition reached
+ ↓
+parking sequence allowed
+```
+
+The exact implementation must prevent:
+
+```text
+duplicate counts
+
+missed counts
+
+false counts
+```
+
+because any of these can move the software state out of synchronization with the physical robot.
 
 ---
 
-# 3.64 Confirmed Current Color-Sensor Information
+# 3.36 Missed Detection
 
-The following information is confirmed for the current Piolín configuration:
+A missed marking can occur when:
 
-| Parameter | Current Value |
+```text
+sensor classification fails
+
+robot crosses too quickly
+
+marking is only partially observed
+
+sensor position is poor
+
+thresholds are too restrictive
+```
+
+If one event is missed, the internal course counter can fall behind the physical robot.
+
+This can later appear as:
+
+```text
+parking too late
+
+corner count wrong
+
+lap state wrong
+```
+
+even though the original failure happened much earlier.
+
+Color-state debugging should therefore identify the first incorrect event rather than only the final symptom.
+
+---
+
+# 3.37 Duplicate Detection
+
+The opposite failure is counting one marking twice.
+
+Possible causes include:
+
+```text
+event lock released too early
+
+sensor briefly leaves and re-enters threshold
+
+classification oscillates near boundary
+
+no cooldown / re-arm logic
+```
+
+A duplicate event causes software progression to move ahead of the physical robot.
+
+The two failure types can therefore be distinguished conceptually:
+
+```text
+MISSED EVENT
+→ software behind physical progress
+```
+
+```text
+DUPLICATE EVENT
+→ software ahead of physical progress
+```
+
+This distinction is useful during debugging.
+
+---
+
+# 3.38 False Detection
+
+A false detection occurs when the software classifies something as Blue or Orange even though Piolín did not cross the intended course marking.
+
+Potential causes include:
+
+```text
+threshold overlap
+
+lighting
+
+surface variation
+
+reflections
+
+classification noise
+```
+
+The casing reduces part of the optical variability, while software confirmation reduces part of the remaining classification risk.
+
+Neither method should be expected to solve every problem independently.
+
+---
+
+# 3.39 Color Sensor Diagnostic Order
+
+When floor detection behaves incorrectly, a useful diagnostic sequence is:
+
+```text
+1. Verify S4 connection.
+
+2. Inspect sensor mounting.
+
+3. Inspect casing position.
+
+4. Verify sensor faces floor correctly.
+
+5. Read raw values over normal floor.
+
+6. Read raw values over Blue.
+
+7. Read raw values over Orange.
+
+8. Compare with classification logic.
+
+9. Test event lock.
+
+10. Test dynamic crossing at low speed.
+
+11. Test at representative speed.
+
+12. Only then change course-state logic.
+```
+
+This order separates:
+
+```text
+physical sensing problem
+```
+
+from:
+
+```text
+classification problem
+```
+
+and:
+
+```text
+state-management problem
+```
+
+before the full navigation controller is changed.
+
+---
+
+# 3.40 Common Failure Modes
+
+| Observed Behavior | Possible Cause |
 | :--- | :--- |
-| **EV3 input** | S4 |
-| **Orientation** | Downward-facing |
-| **Primary course colors** | Blue and Orange |
-| **Blue first** | Counterclockwise |
-| **Orange first** | Clockwise |
-| **Direct steering control** | No |
-| **Main state role** | Direction + progress |
-| **Light isolation** | Physical casing |
-| **Three-lap intended valid blue events** | 12 |
-| **Three-lap intended valid orange events** | 12 |
+| Blue never detected | Threshold, S4, height, casing, lighting |
+| Orange never detected | Threshold, S4, height, casing, lighting |
+| Blue classified as Orange | Classification ranges or sensor data |
+| Orange classified as Blue | Classification ranges or sensor data |
+| Same line counted multiple times | Event-lock / re-arm logic |
+| Line detected while stationary but missed while driving | Speed, confirmation delay, sampling |
+| Direction changes later in the run | Direction state is being overwritten |
+| Corner count becomes too high | Duplicate events |
+| Corner count becomes too low | Missed events |
+| Detection changed after mechanical work | Sensor height or casing position changed |
+| Random false detections | Threshold overlap, lighting, surface variation |
+| Correct raw reading but wrong navigation behavior | State logic rather than sensor problem |
 
-The following are intentionally not assigned final values here:
-
-```text
-RGB thresholds
-
-Reflected-light thresholds
-
-Confirmation count
-
-Cooldown duration
-
-Color lock release timing
-
-Exact S4-to-floor distance
-
-Exact longitudinal/lateral sensor offset
-```
-
-These should only be documented numerically when confirmed from the current robot and code.
+This table helps identify which layer should be investigated first.
 
 ---
 
-# 3.65 Sensor Responsibility Matrix
+# 3.41 Testing Blue
 
-| Information | Source / Derived State | Purpose |
-| :--- | :--- | :--- |
-| **Raw optical sample** | S4 | Base measurement |
-| **BLUE classification** | Color logic | Identify blue marking |
-| **ORANGE classification** | Color logic | Identify orange marking |
-| **OTHER / floor state** | Color logic | Identify marking clearance |
-| **New color event** | Transition logic | Prevent repeated counting |
-| **Direction** | First valid color event | Select CW / CCW |
-| **Blue count** | Valid blue events | Course progress |
-| **Orange count** | Valid orange events | Course progress |
-| **Lap / course state** | Event history | Overall run progression |
+<div align="center">
 
-The information chain is therefore:
+<img
+  src="../../v-photos/v4/color_sensor_blue_mark.jpg"
+  alt="Blue floor reference used during Piolín Color Sensor testing"
+  width="660"
+/>
+
+<br>
+
+<sub><b>Figure 3.7.</b> Blue should be tested using the actual sensor installation rather than a detached sensor under unrelated conditions.</sub>
+
+</div>
+
+Blue testing should include:
 
 ```text
-OPTICAL DATA
+multiple stationary samples
+
+multiple crossing speeds
+
+slightly different vehicle positions
+
+representative lighting
+```
+
+The objective is not only to identify a perfect center-of-marking reading.
+
+The classifier should remain useful during the actual physical crossing performed by Piolín.
+
+---
+
+# 3.42 Testing Orange
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/color_sensor_orange_mark.jpg"
+  alt="Orange floor reference used during Piolín Color Sensor testing"
+  width="660"
+/>
+
+<br>
+
+<sub><b>Figure 3.8.</b> Orange should be characterized independently from Blue using real V4 measurements.</sub>
+
+</div>
+
+Blue and Orange should be measured independently.
+
+The team should avoid assuming:
+
+```text
+if Blue works,
+Orange automatically works
+```
+
+because the optical values and their separation from the normal floor can differ.
+
+Both classes need sufficient margin from:
+
+```text
+each other
+```
+
+and:
+
+```text
+normal track surface
+```
+
+for reliable classification.
+
+---
+
+# 3.43 Dynamic Course Test
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/full_track.jpg"
+  alt="Full track used for Piolín dynamic Color Sensor testing"
+  width="740"
+/>
+
+<br>
+
+<sub><b>Figure 3.9.</b> Final Color Sensor validation must occur during real track motion because timing and vehicle speed affect floor-event detection.</sub>
+
+</div>
+
+After isolated classification is stable, the system should be tested as part of a full moving robot.
+
+A useful test progression is:
+
+```text
+stationary color test
       ↓
-COLOR
+slow single crossing
       ↓
-EVENT
+normal-speed single crossing
       ↓
-COURSE STATE
+several consecutive markings
+      ↓
+one complete lap
+      ↓
+three-lap progression
 ```
+
+This helps determine at which level a failure first appears.
 
 ---
 
-# 3.66 Complete Color Data Pipeline
+# 3.44 Test Logging
 
-The current color subsystem can be summarized as:
+Useful Color Sensor tests should record:
+
+| Field | Information |
+| :--- | :--- |
+| Software version | Current test code / commit |
+| Sensor mode | Raw / RGB / classification method |
+| Casing | Current physical configuration |
+| Surface | Blue / Orange / normal |
+| Vehicle state | Stationary or moving |
+| Speed | Current Motor A condition |
+| Raw measurement | Actual sensor output |
+| Classification | Resulting class |
+| Event accepted? | Yes / No |
+| Counter before | Course state |
+| Counter after | Course state |
+| Notes | Misclassification, delay, duplicate, etc. |
+
+This makes it possible to distinguish a sensor improvement from an unrelated state-logic change.
+
+---
+
+# 3.45 Mechanical Changes Require Recalibration
+
+The Color Sensor should be recalibrated or at least reverified after changes such as:
 
 ```text
-                     TRACK FLOOR
-                         │
-                         ▼
-                    COLOR SENSOR
-                         S4
-                         │
-                         ▼
-                RAW OPTICAL VALUES
-                         │
-                         ▼
-                 COLOR CLASSIFIER
-                  /      |      \
-                 /       |       \
-                ▼        ▼        ▼
-              BLUE    ORANGE    OTHER
-                │        │        │
-                └────┬───┴────────┘
-                     ▼
-               EVENT PROCESSING
+sensor remounting
+
+casing replacement
+
+casing movement
+
+chassis-height change
+
+sensor angle change
+```
+
+Even if the software is unchanged, the optical environment may no longer be identical.
+
+This reflects the broader Piolín engineering principle:
+
+> **Sensor calibration belongs to the complete physical sensor installation, not only to the electronic component.**
+
+---
+
+# 3.46 Same Color Hardware in Both Rounds
+
+One major advantage of S4 is that it remains physically unchanged when switching competition configurations.
+
+```text
+OPEN
+S4 = Color
+```
+
+```text
+OBSTACLES
+S4 = Color
+```
+
+Unlike S1:
+
+```text
+Gyro ↔ Pixy
+```
+
+the Color Sensor does not need to be replaced or rewired.
+
+This preserves:
+
+```text
+sensor position
+
+sensor height
+
+casing geometry
+
+electrical port
+
+calibration reference
+```
+
+between rounds.
+
+---
+
+# 3.47 Physical Integration
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/piolin_bottom.jpg"
+  alt="Bottom view of Piolín showing Color Sensor integration into the chassis"
+  width="720"
+/>
+
+<br>
+
+<sub><b>Figure 3.10.</b> S4 is integrated into the underside of the common Piolín vehicle platform.</sub>
+
+</div>
+
+The bottom installation places the sensor close enough to the competition surface to detect floor markings while keeping it mechanically integrated with the chassis.
+
+Its location must also avoid interference with:
+
+```text
+wheels
+
+drivetrain
+
+steering
+
+track surface
+```
+
+The sensor therefore forms part of both the sensing and mechanical architecture.
+
+---
+
+# 3.48 Current vs. Legacy Color Logic
+
+The physical S4 concept has remained useful throughout Piolín's development, but classification and course-state logic have evolved.
+
+Older programs may contain different:
+
+```text
+color windows
+
+confirmation counts
+
+cooldowns
+
+thresholds
+
+event-count logic
+```
+
+These historical values should not automatically be treated as current final calibration.
+
+The current documentation should distinguish:
+
+```text
+sensor architecture
+```
+
+which is established, from:
+
+```text
+final software thresholds
+```
+
+which are still subject to testing.
+
+---
+
+# 3.49 Values Intentionally Not Claimed as Final
+
+The following values should only be published after current V4 measurement and validation:
+
+```text
+final Blue RGB range
+
+final Orange RGB range
+
+final neutral-floor range
+
+final brightness thresholds
+
+final confirmation count
+
+final debounce duration
+
+final event-lock release condition
+
+final minimum time between events
+
+final sensor-to-floor distance
+
+final sensor offset from vehicle reference point
+
+measured classification accuracy
+
+measured missed-event rate
+
+measured duplicate-event rate
+
+maximum validated crossing speed
+```
+
+Working code can contain current tuning values, but those values should not be described as universal or final until the tests support that claim.
+
+---
+
+# 3.50 Recommended Final Characterization
+
+A complete V4 Color Sensor characterization should eventually contain four groups of measurements.
+
+### Static optical characterization
+
+Measure repeated:
+
+```text
+Blue
+
+Orange
+
+normal floor
+```
+
+samples while Piolín remains stationary.
+
+### Lighting robustness
+
+Repeat representative measurements under realistic lighting conditions.
+
+### Dynamic crossing test
+
+Cross each marking several times at representative vehicle speed and record:
+
+```text
+detected?
+
+correct class?
+
+event counted once?
+```
+
+### Full-course progression test
+
+Verify that:
+
+```text
+initial direction
+
+course count
+
+lap count
+
+final progression state
+```
+
+remain synchronized with the physical robot throughout the run.
+
+This progression converts basic optical sensing into validated autonomous-course state.
+
+---
+
+# 3.51 Complete Color-Sensing Chain
+
+The current system can be represented as:
+
+```text
+                 TRACK FLOOR
                      │
-             ┌───────┼────────┐
-             ▼       ▼        ▼
-         Transition  Lock   Confirmation /
-                          Cooldown logic
+                     ▼
+            BLUE / ORANGE MARK
                      │
                      ▼
-                VALID EVENT
-                     │
-           ┌─────────┴─────────┐
-           ▼                   ▼
-      DIRECTION STATE      PROGRESS STATE
-           │                   │
-           └─────────┬─────────┘
-                     ▼
-                  LEGO EV3
+            LIGHT-ISOLATION CASING
                      │
                      ▼
-             NAVIGATION LOGIC
+             COLOR SENSOR S4
+                     │
+                     ▼
+                    EV3
+                     │
+             raw measurement
+                     │
+                     ▼
+              classification
+                     │
+                     ▼
+             event confirmation
+                     │
+                     ▼
+                event lock
+                     │
+                     ▼
+             course-state update
+                     │
+                     ▼
+         navigation decision / progress
 ```
 
-This pipeline prevents raw sensor samples from being treated directly as course commands.
+The important point is that the sensor measurement passes through several interpretation layers before it changes vehicle behavior.
+
+This makes each layer independently testable.
 
 ---
 
-# 3.67 Open Challenge Integration
+# 3.52 Final Engineering Assessment
 
-Within the Open Challenge, the complete perception architecture becomes:
+Piolín's EV3 Color Sensor provides a stable physical connection between the robot's internal software state and the real competition surface.
+
+Its permanent mapping is:
 
 ```text
-                       COURSE
-                         │
-       ┌─────────────────┼─────────────────┐
-       ▼                 ▼                 ▼
-    WALLS              FLOOR            FRONT
-       │                 │                 │
-       ▼                 ▼                 ▼
-    S2 / S3              S4                S1
-       │                 │                 │
-       ▼                 ▼                 ▼
-   GEOMETRY          COURSE STATE        SAFETY
-       │                 │                 │
-       └─────────────────┼─────────────────┘
-                         ▼
-                      LEGO EV3
-                         │
-                         ▼
-                    VEHICLE CONTROL
+S4 = Color Sensor
 ```
 
-The color sensor therefore complements, rather than replaces, ultrasonic navigation.
+in both Open and Obstacles.
 
----
+The sensor is mounted downward and protected by a physical light-isolation casing to improve the optical conditions under which Blue and Orange floor references are measured.
 
-# 3.68 Obstacle Challenge Integration
-
-During the Obstacle Challenge:
+During Open, the first valid color event establishes course direction:
 
 ```text
-                      ENVIRONMENT
-                           │
-      ┌─────────────┬──────┼──────┬─────────────┐
-      ▼             ▼             ▼             ▼
-    WALLS          FLOOR         FRONT         PILLAR
-      │             │             │             │
-      ▼             ▼             ▼             ▼
-   S2 / S3          S4            S1        HuskyLens
-      │             │             │             │
-      │             │             │        Arduino Nano
-      │             │             │             │
-      └─────────────┴──────┬──────┴─────────────┘
-                           ▼
-                        LEGO EV3
-                           │
-                           ▼
-                     VEHICLE CONTROL
+BLUE first
+→ counterclockwise
+
+ORANGE first
+→ clockwise
 ```
 
-S4 continues supplying course-state information while the HuskyLens adds obstacle identity.
+After direction has been established, later floor detections contribute primarily to course progression rather than redefining the robot's direction.
 
----
-
-# 3.69 Why the Color Sensor Is Important
-
-Piolín's wall sensors can tell the robot about immediate geometry, but wall distances alone do not fully describe **course progression**.
-
-For example, similar wall geometry can appear on different laps.
-
-The color system provides an additional reference:
+This requires the software to distinguish between:
 
 ```text
-GEOMETRY
-    ↓
-Where can I drive?
+raw measurements
 
+color classifications
 
-COLOR EVENTS
-    ↓
-How far through the course sequence am I?
+new physical events
 ```
 
-This distinction becomes particularly important when the robot must eventually transition from repeated navigation into the final run state.
+so that one marking is not counted repeatedly across multiple control loops.
 
----
+The Color Sensor also complements the other sensing systems rather than replacing them.
 
-# 3.70 Engineering Significance
-
-The color sensor is a relatively small physical component but has a significant logical role.
-
-It connects:
+During Open:
 
 ```text
-PHYSICAL TRACK MARKINGS
-        ↓
-OPTICAL MEASUREMENT
-        ↓
-SOFTWARE EVENT
-        ↓
-COURSE MEMORY
+Color
+→ course state
+
+Gyro
+→ heading
+
+Ultrasonics
+→ lateral geometry
 ```
 
-The sensor allows Piolín to make navigation decisions based not only on what surrounds the robot at the current instant, but also on **where the robot is within the complete competition sequence**.
-
-The mechanical casing further demonstrates that sensing performance depends on integration between:
+During Obstacles:
 
 ```text
-MECHANICS
-     +
-ELECTRONICS
-     +
-SOFTWARE
+Color
+→ course state
+
+Pixy2.1
+→ visual obstacle information
+
+Ultrasonics
+→ lateral geometry
 ```
 
-rather than software classification alone.
+The main engineering principle behind the subsystem is:
+
+> **Use physical floor markings as discrete navigation landmarks, improve the measurement environment mechanically, and convert sensor readings into controlled state events rather than treating every sample as a new course event.**
+
+This makes the Color Sensor more than a simple color detector. It becomes a persistent course-state reference used to connect Piolín's autonomous software with the physical structure of the WRO Future Engineers track.
 
 ---
 
-# 3.71 Final Color-Sensor Architecture
+<div align="center">
 
-Piolín's final color system can be summarized as:
+### [← Back to PiolínTech Main README](../../README.md)
 
-```text
-                    TRACK MARKING
-                         ↓
-                         S4
-                         ↓
-                  OPTICAL SAMPLE
-                         ↓
-                BLUE / ORANGE /
-                     OTHER
-                         ↓
-                 EVENT FILTER
-                         ↓
-               NEW VALID EVENT
-                         ↓
-            ┌────────────┴────────────┐
-            ▼                         ▼
-     INITIAL DIRECTION          COURSE PROGRESS
-            │                         │
-            ▼                         ▼
-      BLUE → CCW                BLUE COUNT
-    ORANGE → CW                ORANGE COUNT
-            │                         │
-            └────────────┬────────────┘
-                         ▼
-                      LEGO EV3
-                         │
-                         ▼
-                NAVIGATION STATE
-```
-
-The most important distinction is:
-
-```text
-RAW COLOR SAMPLE
-      ≠
-COURSE EVENT
-```
-
-The software must convert many rapidly sampled optical measurements into a smaller number of meaningful physical events.
-
-The intended complete three-lap progression contains:
-
-```text
-12 valid BLUE events
-+
-12 valid ORANGE events
-```
-
-while repeated readings from the same physical marking must not create additional counts.
-
-The current architecture therefore relies on:
-
-```text
-COLOR CLASSIFICATION
-
-EVENT TRANSITIONS
-
-DUPLICATE REJECTION
-
-DIRECTION LOCK
-
-COURSE-STATE TRACKING
-```
-
-together with a mechanically shielded downward sensor.
-
-This makes S4 Piolín's primary connection between the physical floor markings and the robot's internal understanding of course progression.
-
----
-
-## Continue Reading
-
-[HuskyLens Vision System](04_huskylens.md)
-
-[Sensor Calibration](05_Calibration.md)
-
----
-
-## Related Sensor Documentation
-
-[Power and Sensor Configuration](01_PowerSensorconfig.md)
-
-[Ultrasonic Sensor Data](02_USSensorD.md)
-
-[Color Sensor Hardware](../components/06_ColorSensor.md)
-
----
-
-## Related Mechanical Documentation
-
-[Chassis Design](../mobility_mechanical/02_chassis.md)
-
-[Robot Mobility](../mobility_mechanical/03_RMobility.md)
-
-[Mechanical Testing](../mobility_mechanical/06_testing.md)
-
----
-
-## Related Software Documentation
-
-[Software Architecture](../software_obstacles_strategy/01_SWArchitecture.md)
-
-[State Machine](../software_obstacles_strategy/02_statemachine.md)
-
-[Corner Handling](../software_obstacles_strategy/04_cornerhandling.md)
-
-[RGB Detection](../software_obstacles_strategy/09_RGBdetection.md)
-
-[Parking Overview](../software_obstacles_strategy/parking/01_ParkingOverview.md)
-
----
-
-## Reproducibility
-
-[Wiring](../reproducibility/03_wiring.md)
-
-[Calibration Procedure](../reproducibility/06_HowToCalibrate.md)
-
-[Testing Protocol](../reproducibility/07_TestingProtocol.md)
-
-[Troubleshooting](../reproducibility/08_Troubleshooting.md)
-
----
-
-## Historical Reference
-
-[Legacy Documentation Notice](../legacy/00_LEGACY_NOTICE.md)
+</div>
