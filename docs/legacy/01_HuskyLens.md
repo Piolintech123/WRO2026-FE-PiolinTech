@@ -1,1036 +1,2313 @@
-# 7. HuskyLens Vision Sensor
+# 1. Legacy HuskyLens Vision System
 
-Piolín uses one **HuskyLens vision sensor** as the main visual perception device for the WRO Future Engineers Obstacle Challenge. While the ultrasonic sensors measure physical distance to the surrounding walls and the color sensor reads floor markings, the HuskyLens provides information about **colored traffic pillars located in front of the robot**.
+> [!WARNING]
+> This document describes a **historical Piolín vision architecture** developed and tested during WRO Future Engineers 2026 preparation.
+>
+> HuskyLens and the Arduino Nano are **not part of the current competition robot**.
+>
+> The current Obstacle Challenge uses:
+>
+> ```text
+> Pixy2.1
+>    ↓
+> EV3 S1
+> ```
+>
+> instead of the historical:
+>
+> ```text
+> HuskyLens
+>    ↓ I2C
+> Arduino Nano
+>    ↓ USB Serial
+> EV3
+> ```
 
-The HuskyLens is not Piolín's main controller and does not command the motors directly. Its responsibility is perception: it detects and identifies relevant colored obstacles. That information is then transferred through an **Arduino Nano** to the LEGO Mindstorms EV3, where it becomes one of the inputs used by the navigation software.
+The HuskyLens vision system represented one of the most important experimental stages in Piolín's Obstacle Challenge development. It was introduced because the LEGO sensors already installed on the vehicle could provide useful information about walls, floor markings, and vehicle motion, but they could not identify the color of the traffic pillars that determine the required passing side.
 
-This creates a clear separation between seeing an obstacle and deciding how the robot should react to it.
+The obstacle rule required Piolín to distinguish:
 
 ```text
-HUSKYLENS
-    ↓
-Detects / identifies obstacle
-    ↓
-ARDUINO NANO
-    ↓
-Transfers useful information
-    ↓
-LEGO EV3
-    ↓
-Navigation decision
-    ↓
-Drive + Steering
+GREEN
+→ pass on the LEFT
+
+
+RED
+→ pass on the RIGHT
 ```
 
-> [!IMPORTANT]
-> The HuskyLens provides **visual perception only**.  
-> The LEGO EV3 remains responsible for deciding Piolín's final steering, speed, wall-safety behavior, and obstacle-avoidance maneuver.
+During this development stage, the HuskyLens identification mapping was:
+
+```text
+ID 1
+→ GREEN
+
+
+ID 2
+→ RED
+```
+
+The HuskyLens successfully demonstrated that forward visual perception could provide the obstacle identity required by the robot. However, track testing also exposed several limitations that were much less obvious during stationary camera tests. These included false detections, inconsistent Green recognition, lighting sensitivity, field-of-view limitations, target loss during steering, ambiguity when multiple blocks were visible, excessive target locking, and the complexity introduced by the HuskyLens–Nano–USB communication chain.
+
+The system was therefore not abandoned because it was incapable of recognizing colors. **It could recognize the competition targets.** The larger problem was achieving sufficiently consistent visual perception and state management while Piolín was moving through the course.
 
 ---
 
-## 7.1 HuskyLens Installed on Piolín
+# 1.1 Why Vision Was Required
 
-The HuskyLens is physically mounted on Piolín so that it observes the area ahead of the robot during the Obstacle Challenge.
+The ultrasonic sensors could provide environmental measurements such as:
+
+```text
+left-side distance
+
+right-side distance
+
+wall proximity
+
+track geometry
+```
+
+but they could not determine whether a pillar was Red or Green.
+
+Two pillars could occupy similar geometric positions while requiring opposite maneuvers.
+
+```text
+SAME APPROXIMATE GEOMETRY
+
+        │
+        ├── RED
+        │      ↓
+        │   PASS RIGHT
+        │
+        └── GREEN
+               ↓
+            PASS LEFT
+```
+
+The downward-facing EV3 Color Sensor could not solve this problem either because its role was to observe floor markings rather than forward obstacles.
+
+HuskyLens was therefore introduced to provide a new type of information:
+
+> **Visual obstacle identity.**
+
+This established an important sensor-role separation that remained relevant even after the camera itself was replaced.
+
+```text
+VISION
+→ What obstacle is present?
+
+
+ULTRASONICS
+→ What geometry surrounds the robot?
+
+
+EV3
+→ What maneuver should be executed?
+```
+
+---
+
+# 1.2 Historical Hardware Architecture
+
+The HuskyLens was not connected directly to the EV3 in the architecture that became the main HuskyLens development platform.
+
+Instead, an **Arduino Nano** acted as an intermediate interface.
+
+```text
+COMPETITION TARGET
+        ↓
+    HUSKYLENS
+        ↓ I2C
+   ARDUINO NANO
+        ↓
+    USB SERIAL
+        ↓
+       EV3
+        ↓
+OBSTACLE STATE LOGIC
+        ↓
+ MOTOR A + MOTOR B
+```
 
 <div align="center">
-  <img
-    width="237"
-    height="223"
-    alt="HuskyLens installed on Piolín"
-    src="https://github.com/user-attachments/assets/082c8e25-74b9-4d74-9c0c-cd44624037f8"
-  />
-  <br>
-  <sub><b>Figure 7.1.</b> HuskyLens vision sensor installed on Piolín.</sub>
+
+<img
+  src="../../embed/legacy_huskylens_nano_architecture.png"
+  alt="Legacy Piolín HuskyLens Arduino Nano EV3 architecture"
+  width="880"
+/>
+
+<br>
+
+<sub><b>Figure L1.1.</b> Historical perception architecture using HuskyLens, Arduino Nano, USB communication, and the EV3 as the final navigation controller.</sub>
+
 </div>
 
-Its forward-facing position allows the vision subsystem to identify traffic pillars before Piolín physically reaches them.
+The EV3 remained Piolín's main controller. The Arduino Nano did not decide how the vehicle should navigate around a pillar.
 
-The camera is therefore observing a completely different region from the other sensors:
-
-```text
-                    HUSKYLENS
-                        ↓
-                 Forward Scene
-                        ↓
-              Colored Traffic Pillars
-
-
-LEFT US ←          [ PIOLÍN ]          → RIGHT US
-   ↓                                         ↓
-Left Wall                               Right Wall
-
-
-                    COLOR SENSOR
-                        ↓
-                       Floor
-```
-
-This distribution gives each sensing technology a specific physical area to observe.
+Its role was to transfer useful vision information from HuskyLens to the EV3.
 
 ---
 
-## 7.2 Final Vision Architecture
+# 1.3 Role of the Arduino Nano
 
-The final Piolín vision architecture uses three main elements:
+The Nano acted as a bridge between the vision sensor and Piolín's main navigation program.
 
-| Element | Final Role |
-| :--- | :--- |
-| **HuskyLens** | Detects and identifies colored pillars |
-| **Arduino Nano** | Interfaces the vision sensor with the EV3 |
-| **LEGO EV3** | Interprets vision information and decides the vehicle response |
-
-The complete relationship is:
-
-```text
-                  ENVIRONMENT
-                      │
-                      ▼
-                COLORED PILLAR
-                      │
-                      ▼
-                  HUSKYLENS
-                      │
-                      ▼
-                ARDUINO NANO
-                      │
-                     USB
-                      │
-                      ▼
-                  LEGO EV3
-                      │
-             Navigation Logic
-                      │
-            ┌─────────┴─────────┐
-            ▼                   ▼
-         MOTOR A             MOTOR B
-          Drive              Steering
-```
-
-The HuskyLens and Nano therefore form a **vision subsystem**, while the EV3 remains the main vehicle-control subsystem.
-
----
-
-## 7.3 HuskyLens and Arduino Nano Interface
-
-Piolín does not connect the HuskyLens directly to an EV3 sensor port.
-
-Instead, the HuskyLens communicates through an Arduino Nano, and the Nano transfers the relevant vision information to the EV3 through USB.
-
-<div align="center">
-  <img
-    width="589"
-    height="458"
-    alt="Piolín HuskyLens and Arduino Nano architecture diagram"
-    src="https://github.com/user-attachments/assets/2251375a-0c88-4d5c-b805-2ed615658d84"
-  />
-  <br>
-  <sub><b>Figure 7.2.</b> Piolín's final HuskyLens, Arduino Nano, and EV3 vision architecture.</sub>
-</div>
-
-This architecture gives the Nano a specialized role.
-
-The Nano does not replace the EV3 and does not independently control Piolín's motors. Instead, it acts as the communication layer between the vision sensor and the main robot controller.
-
-The information path is therefore:
-
-```text
-VISUAL INPUT
-     ↓
-HuskyLens Detection
-     ↓
-Arduino Nano Interface
-     ↓
-USB Communication
-     ↓
-EV3 Navigation Program
-```
-
-This division keeps the vision subsystem modular and prevents the main wall-navigation hardware from depending on the camera interface for basic operation.
-
----
-
-## 7.4 Why an Arduino Nano Is Used
-
-The Arduino Nano serves as an intermediate interface because the HuskyLens and EV3 belong to different hardware ecosystems.
-
-Piolín's main controller already has all four EV3 sensor ports assigned:
-
-```text
-S1 → Front Ultrasonic
-
-S2 → Right Ultrasonic
-
-S3 → Left Ultrasonic
-
-S4 → Color Sensor
-```
-
-The vision system therefore uses a separate communication path:
+The information path was:
 
 ```text
 HuskyLens
-    ↓
+→ visual detection
+
+
 Arduino Nano
-    ↓
-USB
-    ↓
+→ receives detection
+
+
+USB Serial
+→ transports formatted data
+
+
 EV3
+→ interprets obstacle
+
+
+Motor B
+→ executes steering response
 ```
 
-This preserves the complete EV3 sensor-port configuration while still allowing Piolín to receive camera information.
+This architecture made the HuskyLens usable with Piolín without replacing the EV3 controller.
 
-The Nano is therefore not an additional navigation computer. It has a much narrower responsibility: **deliver usable vision information to the EV3**.
+However, it also introduced an important systems-engineering consequence:
+
+```text
+HuskyLens seeing a pillar
+```
+
+did **not** automatically mean:
+
+```text
+EV3 had received the pillar information
+```
+
+There were several intermediate stages between those two events.
 
 ---
 
-## 7.5 What the HuskyLens Detects
+# 1.4 Historical Detection Mapping
 
-During the Obstacle Challenge, Piolín must distinguish between the colored traffic pillars placed on the field.
+The HuskyLens identification system used the following mapping:
 
-The HuskyLens is configured so that the relevant detections have known identifiers.
+| HuskyLens ID | Competition Target | Required Behavior |
+| :---: | :--- | :--- |
+| **1** | Green pillar | Pass on the left |
+| **2** | Red pillar | Pass on the right |
 
-Piolín's current identification mapping is:
+The complete interpretation chain therefore became:
 
-| Obstacle | HuskyLens ID |
-| :--- | :---: |
-| **Green Pillar** | **ID 1** |
-| **Red Pillar** | **ID 2** |
+```text
+PHYSICAL TARGET
+      ↓
+HUSKYLENS ID
+      ↓
+NANO DATA
+      ↓
+USB SERIAL
+      ↓
+EV3 PARSER
+      ↓
+OBSTACLE CLASS
+      ↓
+PASSING SIDE
+```
+
+A failure at any stage could produce incorrect physical behavior even if the camera itself had recognized the correct color.
+
+---
+
+# 1.5 Historical Communication Format
+
+One tested communication approach transmitted HuskyLens detections in a simple serial format:
+
+```text
+ID,X,Y,W,H
+```
+
+where the values represented:
+
+```text
+ID
+→ learned HuskyLens target identity
+
+
+X
+→ horizontal image position
+
+
+Y
+→ vertical image position
+
+
+W
+→ detected target width
+
+
+H
+→ detected target height
+```
+
+On the EV3 side, a communication method that had been demonstrated to work reliably during this stage used:
+
+```python
+nano.readline()
+```
+
+to receive one complete formatted line.
 
 Conceptually:
 
 ```text
-Camera sees obstacle
-        ↓
-HuskyLens detection
-        ↓
-      ID?
-      │
- ┌────┴────┐
- ▼         ▼
-ID 1      ID 2
-GREEN      RED
+HuskyLens
+      ↓
+ID, X, Y, W, H
+      ↓
+Nano
+      ↓
+"1,152,117,45,73\n"
+      ↓
+USB Serial
+      ↓
+nano.readline()
+      ↓
+EV3 parser
 ```
 
-This means that the EV3 does not need to receive an entire camera image and determine the pillar color itself.
-
-The visual classification has already been performed by the vision subsystem before the navigation program makes its movement decision.
+The exact numbers above are only an illustrative message format, not recorded calibration data.
 
 ---
 
-## 7.6 Green and Red Pillar Meaning
+# 1.6 A Software-Layer Lesson: Do Not Replace a Proven Interface Without a Reason
 
-The visual identification is important because the two pillar colors represent different avoidance requirements.
+Once line-based communication using:
 
-Piolín uses the following obstacle interpretation:
+```python
+nano.readline()
+```
+
+was operating successfully, some later software iterations experimented with more complicated chunked or non-blocking buffer parsing.
+
+This created unnecessary uncertainty.
+
+The development pattern became:
+
+```text
+known communication method works
+        ↓
+reader implementation changed
+        ↓
+new problems appear
+        ↓
+unclear whether failure is:
+camera?
+Nano?
+serial?
+parser?
+navigation?
+```
+
+This became an important methodological lesson.
+
+> **When one layer of a multi-layer system has already been validated, it should remain stable while another layer is being tuned unless there is a demonstrated reason to change it.**
+
+Changing the communication system at the same time as camera filtering and obstacle behavior made failures much harder to isolate.
+
+---
+
+# 1.7 Recognition Was Not the Same as Successful Navigation
+
+One of the most important conclusions from the HuskyLens stage was:
+
+```text
+CORRECT DETECTION
+≠
+SUCCESSFUL MANEUVER
+```
+
+The camera could correctly detect:
+
+```text
+RED
+```
+
+or:
 
 ```text
 GREEN
-  ↓
+```
+
+while Piolín still failed because of:
+
+```text
+late steering
+
+insufficient steering
+
+excessive steering
+
+vehicle speed
+
+wall-controller interference
+
+target loss
+
+incorrect target lock
+
+incorrect recovery timing
+```
+
+The complete obstacle-navigation problem was therefore:
+
+```text
+PERCEPTION
+     +
+TARGET SELECTION
+     +
+STATE MANAGEMENT
+     +
+STEERING
+     +
+SPEED
+     +
+WALL GEOMETRY
+```
+
+rather than simply:
+
+```text
+detect color
+→ turn
+```
+
+This distinction strongly influenced the later Pixy2.1 architecture.
+
+---
+
+# 1.8 False Detections
+
+One of the most repeated HuskyLens problems was detecting colored regions that were not the intended competition pillar.
+
+The camera could respond to:
+
+```text
+track regions
+
+reflections
+
+shadows
+
+objects outside the course
+
+similarly colored backgrounds
+
+illumination changes
+```
+
+A simplified failure sequence was:
+
+```text
+Husky reports GREEN
+        ↓
+detected region is not actual pillar
+        ↓
+EV3 accepts detection
+        ↓
+Piolín begins avoidance
+        ↓
+vehicle leaves intended trajectory
+```
+
+This exposed an important limitation of using only:
+
+```python
+if ID == 1:
+    green
+```
+
+or:
+
+```python
+if ID == 2:
+    red
+```
+
+A valid ID meant that the visual region matched the learned target sufficiently for the camera to classify it. It did not independently prove that the region was the **relevant competition pillar in Piolín's path**.
+
+---
+
+# 1.9 False Positives vs. False Negatives
+
+To reduce false detections, the obstacle software progressively added additional validation criteria such as:
+
+```text
+X position
+
+Y position
+
+block size
+
+multiple confirmations
+
+minimum detection persistence
+```
+
+This reduced some false positives but introduced an opposite problem.
+
+```text
+TOO PERMISSIVE
+      ↓
+false detections accepted
+
+
+MORE FILTERING
+      ↓
+fewer false detections
+
+
+TOO RESTRICTIVE
+      ↓
+real pillar visible
+but software rejects it
+```
+
+<div align="center">
+
+<img
+  src="../../embed/legacy_huskylens_filter_tradeoff.png"
+  alt="Legacy HuskyLens filtering trade-off between false detections and rejected valid targets"
+  width="850"
+/>
+
+<br>
+
+<sub><b>Figure L1.2.</b> Increasing target-filter strictness reduced some false detections but could also reject real competition pillars.</sub>
+
+</div>
+
+This was a genuine perception trade-off rather than a problem that could always be solved by simply adding more thresholds.
+
+---
+
+# 1.10 Green Recognition Was Less Consistent
+
+During multiple development tests, Green recognition was observed to be less consistent than Red recognition.
+
+The reliability of Green changed with factors including:
+
+```text
+illumination
+
+camera angle
+
+distance
+
+brightness
+
+background
+
+training conditions
+```
+
+A pillar could physically remain in front of Piolín while the camera output behaved more like:
+
+```text
+GREEN detected
+      ↓
+lost
+      ↓
+GREEN detected
+      ↓
+lost
+      ↓
+GREEN detected
+```
+
+To a human observing the HuskyLens screen, the target could appear essentially visible throughout the sequence.
+
+To the software, however, these were separate short detection pulses.
+
+<div align="center">
+
+<img
+  src="../../embed/legacy_huskylens_intermittent_detection.png"
+  alt="Intermittent HuskyLens detection of a continuously visible pillar"
+  width="850"
+/>
+
+<br>
+
+<sub><b>Figure L1.3.</b> A visually continuous target could produce intermittent detection events from the perspective of the EV3 control program.</sub>
+
+</div>
+
+This mattered because obstacle state logic requires continuity across time.
+
+---
+
+# 1.11 Why Intermittent Detection Was Difficult
+
+A simple obstacle program might assume:
+
+```text
+target visible
+→ avoid
+
+
+target not visible
+→ stop avoiding
+```
+
+With an intermittent vision signal, this becomes unstable:
+
+```text
+GREEN
+→ steer left
+
+
+NO DETECTION
+→ release steering
+
+
+GREEN
+→ steer left again
+
+
+NO DETECTION
+→ release again
+```
+
+The resulting steering can oscillate or begin too late.
+
+This encouraged the use of temporary memory and target locking.
+
+However, solving detection loss with memory introduced another problem: **deciding when that memory should be released.**
+
+---
+
+# 1.12 Field-of-View Limitation
+
+Another major limitation was the usable field of view.
+
+After completing a corner, Piolín could remain slightly rotated relative to the upcoming straight.
+
+Even a relatively small orientation error could place the next pillar outside the camera's useful visual region.
+
+The failure sequence could become:
+
+```text
+corner completed
+      ↓
+Piolín still points slightly sideways
+      ↓
+next pillar outside HuskyLens FOV
+      ↓
+no useful target
+      ↓
+Piolín continues forward
+      ↓
+pillar finally enters image
+      ↓
+available avoidance distance is now small
+```
+
+<div align="center">
+
+<img
+  src="../../embed/legacy_huskylens_fov.png"
+  alt="HuskyLens field of view after Piolín exits a corner"
+  width="850"
+/>
+
+<br>
+
+<sub><b>Figure L1.4.</b> Small post-corner heading errors could place the next pillar outside the camera's usable field of view until Piolín was much closer.</sub>
+
+</div>
+
+This led to experiments involving:
+
+```text
+camera placement
+
+post-corner centering
+
+slower approaches
+
+reverse movement
+
+post-pillar recentering
+```
+
+Some of those additions helped individual situations but increased overall state complexity.
+
+---
+
+# 1.13 Target Loss During Avoidance
+
+Even when the camera detected the correct pillar initially, the target could disappear during the avoidance maneuver.
+
+This was partly a geometric consequence of mounting the camera rigidly to the robot.
+
+```text
+Piolín steers
+      ↓
+chassis rotates
+      ↓
+camera rotates
+      ↓
+pillar moves across image
+      ↓
+pillar exits field of view
+```
+
+The pillar had not necessarily been passed.
+
+The camera had simply stopped seeing it.
+
+This led to one of the most important lessons from the HuskyLens development stage:
+
+> [!IMPORTANT]
+> **TARGET LOST does not mean TARGET PASSED.**
+
+---
+
+# 1.14 The Incorrect Early Assumption
+
+An early simplified state interpretation could behave conceptually like:
+
+```text
+pillar detected
+      ↓
+start avoidance
+      ↓
+pillar disappears
+      ↓
+assume avoidance complete
+      ↓
+straighten
+```
+
+But the real geometry could instead be:
+
+```text
+pillar detected
+      ↓
+Piolín steers slightly
+      ↓
+pillar leaves FOV
+      ↓
+pillar is still physically beside/in front of robot
+      ↓
+software straightens
+      ↓
+collision
+```
+
+<div align="center">
+
+<img
+  src="../../embed/legacy_target_lost_vs_passed.png"
+  alt="Difference between a camera target leaving the field of view and the vehicle physically passing it"
+  width="880"
+/>
+
+<br>
+
+<sub><b>Figure L1.5.</b> Target disappearance from the image is not sufficient evidence that the physical obstacle has been cleared.</sub>
+
+</div>
+
+This discovery changed how later obstacle states were designed.
+
+---
+
+# 1.15 Using Ultrasonics to Confirm the Pass
+
+A stronger concept was to combine the visual target state with physical side geometry.
+
+As Piolín moves beside a pillar, the relevant lateral ultrasonic sensor may observe a characteristic sequence:
+
+```text
+normal side distance
+      ↓
+distance decreases
+      ↓
+pillar is alongside robot
+      ↓
+distance begins increasing again
+      ↓
+pillar is moving behind sensor region
+```
+
+Conceptually:
+
+```text
+CAMERA
+→ identifies which pillar is being avoided
+
+
+LATERAL US
+→ helps determine whether Piolín physically moved past it
+```
+
+<div align="center">
+
+<img
+  src="../../embed/legacy_huskylens_us_pass_confirmation.png"
+  alt="Legacy concept of combining HuskyLens target identity with ultrasonic pillar pass confirmation"
+  width="880"
+/>
+
+<br>
+
+<sub><b>Figure L1.6.</b> Later obstacle logic attempted to use lateral ultrasonic geometry as stronger evidence that a pillar had physically been passed.</sub>
+
+</div>
+
+This sensor-fusion principle survived beyond the HuskyLens architecture and became useful in later vision development.
+
+---
+
+# 1.16 Target Locking
+
+Because Husky detections could be intermittent, the obstacle controller introduced the concept of locking the current target.
+
+For example:
+
+```text
+camera confirms RED
+      ↓
+LOCK = RED
+      ↓
+temporary detection loss
+      ↓
+continue RED maneuver
+```
+
+This helped prevent a brief visual fluctuation from changing the obstacle identity in the middle of a maneuver.
+
+Without any lock:
+
+```text
+RED
+→ no detection
+→ GREEN false detection
+→ RED
+```
+
+could create unstable behavior.
+
+Target memory was therefore useful.
+
+The problem was determining how long that memory should remain active.
+
+---
+
+# 1.17 Persistent Lock Problem
+
+One of the more important late-stage problems was that the target lock could remain active after the physical pillar had already been passed.
+
+A failure could occur as:
+
+```text
+first pillar detected
+      ↓
+LOCK RED
+      ↓
+first pillar passed
+      ↓
+second pillar becomes visible
+      ↓
+LOCK still RED
+      ↓
+new pillar ignored or misinterpreted
+```
+
+The camera itself could be seeing the next target correctly while the robot's internal state still represented the previous one.
+
+This was not strictly a HuskyLens recognition failure.
+
+It was a **target-state-management failure**.
+
+---
+
+# 1.18 Target Lifecycle
+
+The lock problem demonstrated that obstacle perception needs a lifecycle.
+
+A more complete target state is:
+
+```text
+SEARCH
+   ↓
+ACQUIRE
+   ↓
+VALIDATE
+   ↓
+LOCK CURRENT TARGET
+   ↓
+AVOID
+   ↓
+PASS CONFIRMED
+   ↓
+RELEASE TARGET
+   ↓
+SEARCH NEXT
+```
+
+<div align="center">
+
+<img
+  src="../../embed/legacy_huskylens_target_lifecycle.png"
+  alt="Legacy HuskyLens obstacle target lifecycle"
+  width="860"
+/>
+
+<br>
+
+<sub><b>Figure L1.7.</b> A robust obstacle controller must distinguish acquisition, active avoidance, pass confirmation, release, and the search for the next pillar.</sub>
+
+</div>
+
+The development team learned that the following are different concepts:
+
+```text
+current target
+
+target currently visible
+
+target remembered
+
+target already passed
+
+next target
+```
+
+Treating them as one variable was insufficient.
+
+---
+
+# 1.19 Multiple Visible Blocks
+
+Another important problem appeared when more than one candidate block was visible.
+
+A simple strategy could effectively behave as:
+
+```text
+first valid block returned
+→ current target
+```
+
+This rule is attractive because it is easy to implement.
+
+However, the first valid detection may be:
+
+```text
+far away
+
+small
+
+a future pillar
+
+a background false detection
+
+less relevant than another visible block
+```
+
+Therefore:
+
+```text
+FIRST BLOCK
+≠
+MOST RELEVANT BLOCK
+```
+
+This became an important lesson that directly influenced later Pixy target-selection development.
+
+---
+
+# 1.20 Target Relevance
+
+A stronger target-selection system should consider multiple properties.
+
+Conceptually:
+
+```text
+VALID ID
+    +
+BLOCK SIZE
+    +
+X POSITION
+    +
+Y POSITION
+    +
+TEMPORAL CONTINUITY
+    +
+CURRENT STATE
+        ↓
+TARGET RELEVANCE
+```
+
+<div align="center">
+
+<img
+  src="../../embed/legacy_huskylens_target_selection.png"
+  alt="Legacy HuskyLens multi-factor target relevance concept"
+  width="860"
+/>
+
+<br>
+
+<sub><b>Figure L1.8.</b> Selecting the relevant obstacle requires more information than the order in which detections are returned.</sub>
+
+</div>
+
+This does not mean that every possible variable must always be combined into one complicated formula.
+
+The lesson was that target selection needs a meaningful relationship with the robot's immediate driving situation.
+
+---
+
+# 1.21 X and Y Were Image Coordinates, Not Physical Distance
+
+Another conceptual error encountered during development was treating image-space coordinates as if they were automatically real-world metric measurements.
+
+For example:
+
+```text
+larger Y
+→ target probably appears closer
+```
+
+may be a useful relative trend in a fixed camera installation.
+
+However:
+
+```text
+Y = some value
+```
+
+does **not** automatically mean:
+
+```text
+target = exact distance in centimeters
+```
+
+The relationship depends on:
+
+```text
+camera height
+
+camera inclination
+
+lens geometry
+
+target dimensions
+
+vehicle orientation
+
+target orientation
+```
+
+The same limitation applies to apparent width and height.
+
+---
+
+# 1.22 Image Geometry Required Calibration
+
+A valid way to use image position would have been to calibrate the complete installed camera geometry experimentally.
+
+For example:
+
+```text
+known physical distance
+      ↓
+record X, Y, W, H
+      ↓
+repeat across several distances
+      ↓
+build empirical relationship
+```
+
+Without that calibration, coordinates should be treated as:
+
+```text
+relative visual features
+```
+
+rather than:
+
+```text
+absolute physical measurements
+```
+
+This distinction later became particularly important when adapting ideas from other teams.
+
+---
+
+# 1.23 Reference-Code Thresholds Could Not Be Copied Directly
+
+During development, Piolín studied successful external implementations, including strategies used by ShahroodRC.
+
+That was useful for understanding concepts such as:
+
+```text
+target filtering
+
+position-aware steering
+
+pillar relevance
+
+camera-guided avoidance
+```
+
+However, specific numerical values from another robot could not be transferred directly.
+
+Reference code included values conceptually similar to:
+
+```python
+Yignor = 50
+green = 245
+red = 75
+```
+
+Those numbers were calibrated for:
+
+```text
+another camera
+
+another mounting position
+
+another chassis
+
+another coordinate system
+```
+
+They were not physical constants.
+
+The engineering lesson was:
+
+> **Copy the strategy when it is useful; recalibrate the numerical thresholds for the actual robot.**
+
+This principle remains important in the current Pixy2.1 system.
+
+---
+
+# 1.24 Lighting Sensitivity
+
+The HuskyLens was strongly influenced by the visual environment.
+
+Recognition could change with:
+
+```text
+shadows
+
+reflections
+
+ambient brightness
+
+camera angle
+
+pillar illumination
+
+background colors
+```
+
+Green was particularly affected during some development tests.
+
+A pillar that appeared stable while Piolín was aligned on a straight could appear differently after the chassis rotated because the lighting angle and visible background changed.
+
+<div align="center">
+
+<img
+  src="../../embed/legacy_huskylens_lighting.png"
+  alt="Lighting effects observed during legacy HuskyLens testing"
+  width="850"
+/>
+
+<br>
+
+<sub><b>Figure L1.9.</b> Lighting, shadow, viewing angle, and background could alter the visual appearance of the same competition target.</sub>
+
+</div>
+
+This created a difficult interaction:
+
+```text
+vehicle motion
+→ changes camera angle
+→ changes target appearance
+→ changes detection reliability
+```
+
+The camera therefore had to be tested while the robot was actually moving.
+
+---
+
+# 1.25 Objects Outside the Track
+
+The forward-facing camera could observe much more than the intended competition lane.
+
+Its image could contain:
+
+```text
+track
+
+pillars
+
+people
+
+walls
+
+colored objects outside course
+
+reflections
+
+shadows
+```
+
+This was one reason false detections outside the track became significant.
+
+A camera classification alone had no inherent understanding of:
+
+```text
+inside course
+```
+
+versus:
+
+```text
+irrelevant external object
+```
+
+The navigation system therefore needed contextual filtering.
+
+This further increased the complexity surrounding otherwise simple color recognition.
+
+---
+
+# 1.26 Static Detection vs. Dynamic Detection
+
+HuskyLens could perform convincingly during stationary tests.
+
+However, a moving vehicle introduces additional variables:
+
+```text
+shorter observation time
+
+rapid X/Y movement
+
+changing background
+
+changing lighting
+
+camera yaw
+
+vehicle vibration
+
+pillar entering/leaving FOV
+```
+
+Therefore:
+
+```text
+camera recognizes object while stationary
+```
+
+did not prove:
+
+```text
+camera + controller can navigate the obstacle reliably at speed
+```
+
+The useful validation environment was the complete moving Piolín system.
+
+---
+
+# 1.27 Detection Timing and Vehicle Speed
+
+Vehicle speed determines how much distance Piolín travels while perception and control are processing the obstacle.
+
+The sequence is:
+
+```text
+pillar enters FOV
+      ↓
+Husky recognizes
+      ↓
+Nano receives
+      ↓
+Nano sends
+      ↓
+EV3 reads
+      ↓
+EV3 validates
+      ↓
+Motor B responds
+      ↓
+vehicle trajectory changes
+```
+
+At greater speed, more physical distance is covered during the same perception-and-control delay.
+
+At very low speed, however, Piolín's Ackermann geometry also became less useful because steering requires longitudinal motion to develop a curved path.
+
+The solution therefore was not simply:
+
+```text
+drive as slowly as possible
+```
+
+but rather to balance:
+
+```text
+vision reaction time
+
+steering response
+
+Ackermann motion
+
+available obstacle distance
+```
+
+---
+
+# 1.28 Camera and Ultrasonic Control Could Fight Each Other
+
+Another major issue was not exclusive to the HuskyLens itself.
+
+The camera could request one trajectory while normal wall control requested another.
+
+For example:
+
+```text
+Husky
+→ GREEN
+→ move LEFT
+```
+
+while:
+
+```text
+wall controller
+→ correct RIGHT
+```
+
+If both corrections were applied aggressively in consecutive loops, the result could become:
+
+```text
+LEFT
+RIGHT
+LEFT
+RIGHT
+```
+
+and physically:
+
+```text
+zig-zag
+```
+
+This led to a much more important control-architecture lesson:
+
+> Different controllers should not all have equal steering authority at every moment.
+
+---
+
+# 1.29 State-Dependent Control Priority
+
+A more mature architecture separated responsibilities by state.
+
+Conceptually:
+
+```text
+NORMAL
+→ normal wall controller
+
+
+PILLAR
+→ vision determines avoidance objective
+→ ultrasonics mainly constrain wall safety
+
+
+PASSING
+→ maintain obstacle maneuver
+
+
+RECENTER
+→ ultrasonic geometry becomes dominant again
+```
+
+<div align="center">
+
+<img
+  src="../../embed/legacy_obstacle_control_priority.png"
+  alt="State-dependent control priority developed during HuskyLens obstacle testing"
+  width="880"
+/>
+
+<br>
+
+<sub><b>Figure L1.10.</b> Later development separated steering authority by state instead of allowing camera and wall controllers to continuously compete.</sub>
+
+</div>
+
+This systems-level lesson was more important than any single HuskyLens threshold.
+
+---
+
+# 1.30 Post-Pillar Recentering
+
+Avoiding a pillar did not automatically leave Piolín in a useful position for the next obstacle.
+
+After avoidance, the vehicle could be:
+
+```text
+laterally displaced
+
+rotated
+
+close to a wall
+
+poorly aligned for next pillar
+```
+
+This made **recovery** a distinct phase of obstacle navigation.
+
+```text
+AVOID
+   ↓
+PASS
+   ↓
+COUNTERSTEER
+   ↓
+RECENTER
+   ↓
+SEARCH NEXT
+```
+
+The lateral ultrasonic sensors were useful during this phase because they provided environmental geometry independent of camera visibility.
+
+This also helped compensate for the HuskyLens field-of-view limitation after a maneuver.
+
+---
+
+# 1.31 Reversing as a Perception-Recovery Experiment
+
+During development, reverse movement was also explored as a way to create additional time or distance for the camera to reacquire a pillar.
+
+The concept was:
+
+```text
+uncertain / too-close approach
+        ↓
+reverse slightly
+        ↓
+pillar returns to more useful visual position
+        ↓
+camera has additional reaction opportunity
+```
+
+This could help in some situations but also added:
+
+```text
+more states
+
+more timing
+
+more steering transitions
+
+more opportunities for inconsistency
+```
+
+Therefore reverse was not a fundamental solution to unreliable perception by itself.
+
+It was a recovery tool whose usefulness depended on the complete state logic.
+
+---
+
+# 1.32 Why Adding More Logic Did Not Automatically Fix the Camera
+
+An important pattern emerged during HuskyLens development:
+
+```text
+detection unstable
+      ↓
+add filter
+      ↓
+new edge case
+      ↓
+add state
+      ↓
+new lock
+      ↓
+add timeout
+      ↓
+new interaction
+```
+
+Each individual addition could solve one observed failure.
+
+However, the total system became increasingly difficult to reason about.
+
+```text
+more logic
+≠
+automatically more reliability
+```
+
+When perception itself was inconsistent, compensating for every failure in the high-level controller could create a fragile network of special cases.
+
+This observation strongly influenced the later decision to simplify the vision architecture.
+
+---
+
+# 1.33 Multi-Layer Debugging Problem
+
+The historical system required troubleshooting across several layers.
+
+```text
+PHYSICAL TARGET
+      ↓
+HUSKYLENS
+      ↓
+HUSKYLENS ID
+      ↓
+I2C
+      ↓
+ARDUINO NANO
+      ↓
+FORMATTED SERIAL MESSAGE
+      ↓
+USB
+      ↓
+EV3 READER
+      ↓
+EV3 PARSER
+      ↓
+FSM
+      ↓
+STEERING REQUEST
+      ↓
+MOTOR B
+      ↓
+VEHICLE TRAJECTORY
+```
+
+<div align="center">
+
+<img
+  src="../../embed/legacy_huskylens_debug_chain.png"
+  alt="Legacy HuskyLens multi-layer debugging chain"
+  width="900"
+/>
+
+<br>
+
+<sub><b>Figure L1.11.</b> A wrong physical maneuver could originate from perception, communication, parsing, state management, steering logic, or mechanics.</sub>
+
+</div>
+
+This was a major practical disadvantage compared with a shorter perception path.
+
+---
+
+# 1.34 The HuskyLens Screen Was Not Enough to Diagnose the System
+
+A particularly important debugging mistake was assuming:
+
+```text
+I can see the bounding box on HuskyLens
+```
+
+therefore:
+
+```text
+the EV3 received the detection correctly
+```
+
+The actual system required confirmation at each stage.
+
+```text
+Does Husky see the target?
+        ↓
+Does Husky report the correct ID?
+        ↓
+Does Nano receive it?
+        ↓
+Does Nano send it?
+        ↓
+Does EV3 receive the line?
+        ↓
+Does EV3 parse it?
+        ↓
+Does FSM accept the target?
+        ↓
+Does steering map correctly?
+```
+
+Only then could the complete perception chain be considered functional.
+
+---
+
+# 1.35 Historical Debugging Procedure
+
+A reliable test process therefore separated the system into layers.
+
+### Camera layer
+
+Verify:
+
+```text
+Green → ID 1
+
+Red → ID 2
+```
+
+### Nano layer
+
+Verify that the correct camera data reaches the microcontroller.
+
+### Serial layer
+
+Verify that complete messages such as:
+
+```text
+ID,X,Y,W,H
+```
+
+are transmitted.
+
+### EV3 acquisition layer
+
+Verify that:
+
+```python
+nano.readline()
+```
+
+receives the expected line.
+
+### Parsing layer
+
+Verify that:
+
+```text
+ID
+X
+Y
+W
+H
+```
+
+have the expected meaning.
+
+### State layer
+
+Verify that the intended pillar becomes the active target.
+
+### Actuation layer
+
+Verify:
+
+```text
+GREEN
+→ required left-side maneuver
+
+
+RED
+→ required right-side maneuver
+```
+
+This layered diagnostic approach helped distinguish vision failures from navigation failures.
+
+---
+
+# 1.36 Steering-Sign Errors Could Look Like Camera Errors
+
+Another important source of confusion was the relationship between detected pillar color and the physical sign of Motor B steering.
+
+A camera could correctly identify:
+
+```text
+RED
+```
+
+while the software could map the requested steering direction incorrectly.
+
+The resulting behavior would look like:
+
+```text
+RED detected
+→ Piolín goes wrong side
+```
+
+which could be misinterpreted as:
+
+```text
+camera classified incorrectly
+```
+
+when the real problem was:
+
+```text
+steering sign / maneuver mapping
+```
+
+This demonstrated again why perception and actuation needed to be diagnosed independently.
+
+---
+
+# 1.37 Target Selection and Target State Were Different Problems
+
+Two different problems emerged during development:
+
+### Which target should Piolín select?
+
+This is a **perception relevance** problem.
+
+```text
+multiple blocks
+      ↓
+choose correct obstacle
+```
+
+### When should Piolín stop considering that target active?
+
+This is a **state-management** problem.
+
+```text
+current target
+      ↓
+avoid
+      ↓
+pass
+      ↓
+release
+```
+
+Combining those two questions into one variable made the controller difficult to stabilize.
+
+The later architecture benefited from treating them separately.
+
+---
+
+# 1.38 Main HuskyLens Failure Categories
+
+The historical HuskyLens problems can be grouped into four categories.
+
+| Category | Examples |
+| :--- | :--- |
+| **Perception** | False detections, Green instability, lighting sensitivity |
+| **Geometry** | Limited FOV, target leaving image during steering |
+| **Target Management** | Persistent lock, multiple blocks, stale target |
+| **Integration** | Nano, USB serial, EV3 reader/parser chain |
+
+This classification is useful because the decision to replace HuskyLens was based on the **combined system burden**, not one isolated defect.
+
+---
+
+# 1.39 Problems That Were Not Exclusively HuskyLens Problems
+
+It is equally important not to blame the camera for every failure during this period.
+
+Several recurring problems came from the broader Piolín architecture or development process.
+
+These included:
+
+```text
+incorrect steering sign
+
+conflicting wall and camera controllers
+
+aggressive corrections
+
+vehicle speed
+
+late corner handling
+
+mechanical steering play
+
+changing multiple parameters simultaneously
+
+rewriting stable code while solving another subsystem
+```
+
+For example, the HuskyLens could report Green correctly while a reversed steering convention still caused Piolín to travel on the wrong side.
+
+Preserving this distinction makes the legacy analysis more technically accurate.
+
+---
+
+# 1.40 Methodological Lesson: Change One Variable at a Time
+
+During some development periods, new versions simultaneously changed:
+
+```text
+camera filtering
+
+vehicle speed
+
+wall correction
+
+reverse logic
+
+target lock
+
+recenter logic
+
+timeouts
+```
+
+If the new version performed worse, there was no clean way to determine which change caused the regression.
+
+A stronger development process became:
+
+```text
+stable baseline
+      ↓
+change ONE behavior
+      ↓
+test
+      ↓
+record result
+      ↓
+keep or revert
+```
+
+This lesson applies far beyond the HuskyLens subsystem.
+
+---
+
+# 1.41 Why HuskyLens Was Still Valuable
+
+Despite the problems documented above, the HuskyLens stage was extremely useful.
+
+It demonstrated that Piolín needed:
+
+```text
+forward visual obstacle identity
+```
+
+and showed that a successful perception system needed more than simple color recognition.
+
+The team learned about:
+
+```text
+target relevance
+
+field of view
+
+lighting
+
+visual persistence
+
+state memory
+
+pillar-pass confirmation
+
+camera/wall arbitration
+
+communication diagnostics
+
+post-obstacle recovery
+```
+
+These are not failures without value.
+
+They are requirements discovered through experimentation.
+
+---
+
+# 1.42 Why the System Was Replaced
+
+The final reason for leaving HuskyLens was not:
+
+```text
+"HuskyLens cannot detect colors."
+```
+
+That statement would be inaccurate.
+
+A more accurate conclusion is:
+
+> **HuskyLens could detect the competition colors, but Piolín's moving obstacle-navigation system accumulated too many consistency and integration problems around that detection.**
+
+The complete burden included:
+
+```text
+false detections
+
+Green instability
+
+lighting sensitivity
+
+limited effective FOV
+
+target loss during turns
+
+multiple-target ambiguity
+
+persistent target locks
+
+filtering trade-offs
+
+Nano interface
+
+USB serial communication
+
+additional parsing/debugging layers
+```
+
+At the same time, Piolín increasingly needed convenient access to:
+
+```text
+target signature
+
+X position
+
+Y position
+
+width
+
+height
+```
+
+for more position-aware obstacle handling.
+
+The later Pixy2.1 architecture provided a better fit for those requirements while reducing the communication chain.
+
+---
+
+# 1.43 Transition to Pixy2.1
+
+The perception architecture changed from:
+
+```text
+LEGACY
+
+HuskyLens
+    ↓ I2C
+Arduino Nano
+    ↓ USB Serial
+EV3
+```
+
+to:
+
+```text
+CURRENT OBSTACLES
+
+Pixy2.1
+    ↓
+EV3 S1
+```
+
+<div align="center">
+
+<img
+  src="../../embed/vision_architecture_comparison.png"
+  alt="Comparison between legacy HuskyLens Nano and current Pixy2.1 vision architecture"
+  width="900"
+/>
+
+<br>
+
+<sub><b>Figure L1.12.</b> The current Pixy2.1 architecture reduces the number of devices and communication stages between visual perception and the EV3.</sub>
+
+</div>
+
+The change retained the useful concept:
+
+```text
+camera
+→ obstacle identity and position
+```
+
+while simplifying the physical and software interface.
+
+---
+
+# 1.44 HuskyLens vs. Current Pixy2.1
+
+| Characteristic | Legacy HuskyLens | Current Pixy2.1 |
+| :--- | :--- | :--- |
+| Current competition status | Legacy | Current Obstacles |
+| Main controller | EV3 | EV3 |
+| Intermediate controller | Arduino Nano | None |
+| Communication chain | Husky → Nano → USB → EV3 | Pixy → S1 → EV3 |
+| Green identity | ID 1 | Signature 3 |
+| Red identity | ID 2 | Signature 2 |
+| Pink parking identity | Not part of current final Husky architecture | Signature 1 |
+| Visual position available | X/Y information was transmitted in development | X/Y block information |
+| Visual size information | W/H information was transmitted | Width/height block information |
+| Major development issue | Detection consistency + integration complexity | Current system still requires tuning |
+| Current reconstruction use | No | Yes |
+
+The identification systems must never be mixed.
+
+---
+
+# 1.45 Critical ID Difference
+
+> [!CAUTION]
+> The historical HuskyLens ID map and the current Pixy2.1 signature map are different.
+
+### Legacy HuskyLens
+
+```text
 ID 1
-  ↓
-Pass on the LEFT side
+→ GREEN
+
+
+ID 2
+→ RED
+```
+
+### Current Pixy2.1
+
+```text
+SIG 1
+→ PINK / PARKING
+
+
+SIG 2
+→ RED
+
+
+SIG 3
+→ GREEN
+```
+
+Copying the legacy HuskyLens mapping directly into Pixy code would invert the interpretation of important targets.
+
+---
+
+# 1.46 Current Architecture Should Not Be Inferred from This File
+
+This document describes a historical development stage.
+
+The current Piolín competition hardware is different.
+
+### Current Open
+
+```text
+S1 = Gyro
+
+S2 = LEFT Ultrasonic
+
+S3 = RIGHT Ultrasonic
+
+S4 = Color Sensor
+```
+
+### Current Obstacles
+
+```text
+S1 = Pixy2.1
+
+S2 = LEFT Ultrasonic
+
+S3 = RIGHT Ultrasonic
+
+S4 = Color Sensor
+```
+
+The current robot does not use:
+
+```text
+HuskyLens
+
+Arduino Nano
+
+front ultrasonic sensor
+```
+
+as part of the final competition architecture.
+
+Any old HuskyLens code or wiring map should therefore be interpreted only in the context of the historical robot configuration for which it was developed.
+
+---
+
+# 1.47 Engineering Lessons Carried into the Current Vision System
+
+Several principles discovered during HuskyLens development remain important in the current Pixy2.1 architecture.
+
+### Detection must be contextual
+
+```text
+valid color
+≠
+automatically relevant obstacle
+```
+
+### Lost target does not mean passed target
+
+```text
+camera loss
+≠
+physical completion
+```
+
+### Target state requires a lifecycle
+
+```text
+search
+→ acquire
+→ validate
+→ lock
+→ avoid
+→ confirm pass
+→ release
+```
+
+### Multiple blocks need selection
+
+```text
+first detection
+≠
+necessarily best target
+```
+
+### Camera coordinates are not automatically metric distance
+
+```text
+X/Y/W/H
+→ image-space information
+```
+
+unless calibrated against real-world geometry.
+
+### Wall control and vision need explicit priorities
+
+```text
+camera
+→ obstacle objective
+
+
+ultrasonics
+→ geometry / safety / recovery
+```
+
+### Stable subsystems should remain stable during tuning
+
+A proven communication layer should not be rewritten while testing an unrelated steering problem without a specific reason.
+
+---
+
+# 1.48 Historical System Overview
+
+The complete legacy perception system can be summarized as:
+
+```text
+                     PHYSICAL PILLAR
+                           │
+                           ▼
+                       HUSKYLENS
+                           │
+                ID / X / Y / W / H
+                           │
+                           ▼
+                      ARDUINO NANO
+                           │
+                       USB SERIAL
+                           │
+                           ▼
+                           EV3
+                    ┌──────┼──────┐
+                    │      │      │
+                    ▼      ▼      ▼
+                 VISION    US   STATE LOGIC
+                    │      │      │
+                    └──────┼──────┘
+                           ▼
+                    STEERING DECISION
+                           │
+                  ┌────────┴────────┐
+                  ▼                 ▼
+               Motor A           Motor B
+                  │                 │
+                  └────────┬────────┘
+                           ▼
+                     VEHICLE MOTION
+```
+
+<div align="center">
+
+<img
+  src="../../embed/legacy_huskylens_system_overview.png"
+  alt="Complete legacy Piolín HuskyLens obstacle system"
+  width="900"
+/>
+
+<br>
+
+<sub><b>Figure L1.13.</b> Historical HuskyLens subsystem within the complete EV3-controlled vehicle architecture.</sub>
+
+</div>
+
+The system was functional enough to reveal the true requirements of dynamic obstacle perception, but it was also complex enough to make consistent competition behavior difficult.
+
+---
+
+# 1.49 Vision-System Evolution
+
+The vision system did not evolve through a simple sequence of:
+
+```text
+bad camera
+→ good camera
+```
+
+Instead, each stage answered different engineering questions.
+
+```text
+EARLY VISION EXPERIMENTS
+        ↓
+Can camera perception help?
+
+
+HUSKYLENS DEVELOPMENT
+        ↓
+Can Piolín identify pillar color?
+
+
+HUSKYLENS + NANO
+        ↓
+Can external vision be integrated with EV3?
+
+
+DYNAMIC TRACK TESTING
+        ↓
+What happens to detection while moving?
+
+
+FALSE DETECTIONS / FOV / LOCK / LIGHTING
+        ↓
+What information and state handling are actually needed?
+
+
+PIXY2.1
+        ↓
+Can those requirements be handled through a simpler
+and more direct vision architecture?
+```
+
+<div align="center">
+
+<img
+  src="../../embed/evolution_vision_system.png"
+  alt="Evolution of Piolín vision architecture"
+  width="900"
+/>
+
+<br>
+
+<sub><b>Figure L1.14.</b> Piolín's current vision architecture resulted from lessons learned across several perception and integration stages.</sub>
+
+</div>
+
+---
+
+# 1.50 Final Historical Assessment
+
+The HuskyLens–Arduino Nano stage was an important part of Piolín's engineering development.
+
+It successfully demonstrated that visual identification could provide the distinction required between:
+
+```text
+GREEN
+→ LEFT PASS
 ```
 
 and:
 
 ```text
 RED
-  ↓
-ID 2
-  ↓
-Pass on the RIGHT side
+→ RIGHT PASS
 ```
 
-The HuskyLens itself does not physically execute these maneuvers.
+However, actual moving-track operation revealed that obstacle vision required much more than color classification.
 
-Its job ends at providing the relevant visual information.
-
-The complete relationship is:
+The system had to solve:
 
 ```text
-HuskyLens detects GREEN
-          ↓
-         ID 1
-          ↓
-Nano transfers detection
-          ↓
-EV3 interprets obstacle
-          ↓
-Request LEFT-side passing maneuver
+Is this detection real?
+
+Is it actually inside the relevant track region?
+
+Is Green being detected consistently?
+
+Which visible block matters?
+
+Is this still the current pillar?
+
+Has the current pillar physically been passed?
+
+When should the target lock be released?
+
+Did the EV3 actually receive the camera information?
+
+Should vision or wall geometry control steering right now?
 ```
 
-or:
+The final limitation was therefore not one camera feature.
+
+It was the accumulated complexity of perception reliability, target management, physical camera geometry, and communication integration.
+
+The architectural transition can be summarized as:
 
 ```text
-HuskyLens detects RED
-          ↓
-         ID 2
-          ↓
-Nano transfers detection
-          ↓
-EV3 interprets obstacle
-          ↓
-Request RIGHT-side passing maneuver
+HUSKYLENS STAGE
+
+color detection
++
+target filtering
++
+target memory
++
+Nano bridge
++
+USB communication
++
+EV3 parsing
 ```
 
-The actual obstacle strategy is documented separately in:
+compared with the direction selected later:
 
 ```text
-docs/software_obstacles_strategy/05_obstacledetec.md
+CURRENT PIXY2.1 STAGE
 
-docs/software_obstacles_strategy/06_obstaclestrateg.md
+direct signatures
++
+block geometry
++
+direct EV3 S1 integration
++
+state-aware obstacle handling
 ```
+
+The most important conclusion from this historical stage is therefore:
+
+> **HuskyLens was capable of recognizing the competition colors, but reliable autonomous obstacle avoidance required more than recognition. The HuskyLens stage revealed the importance of target relevance, field of view, lighting robustness, target lifecycle, physical pass confirmation, controller priority, and communication simplicity. Those lessons directly shaped Piolín's later Pixy2.1 architecture.**
+
+The HuskyLens prototype was therefore not wasted development.
+
+It was the experiment that helped define what Piolín's final vision system needed to do better.
 
 ---
 
-## 7.7 Perception Is Separate From Navigation
+<div align="center">
 
-One of the most important concepts in Piolín's final architecture is the difference between **detecting an obstacle** and **deciding how to move around it**.
+### [← Back to PiolínTech Main README](../../README.md)
 
-The HuskyLens performs the first task.
-
-The EV3 performs the second.
-
-```text
-        PERCEPTION
-
-HuskyLens sees pillar
-        ↓
-Identifies pillar
-        ↓
-Reports detection
-
-
-         CONTROL
-
-EV3 receives detection
-        ↓
-Checks wall geometry
-        ↓
-Checks safety conditions
-        ↓
-Determines steering
-        ↓
-Determines propulsion
-```
-
-This separation is important because simply seeing a green or red pillar does not describe the entire situation around the robot.
-
-Piolín may simultaneously be close to a track wall, entering a corner, recovering from a previous avoidance maneuver, or approaching a frontal safety condition.
-
-The EV3 must therefore combine the visual detection with the rest of the robot's sensor information before generating the final motor commands.
-
----
-
-## 7.8 HuskyLens vs. Ultrasonic Sensors
-
-The HuskyLens and ultrasonic sensors provide fundamentally different types of environmental information.
-
-The HuskyLens answers:
-
-> **What colored obstacle is visible ahead?**
-
-The ultrasonic sensors answer:
-
-> **Where are the surrounding track walls and is something dangerously close?**
-
-Their roles can be compared as follows:
-
-| System | Information Provided | Main Purpose |
-| :--- | :--- | :--- |
-| **HuskyLens** | Visual obstacle identity | Pillar recognition |
-| **Left US — S3** | Left-side distance | Wall geometry |
-| **Right US — S2** | Right-side distance | Wall geometry |
-| **Front US — S1** | Frontal distance | Emergency frontal safety |
-
-The systems therefore complement rather than replace each other.
-
-```text
-             HUSKYLENS
-                 ↓
-         Obstacle Identity
-                 │
-                 │
-                 ▼
-              LEGO EV3
-                 ▲
-                 │
-                 │
-      Ultrasonic Distances
-                 ↑
-       S1      S2      S3
-```
-
-The EV3 receives both **what is ahead** and **where the physical boundaries are**.
-
----
-
-## 7.9 Vision and Wall Safety
-
-A camera detection should not automatically override every other sensor.
-
-For example, the HuskyLens may indicate that Piolín should move toward one side of a pillar, but an ultrasonic sensor may simultaneously indicate that the requested trajectory would move the robot dangerously close to a wall.
-
-The architecture therefore separates an **avoidance request** from the **final steering command**.
-
-```text
-HuskyLens
-     ↓
-Suggested obstacle direction
-     │
-     ▼
-    EV3
-     ▲
-     │
-Ultrasonic wall information
-     │
-     ▼
-Final safe steering command
-```
-
-This prevents the camera subsystem from becoming the sole authority over steering.
-
-The vision information contributes to the navigation decision, but wall geometry and safety remain active.
-
----
-
-## 7.10 Front Ultrasonic Safety Remains Independent
-
-The front ultrasonic sensor on S1 also remains active during vision-based navigation.
-
-The HuskyLens may recognize a pillar visually, but the front ultrasonic sensor solves a separate problem: identifying dangerously close frontal proximity.
-
-The control relationship can therefore be understood as:
-
-```text
-HUSKYLENS
-    ↓
-What obstacle is it?
-
-
-FRONT US
-    ↓
-Is something dangerously close?
-
-
-LATERAL US
-    ↓
-Where are the track walls?
-```
-
-All three questions are useful, but they are not interchangeable.
-
-This is why Piolín uses multiple types of sensors instead of attempting to make the camera responsible for all environmental perception.
-
----
-
-## 7.11 HuskyLens Field of View
-
-Unlike the ultrasonic sensors, the HuskyLens observes the environment through a camera field of view.
-
-Only objects that appear within that visible region can be recognized.
-
-Conceptually:
-
-```text
-                 CAMERA VIEW
-                    \     /
-                     \   /
-                      \ /
-                  [ HUSKYLENS ]
-                       │
-                       │
-                    [PIOLÍN]
-```
-
-A pillar outside the visible camera region cannot provide useful visual information until it enters the HuskyLens view.
-
-This is an important physical characteristic of camera-based perception.
-
-It also explains why the ultrasonic sensors remain active even when vision is being used. The camera provides rich visual information inside its view, while the ultrasonic sensors continue providing geometric distance information around the robot.
-
----
-
-## 7.12 Why Camera Position Matters
-
-Because the HuskyLens has a limited viewing region, its mechanical mounting directly affects what Piolín can see.
-
-A camera mounted too low may have part of its view blocked by the robot structure.
-
-A camera positioned poorly relative to the chassis may lose sight of pillars during steering maneuvers.
-
-The relationship is:
-
-```text
-CAMERA POSITION
-      ↓
-VISIBLE REGION
-      ↓
-WHEN PILLAR ENTERS VIEW
-      ↓
-WHEN DETECTION BECOMES AVAILABLE
-```
-
-For this reason, the HuskyLens should be considered both an electronic component and part of Piolín's mechanical perception geometry.
-
-The installation shown in **Figure 7.1** integrates the camera into the front-facing perception system of the robot.
-
----
-
-## 7.13 Camera Information During a Turn
-
-The appearance of a pillar in the camera can change substantially while Piolín is turning.
-
-As the vehicle rotates, the camera rotates with the chassis.
-
-```text
-Before turn:
-
-          PILLAR
-             ●
-             │
-             │
-        [ PIOLÍN ]
-
-
-During turn:
-
-     PILLAR
-        ●
-          \
-           \
-        [ PIOLÍN ]
-             ↗
-```
-
-The pillar may move across the visible image or leave the camera view entirely even though it still exists physically beside the robot.
-
-This is another reason the final system does not interpret loss of camera detection as proof that the surrounding environment is completely clear.
-
-The ultrasonic sensors and navigation state continue providing context after the visual target leaves the field of view.
-
----
-
-## 7.14 Object Detection and Robot Reaction Are Different Events
-
-The instant when a pillar is first detected is not necessarily the same instant when the robot completes its avoidance maneuver.
-
-The sequence is more accurately represented as:
-
-```text
-Pillar enters camera view
-        ↓
-HuskyLens detects pillar
-        ↓
-Detection reaches EV3
-        ↓
-EV3 requests avoidance
-        ↓
-Steering changes
-        ↓
-Robot trajectory changes
-        ↓
-Pillar leaves relevant region
-        ↓
-Navigation recovers
-```
-
-This distinction helps explain why vision, steering, propulsion, and wall sensing must work together.
-
-The camera can provide early information, but the physical vehicle still needs time and distance to respond.
-
----
-
-## 7.15 HuskyLens Input and Output
-
-The HuskyLens can be viewed as an information-processing stage between the physical environment and Piolín's navigation software.
-
-The physical input is the visible scene in front of the robot.
-
-The useful output is a simplified obstacle identification that can be communicated to the EV3.
-
-```text
-PHYSICAL INPUT
-Visible traffic pillar
-        ↓
-HUSKYLENS
-        ↓
-Visual recognition
-        ↓
-Detected object / ID
-        ↓
-ARDUINO NANO
-        ↓
-Communication data
-        ↓
-LEGO EV3
-```
-
-This is fundamentally different from the ultrasonic sensor system.
-
-The ultrasonic sensors primarily provide numerical distances.
-
-The HuskyLens provides information related to **visual object identity**.
-
----
-
-## 7.16 Why Raw Camera Processing Is Not Performed by the EV3
-
-The EV3 is already responsible for:
-
-```text
-Ultrasonic navigation
-Color detection
-State management
-Motor control
-Steering
-Safety logic
-Course progress
-```
-
-The final architecture does not require it to also process a complete raw camera stream.
-
-Instead, visual recognition is handled before the relevant information reaches the EV3.
-
-```text
-RAW VISUAL ENVIRONMENT
-          ↓
-      HUSKYLENS
-          ↓
-Useful detection
-          ↓
-         NANO
-          ↓
-         EV3
-```
-
-This reduces the amount of visual-processing responsibility placed on the main vehicle controller.
-
-The EV3 can therefore focus on what it does after the object has been identified: deciding how Piolín should move.
-
----
-
-## 7.17 Why HuskyLens Replaced PixyCam
-
-Piolín previously experimented with a **PixyCam-based vision system**.
-
-That system demonstrated that camera-based color information could be useful for the Obstacle Challenge, but it was not retained as the final architecture.
-
-The final robot instead uses the HuskyLens with the Arduino Nano interface.
-
-The important engineering evolution was:
-
-```text
-PIXyCam EXPERIMENT
-        ↓
-Vision proved useful
-        ↓
-Vision architecture reconsidered
-        ↓
-HUSKYLENS + ARDUINO NANO
-        ↓
-Final vision subsystem
-```
-
-The PixyCam documentation remains preserved as part of Piolín's engineering history in:
-
-```text
-docs/legacy/02_CameraPixy.md
-```
-
-Keeping that previous architecture in the legacy section makes it possible to document the evolution of the vision system without confusing it with the final robot configuration.
-
----
-
-## 7.18 Why the HuskyLens Does Not Replace the Color Sensor
-
-Both devices use optical information, but their functions are different.
-
-The HuskyLens is oriented toward the environment ahead of the robot.
-
-The LEGO Color Sensor is oriented downward toward the competition mat.
-
-```text
-HUSKYLENS
-    ↓
-Forward vision
-    ↓
-Pillar detection
-
-
-COLOR SENSOR
-    ↓
-Floor observation
-    ↓
-Blue / Orange course markings
-```
-
-The HuskyLens therefore cannot simply replace the floor-facing sensor.
-
-Similarly, the downward color sensor cannot identify pillars located several centimeters or more in front of Piolín.
-
-Their sensing directions and navigation responsibilities are fundamentally different.
-
----
-
-## 7.19 Why the HuskyLens Does Not Replace Ultrasonic Navigation
-
-Visual recognition provides obstacle identity, but it does not provide Piolín with the same wall geometry supplied by the lateral ultrasonic sensors.
-
-The Open Challenge can therefore operate without relying on HuskyLens obstacle recognition.
-
-The architecture is intentionally modular:
-
-```text
-OPEN CHALLENGE
-
-Ultrasonic Sensors
-      +
-Color Sensor
-      +
-EV3
-      ↓
-Track Navigation
-```
-
-while:
-
-```text
-OBSTACLE CHALLENGE
-
-Ultrasonic Navigation
-      +
-Color Sensor
-      +
-HuskyLens / Nano
-      ↓
-Track + Obstacle Navigation
-```
-
-The vision subsystem extends Piolín's perception rather than replacing the navigation system that already exists.
-
----
-
-## 7.20 Vision Data and Steering
-
-The HuskyLens never communicates directly with Motor B.
-
-Instead:
-
-```text
-HuskyLens
-    ↓
-Arduino Nano
-    ↓
-EV3
-    ↓
-Navigation logic
-    ↓
-Steering target
-    ↓
-Motor B
-```
-
-This means that the visual detection can influence the desired steering direction while still allowing the EV3 to apply wall-protection limits and other safety behavior.
-
-The camera therefore provides a **navigation input**, not a direct actuator command.
-
----
-
-## 7.21 Vision Data and Propulsion
-
-The same principle applies to Motor A.
-
-A detected pillar can cause the EV3 to modify propulsion behavior during the avoidance maneuver, but the HuskyLens does not directly control drive speed.
-
-```text
-Obstacle detected
-      ↓
-EV3 receives visual information
-      ↓
-Obstacle state selected
-      ↓
-Drive speed determined
-      ↓
-Motor A command
-```
-
-This allows speed and steering to be coordinated according to the complete navigation situation.
-
----
-
-## 7.22 Sensor Responsibility During Obstacle Navigation
-
-The main sensors remain active together during the Obstacle Challenge.
-
-| Sensor / System | Primary Information |
-| :--- | :--- |
-| **HuskyLens** | Colored pillar identity |
-| **Arduino Nano** | Vision communication |
-| **Front US — S1** | Frontal safety |
-| **Right US — S2** | Right-wall geometry |
-| **Left US — S3** | Left-wall geometry |
-| **Color Sensor — S4** | Course direction and progress |
-| **EV3** | Final navigation decision |
-
-The resulting perception model is:
-
-```text
-                   VISUAL IDENTITY
-                       HUSKYLENS
-                           │
-                           ▼
-                        NANO
-                           │
-                           ▼
-                      ┌─────────┐
-WALL GEOMETRY ───────→│   EV3   │←────── COURSE STATE
- Ultrasonics           └────┬────┘        Color Sensor
-                            │
-                            ▼
-                    Movement Decision
-```
-
-This is the fundamental sensor-fusion structure of Piolín's obstacle architecture.
-
----
-
-## 7.23 Loss of Visual Detection
-
-A detected pillar can eventually leave the camera field of view as Piolín moves around it.
-
-That does not necessarily mean the obstacle has vanished physically.
-
-```text
-Pillar visible
-     ↓
-Avoidance begins
-     ↓
-Robot changes heading
-     ↓
-Pillar moves outside camera view
-```
-
-The navigation system therefore must distinguish between:
-
-```text
-No pillar currently visible
-```
-
-and:
-
-```text
-No obstacle interaction exists
-```
-
-These are not always the same condition.
-
-Piolín's wall sensors and navigation state continue operating even when a pillar is no longer visible to the camera.
-
-This helps the robot return from obstacle avoidance toward normal track navigation.
-
----
-
-## 7.24 Camera Limitations
-
-The HuskyLens provides valuable visual information, but the system has physical limitations.
-
-| Limitation | Effect on Piolín |
-| :--- | :--- |
-| **Finite field of view** | Pillars outside the visible region cannot be identified |
-| **Robot rotation** | Pillar position in the image changes during turns |
-| **Mechanical obstruction** | Chassis components can reduce visible area if poorly positioned |
-| **Distance to object** | Apparent pillar size changes |
-| **Lighting conditions** | Visual appearance of colors can change |
-| **Loss of target from view** | Camera information may disappear during an active maneuver |
-
-These limitations are why Piolín does not depend on vision alone for autonomous navigation.
-
-The HuskyLens is used where visual identification is necessary, while other sensors continue solving geometry and safety problems.
-
----
-
-## 7.25 Vision System Modularity
-
-The vision subsystem is intentionally isolated from Piolín's most basic motion-control architecture.
-
-If represented by subsystem:
-
-```text
-                 PIOLÍN
-
-        ┌─────────────────────┐
-        │     NAVIGATION      │
-        │ EV3 + Ultrasonics   │
-        │ + Color Sensor      │
-        └──────────┬──────────┘
-                   │
-                   │
-        ┌──────────▼──────────┐
-        │       VISION        │
-        │ HuskyLens + Nano    │
-        └─────────────────────┘
-```
-
-The modules exchange information, but the navigation subsystem does not need the HuskyLens to perform every fundamental movement.
-
-This makes the architecture easier to understand and prevents one camera-related issue from automatically redefining every other sensing responsibility.
-
----
-
-## 7.26 HuskyLens Responsibility Matrix
-
-The final responsibilities of the HuskyLens can be summarized as:
-
-| Function | HuskyLens Role |
-| :--- | :---: |
-| **Detect green pillar** | **Primary** |
-| **Detect red pillar** | **Primary** |
-| **Provide obstacle ID** | **Primary** |
-| **Determine wall distance** | No |
-| **Determine floor color** | No |
-| **Determine initial driving direction** | No |
-| **Control Motor A directly** | No |
-| **Control Motor B directly** | No |
-| **Make final safety decision** | No |
-| **Provide visual input to EV3** | **Yes** |
-
-This narrow responsibility is intentional.
-
-The HuskyLens is a perception device, while the EV3 remains the decision-making device.
-
----
-
-## 7.27 Final Vision Data Flow
-
-The complete Piolín vision data flow can be summarized as:
-
-```text
-                      TRAFFIC PILLAR
-                            │
-                            ▼
-                       HUSKYLENS
-                            │
-                     Visual Detection
-                            │
-                            ▼
-                      ARDUINO NANO
-                            │
-                           USB
-                            │
-                            ▼
-                        LEGO EV3
-                            │
-                   Obstacle Strategy
-                            │
-            ┌───────────────┴───────────────┐
-            ▼                               ▼
-        DRIVE MOTOR                    STEERING MOTOR
-          Port A                           Port B
-            │                               │
-            └───────────────┬───────────────┘
-                            ▼
-                     VEHICLE RESPONSE
-```
-
-At no point does the camera directly command the actuators.
-
-This keeps sensing, communication, decision-making, and actuation as distinct parts of the architecture.
-
----
-
-## 7.28 Engineering Decision Summary
-
-The HuskyLens subsystem demonstrates Piolín's broader hardware philosophy: add specialized hardware only when it solves a problem that the existing sensors cannot solve effectively.
-
-The ultrasonic sensors are well suited for measuring wall distance but cannot determine whether a visible traffic pillar is red or green.
-
-The downward color sensor can distinguish course markings beneath the robot but cannot identify obstacles ahead.
-
-The HuskyLens fills that missing perception role.
-
-```text
-ULTRASONIC
-   ↓
-DISTANCE
-
-
-COLOR SENSOR
-   ↓
-FLOOR MARKING
-
-
-HUSKYLENS
-   ↓
-VISUAL OBJECT IDENTITY
-```
-
-The Arduino Nano allows this specialized visual information to reach the EV3 without replacing the main controller.
-
-This produced a final architecture in which every major sensing device answers a different question.
-
----
-
-## 7.29 Final Summary
-
-Piolín uses one **HuskyLens vision sensor** as the primary obstacle-recognition device for the WRO Future Engineers Obstacle Challenge.
-
-The camera is mounted facing forward and identifies the colored traffic pillars encountered by the robot.
-
-Piolín's final obstacle IDs are:
-
-```text
-ID 1 = GREEN PILLAR
-
-ID 2 = RED PILLAR
-```
-
-These detections are transferred through the Arduino Nano to the EV3.
-
-The complete architecture is:
-
-```text
-HUSKYLENS
-    ↓
-Obstacle Identification
-    ↓
-ARDUINO NANO
-    ↓
-USB
-    ↓
-LEGO EV3
-    ↓
-Combine with Ultrasonic + Course Information
-    ↓
-Navigation Decision
-    ↓
-Drive + Steering
-```
-
-The final engineering role of the HuskyLens can therefore be summarized as:
-
-> **The ultrasonic sensors tell Piolín where the surrounding walls are.**
-
-> **The color sensor tells Piolín where it is within the course sequence.**
-
-> **The HuskyLens tells Piolín which colored obstacle it can see.**
-
-> **The EV3 decides what Piolín should do with all of that information.**
-
-The HuskyLens therefore extends Piolín's perception without replacing the EV3, ultrasonic navigation, or color-sensing systems.
-
-Detailed HuskyLens data handling is documented separately in:
-
-```text
-docs/power_sensors/04_huskylens.md
-```
-
-while visual detection and obstacle behavior are documented in:
-
-```text
-docs/software_obstacles_strategy/05_obstacledetec.md
-
-docs/software_obstacles_strategy/06_obstaclestrateg.md
-
-docs/software_obstacles_strategy/08_CameraHLVision.md
-```
+</div>
