@@ -4,57 +4,103 @@
 
 <img
   src="../../v-photos/v4/piolin_open_isometric.jpg"
-  alt="Piolín complete mobility architecture in Open Challenge configuration"
+  alt="Piolín complete mobility platform in the Open Challenge configuration"
   width="720"
 />
 
 <br>
 
-<sub><b>Figure 3.1.</b> Piolín's complete vehicle platform combining rear-wheel propulsion with front Ackermann-style steering.</sub>
+<sub><b>Figure 3.1.</b> Piolín's current vehicle platform combines rear propulsion with front Ackermann-style steering.</sub>
 
 </div>
 
-Piolín is designed as a four-wheel autonomous vehicle with **rear-wheel propulsion** and **front-wheel Ackermann-style steering**. Unlike a differential-drive robot, Piolín separates the two fundamental mobility functions between two independent actuators.
+Piolín is designed as a four-wheel autonomous vehicle in which **propulsion and steering are handled by separate actuators**. An EV3 Large Motor connected to Motor Port A generates the motion required to move the robot forward or backward, while an EV3 Medium Motor connected to Motor Port B controls the front steering system.
+
+The fundamental mobility architecture is therefore:
 
 ```text
 Motor A
 → propulsion
 
-
 Motor B
 → steering
 ```
 
-The LEGO Mindstorms EV3 Large Motor on Port A produces the motion required to move the vehicle forward or backward, while the EV3 Medium Motor on Port B controls the angular position of the front steering mechanism.
+Rather than turning by driving the left and right sides at different speeds, Piolín behaves more like a small conventional vehicle. The rear section provides propulsion while the front wheels change their orientation to generate the required curvature.
 
-The resulting architecture behaves more like a small conventional vehicle than a skid-steer robot:
-
-```text
-              FRONT
-
-       steering wheels
-          ↙       ↘
-        O           O
-        │           │
-        │   CHASSIS │
-        │           │
-        O===========O
-          rear drive
-
-              REAR
-```
-
-This architecture was selected because WRO Future Engineers requires repeated straight sections, controlled corners, obstacle avoidance, recovery maneuvers, and parking. Separating propulsion from steering allows the software to modify vehicle speed and trajectory independently while preserving the same mechanical platform for both the Open and Obstacle Challenges.
+This architecture is used for both the **Open Challenge** and the **Obstacle Challenge**. The mechanical mobility platform remains the same; what changes between rounds is primarily the sensing and navigation logic that decides what Motor A and Motor B should do.
 
 ---
 
-## 3.1 Mobility Architecture
+## 3.1 Mobility as a Complete System
 
-Piolín's mobility system can be divided into two principal mechanical paths:
+Vehicle movement is not produced by one component alone. It results from the interaction between the controller, motors, drivetrain, steering mechanism, wheels, structure, surface, and navigation software.
+
+The complete relationship can be simplified as:
 
 ```text
-PROPULSION PATH
+EV3
+ │
+ ├── Motor A
+ │      ↓
+ │   drivetrain
+ │      ↓
+ │   rear wheels
+ │      ↓
+ │   longitudinal movement
+ │
+ └── Motor B
+        ↓
+     steering linkage
+        ↓
+     front wheels
+        ↓
+     vehicle curvature
+```
 
+The two paths remain mechanically distinct but interact dynamically.
+
+For example, a steering position that produces a controlled maneuver at low vehicle speed can generate a very different trajectory when Motor A is driving faster. Likewise, increasing propulsion speed reduces the physical time available for the steering mechanism to react before Piolín reaches a corner or obstacle.
+
+Piolín's mobility must therefore be understood as the combination of:
+
+```text
+propulsion
++
+steering
++
+mechanical geometry
++
+traction
++
+control timing
+```
+
+rather than as two isolated motor commands.
+
+---
+
+## 3.2 Rear-Wheel Propulsion
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/motor_a_large_drive.jpg"
+  alt="EV3 Large Motor A installed as Piolín's propulsion motor"
+  width="660"
+/>
+
+<br>
+
+<sub><b>Figure 3.2.</b> Motor A is the dedicated propulsion actuator in Piolín's current mobility architecture.</sub>
+
+</div>
+
+Piolín uses the **EV3 Large Motor on Port A** as its drive motor. Its purpose is to generate the rotational motion that ultimately moves the robot along the track.
+
+The propulsion path is:
+
+```text
 EV3
  ↓
 Motor A
@@ -63,156 +109,18 @@ rear drivetrain
  ↓
 rear wheels
  ↓
-longitudinal vehicle motion
+track surface
+ ↓
+vehicle displacement
 ```
 
-and:
+The motor can operate in both rotational directions, allowing the vehicle to move forward and backward without requiring a mechanical reversing gearbox.
 
-```text
-STEERING PATH
-
-EV3
- ↓
-Motor B
- ↓
-steering linkage
- ↓
-front-wheel angles
- ↓
-vehicle curvature
-```
-
-<div align="center">
-
-<img
-  src="../../embed/motor_role_architecture.png"
-  alt="Piolín propulsion and steering motor role architecture"
-  width="850"
-/>
-
-<br>
-
-<sub><b>Figure 3.2.</b> Piolín separates propulsion and steering into two independently controlled mechanical subsystems.</sub>
-
-</div>
-
-The two systems are physically separate but dynamically coupled.
-
-A steering angle has little effect when the robot is stationary, while the same steering angle can create a much larger trajectory change when Piolín is moving quickly.
-
-Therefore vehicle mobility must be understood as:
-
-```text
-propulsion
-+
-steering
-+
-vehicle geometry
-+
-traction
-+
-control timing
-```
-
-rather than as two unrelated motor commands.
+Forward movement is used for the majority of the autonomous run, while reverse movement can be used when a particular maneuver requires additional physical repositioning, recovery distance, or parking adjustment.
 
 ---
 
-# 3.2 Rear-Wheel Propulsion
-
-Piolín uses the EV3 Large Motor connected to **Port A** as its propulsion actuator.
-
-<div align="center">
-
-<img
-  src="../../v-photos/v4/motor_a_large_drive.jpg"
-  alt="EV3 Large Motor A used for Piolín propulsion"
-  width="660"
-/>
-
-<br>
-
-<sub><b>Figure 3.3.</b> Motor A provides the mechanical input for Piolín's rear-wheel propulsion system.</sub>
-
-</div>
-
-The propulsion path is:
-
-```text
-Motor A
-   ↓
-mechanical transmission
-   ↓
-rear axle / drivetrain
-   ↓
-rear wheels
-   ↓
-vehicle movement
-```
-
-The motor can be commanded in both rotational directions, allowing Piolín to move:
-
-```text
-forward
-```
-
-or:
-
-```text
-reverse
-```
-
-without requiring a separate transmission mechanism.
-
-This ability is useful beyond ordinary driving. Reverse movement can also form part of recovery, obstacle positioning, and parking strategies when additional physical space is required.
-
----
-
-## 3.3 Why Propulsion Is Separated from Steering
-
-In a differential-drive vehicle, turning is produced by commanding the left and right drive wheels at different speeds.
-
-Piolín instead uses one dedicated propulsion system and one dedicated steering system.
-
-Conceptually:
-
-```text
-DIFFERENTIAL DRIVE
-
-left wheel speed
-+
-right wheel speed
-→ direction
-```
-
-Piolín uses:
-
-```text
-drive speed
-+
-front steering angle
-→ direction
-```
-
-This separation offers an important control advantage for the current robot.
-
-Motor A can be responsible primarily for:
-
-```text
-how quickly Piolín moves
-```
-
-while Motor B can be responsible primarily for:
-
-```text
-where Piolín moves
-```
-
-The two commands still interact physically, but the software architecture can reason about them as different control variables.
-
----
-
-# 3.4 Rear Drivetrain
+## 3.3 Rear Drivetrain
 
 <div align="center">
 
@@ -224,51 +132,63 @@ The two commands still interact physically, but the software architecture can re
 
 <br>
 
-<sub><b>Figure 3.4.</b> Rear drivetrain transferring Motor A rotation toward Piolín's driven wheels.</sub>
+<sub><b>Figure 3.3.</b> Current rear drivetrain transferring Motor A rotation toward the driven wheels.</sub>
 
 </div>
 
-The rear drivetrain performs the mechanical conversion between Motor A rotation and wheel rotation.
+The rear drivetrain is the mechanical link between the Large Motor and the driven wheels.
 
-The complete energy path is:
+Its purpose is not only to transmit rotation but also to preserve alignment and minimize unnecessary resistance while the vehicle is moving.
+
+The physical chain is:
 
 ```text
-EV3 battery
-     ↓
-Motor A
-     ↓
-motor rotation
-     ↓
-drivetrain
-     ↓
-wheel rotation
-     ↓
+Motor rotation
+      ↓
+drivetrain elements
+      ↓
+rear-wheel rotation
+      ↓
 tire-track interaction
-     ↓
-vehicle displacement
+      ↓
+vehicle movement
 ```
+
+A drivetrain that becomes misaligned or develops excessive friction can make the vehicle appear slower even when the software and Motor A command have not changed.
+
+This is why mobility testing should distinguish between:
+
+```text
+software behavior
+```
+
+and:
+
+```text
+mechanical resistance
+```
+
+before changing motor-control values.
 
 <div align="center">
 
 <img
-  src="../../embed/drivetrain_power_flow.png"
-  alt="Piolín propulsion power flow"
-  width="850"
+  src="../../v-photos/v4/rear_drivetrain_bottom.jpg"
+  alt="Bottom view of Piolín rear drivetrain"
+  width="700"
 />
 
 <br>
 
-<sub><b>Figure 3.5.</b> Electrical energy is converted into vehicle displacement through the complete propulsion chain.</sub>
+<sub><b>Figure 3.4.</b> Bottom view of the drivetrain and rear mechanical support structure.</sub>
 
 </div>
 
-The exact current drivetrain ratio should be published only after the final V4 drivetrain is physically verified. An earlier ratio should not be assumed to remain valid after mechanical revisions.
+The exact drivetrain ratio should only be published after the final V4 configuration has been physically verified. Earlier mechanical values should not automatically be transferred to the current robot.
 
 ---
 
-## 3.5 Rear-Wheel Traction
-
-The rear wheels convert drivetrain rotation into longitudinal force against the competition surface.
+## 3.4 Rear Wheels and Traction
 
 <div align="center">
 
@@ -280,140 +200,448 @@ The rear wheels convert drivetrain rotation into longitudinal force against the 
 
 <br>
 
-<sub><b>Figure 3.6.</b> Rear wheels provide the traction required to transform Motor A rotation into vehicle motion.</sub>
+<sub><b>Figure 3.5.</b> Rear wheels responsible for transferring propulsion force to the competition surface.</sub>
 
 </div>
 
-The ideal relationship is:
+The rear wheels convert drivetrain rotation into longitudinal vehicle movement.
+
+In an ideal model:
 
 ```text
 wheel rotation
-→ vehicle displacement
+→ equivalent vehicle displacement
 ```
 
-but the real relationship can be affected by:
+but a real vehicle can experience:
 
 ```text
 wheel slip
 
 tire deformation
 
-track surface
+track-surface variation
 
-vehicle mass
+mechanical resistance
 
-cornering load
+changes in vehicle load
 
-acceleration
-
-mechanical friction
+cornering forces
 ```
 
-This distinction becomes important when wheel encoders are used to estimate traveled distance.
+Therefore motor or wheel rotation is a useful movement reference but should not automatically be interpreted as perfect physical displacement.
 
-The encoder measures motor or axle rotation accurately, but the physical robot can still travel slightly more or less than the ideal calculated distance.
+This becomes particularly important when encoder measurements are used during controlled forward motion, reverse movement, or parking.
 
 ---
 
-# 3.6 Front Steering
-
-Piolín's front wheels are controlled by the EV3 Medium Motor on Port B.
+## 3.5 Dedicated Front Steering
 
 <div align="center">
 
 <img
   src="../../v-photos/v4/motor_b_medium_steering.jpg"
-  alt="EV3 Medium Motor B controlling Piolín steering"
+  alt="EV3 Medium Motor B installed as Piolín's steering actuator"
   width="660"
 />
 
 <br>
 
-<sub><b>Figure 3.7.</b> Motor B controls the front steering system independently from propulsion.</sub>
+<sub><b>Figure 3.6.</b> Motor B provides the rotational input to the front steering mechanism.</sub>
 
 </div>
 
-Motor B does not directly represent the vehicle's turning radius.
+Piolín uses an **EV3 Medium Motor on Port B** to control direction.
 
-Instead, its rotation is transferred through a mechanical linkage:
+Motor B does not propel the vehicle. Instead, it changes the front-wheel orientation through a mechanical linkage.
+
+The steering path is:
 
 ```text
+EV3
+ ↓
 Motor B
-   ↓
+ ↓
 steering transmission
-   ↓
+ ↓
 linkage
-   ↓
-front wheel angles
-   ↓
-vehicle trajectory
+ ↓
+front wheel orientation
+ ↓
+vehicle curvature
 ```
 
-This means:
+This separation provides a clear division of responsibilities:
 
 ```text
-Motor B angle
-≠
-front-wheel angle
+Motor A
+→ how Piolín moves longitudinally
+
+Motor B
+→ how Piolín changes direction
 ```
 
-unless the mechanical relationship between them has been experimentally calibrated.
+The actual trajectory is created by both working together.
 
 ---
 
-# 3.7 Ackermann-Style Steering
-
-Piolín uses an **Ackermann-style steering geometry** so that the two front wheels can follow different turning radii during a corner.
+## 3.6 Ackermann-Style Steering
 
 <div align="center">
 
 <img
   src="../../v-photos/v4/ackermann_top.jpg"
-  alt="Piolín Ackermann-style steering viewed from above"
+  alt="Top view of Piolín Ackermann-style steering system"
   width="700"
 />
 
 <br>
 
-<sub><b>Figure 3.8.</b> Top view of Piolín's front steering mechanism.</sub>
+<sub><b>Figure 3.7.</b> Top view of the current front steering mechanism.</sub>
 
 </div>
 
-During a turn, the inner front wheel follows a tighter path than the outer front wheel.
+Piolín uses an **Ackermann-style steering geometry** rather than differential or skid steering.
 
-Therefore the ideal steering relationship is approximately:
+During a turn, the inner front wheel follows a smaller-radius path than the outer front wheel. The two wheels therefore should not remain at exactly the same steering angle.
+
+The principle is:
 
 ```text
-inner wheel angle
->
-outer wheel angle
-```
+INNER WHEEL
+→ tighter trajectory
+→ larger steering angle
 
-rather than both wheels remaining perfectly parallel.
+OUTER WHEEL
+→ wider trajectory
+→ smaller steering angle
+```
 
 <div align="center">
 
 <img
-  src="v-photos/v4/ackermann_geometry.png"
-  alt="Ackermann steering geometry showing different inner and outer wheel angles"
-  width="850"
+  src="../../v-photos/v4/ackermann_design.png"
+  alt="Piolín Ackermann steering design"
+  width="780"
 />
 
 <br>
 
-<sub><b>Figure 3.9.</b> Ackermann geometry allows the inner and outer front wheels to follow different radii around a common turning region.</sub>
+<sub><b>Figure 3.8.</b> Ackermann steering design used to coordinate the different trajectories of the inner and outer front wheels.</sub>
 
 </div>
 
-This reduces unnecessary tire scrubbing compared with forcing both front wheels to use identical angles during a turn.
+This configuration reduces the need for the front tires to scrub laterally against the surface during normal turns.
+
+It also allows Piolín to behave as a vehicle with a defined steering curvature instead of rotating primarily through opposite wheel speeds.
 
 ---
 
-## 3.8 Geometric Turning Model
+## 3.7 Steering Angles
 
-A simplified vehicle turning model relates steering geometry to vehicle curvature.
+<div align="center">
 
-For a basic bicycle-model approximation:
+<img
+  src="../../v-photos/v4/ackermann_angles.jpg"
+  alt="Piolín Ackermann steering angle reference"
+  width="720"
+/>
+
+<br>
+
+<sub><b>Figure 3.9.</b> Steering-angle reference for the Ackermann-style front geometry.</sub>
+
+</div>
+
+One important distinction is that the EV3 controls the angular position of **Motor B**, but vehicle motion depends on the actual orientation of the **front wheels**.
+
+Therefore:
+
+```text
+Motor B encoder angle
+≠
+physical wheel steering angle
+```
+
+unless the relationship has been physically measured.
+
+The linkage converts one quantity into the other.
+
+Its behavior depends on factors such as:
+
+```text
+connection points
+
+link lengths
+
+pivot geometry
+
+mechanical clearance
+
+structural alignment
+```
+
+For this reason, steering values in software should be treated as actuator commands rather than direct measurements of wheel angle.
+
+---
+
+## 3.8 Mechanical Steering Center
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/ackermann_center.jpg"
+  alt="Piolín front wheels in the centered steering position"
+  width="680"
+/>
+
+<br>
+
+<sub><b>Figure 3.10.</b> Current mechanical steering-center position.</sub>
+
+</div>
+
+Straight-line mobility depends on having a repeatable steering center.
+
+Ideally:
+
+```text
+Motor B center
+      ↓
+linkage centered
+      ↓
+front wheels approximately straight
+      ↓
+minimal mechanical steering bias
+```
+
+If the front wheels are not mechanically centered, Piolín may continuously drift even when the software requests neutral steering.
+
+For that reason, the preferred calibration order is:
+
+```text
+mechanical alignment
+      ↓
+steering-center verification
+      ↓
+low-speed straight test
+      ↓
+software fine adjustment
+```
+
+rather than using software immediately to compensate for a large mechanical offset.
+
+---
+
+## 3.9 Left and Right Steering Range
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/ackermann_left_lock.jpg"
+  alt="Piolín steering at the useful left limit"
+  width="640"
+/>
+
+<br>
+
+<sub><b>Figure 3.11.</b> Left steering limit of the current V4 mechanism.</sub>
+
+</div>
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/ackermann_right_lock.jpg"
+  alt="Piolín steering at the useful right limit"
+  width="640"
+/>
+
+<br>
+
+<sub><b>Figure 3.12.</b> Right steering limit of the current V4 mechanism.</sub>
+
+</div>
+
+The useful steering range should remain inside the physical limits of the linkage.
+
+A motor can sometimes continue attempting to rotate even after the mechanism has reached a practical mechanical stop. That condition is undesirable because it can increase motor load and stress the steering assembly without creating additional useful wheel angle.
+
+The software limits should therefore be based on the **usable physical steering range**, not simply the maximum rotational capability of Motor B.
+
+Left and right limits also should not be assumed to be perfectly symmetrical until measured.
+
+---
+
+## 3.10 Dynamic Steering Movement
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/steering_motion.gif"
+  alt="Piolín steering mechanism moving between left center and right"
+  width="700"
+/>
+
+<br>
+
+<sub><b>Figure 3.13.</b> Complete steering movement from one side through center to the opposite side.</sub>
+
+</div>
+
+The dynamic movement demonstrates that steering is not instantaneous.
+
+The sequence is:
+
+```text
+EV3 changes command
+      ↓
+Motor B begins rotating
+      ↓
+linkage moves
+      ↓
+front-wheel angles change
+      ↓
+vehicle trajectory begins changing
+```
+
+During this time, Motor A may still be moving Piolín forward.
+
+Therefore the physical delay between a software decision and the final wheel position directly affects:
+
+```text
+corner entry
+
+obstacle reaction
+
+countersteering
+
+recovery
+
+parking
+```
+
+---
+
+## 3.11 Steering and Speed Are Coupled
+
+One of the most important mobility relationships in Piolín is the interaction between propulsion speed and steering response.
+
+Consider the same Motor B target position in two conditions.
+
+```text
+LOWER SPEED
+→ Piolín travels less distance while steering develops
+```
+
+```text
+HIGHER SPEED
+→ Piolín travels more distance while steering develops
+```
+
+The same steering command can therefore produce different practical trajectories.
+
+This means corner tuning cannot be reduced to:
+
+```text
+find one steering angle
+```
+
+The system must also consider:
+
+```text
+vehicle speed
+
+steering response time
+
+entry position
+
+entry heading
+
+duration of steering
+
+release timing
+```
+
+---
+
+## 3.12 Straight-Line Mobility
+
+During a straight section, the desired mechanical state is approximately:
+
+```text
+Motor A
+→ stable propulsion
+
+Motor B
+→ close to center
+```
+
+with steering corrections added only when the navigation system determines that they are necessary.
+
+Repeated large left-right corrections produce a less efficient trajectory:
+
+```text
+left correction
+      ↓
+overshoot
+      ↓
+right correction
+      ↓
+overshoot
+      ↓
+zig-zag
+```
+
+A well-behaved mobility controller should therefore make corrections early enough and smoothly enough that the robot does not continuously cross its desired path.
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/Piolin_open_front.jpeg"
+  alt="Front view of Piolín in the Open Challenge configuration"
+  width="680"
+/>
+
+<br>
+
+<sub><b>Figure 3.14.</b> Front view of Piolín showing the relationship between the front steering geometry and the vehicle centerline.</sub>
+
+</div>
+
+Straight-line drift can originate from both mechanical and software causes.
+
+Mechanical causes include:
+
+```text
+incorrect steering center
+
+wheel alignment
+
+drivetrain resistance
+
+structural asymmetry
+```
+
+Software causes can include:
+
+```text
+excessive steering correction
+
+incorrect control sign
+
+sensor interpretation
+
+delayed correction
+```
+
+The mechanical system should be checked before compensating for persistent drift entirely through software.
+
+---
+
+## 3.13 Vehicle Turning
+
+A simplified vehicle model relates wheelbase and steering angle to turning radius:
 
 ```text
 R ≈ L / tan(δ)
@@ -432,398 +660,451 @@ L
 = representative steering angle
 ```
 
-The relationship shows an important mobility characteristic:
+The equation demonstrates the general relationship:
 
 ```text
-small steering angle
-→ large turning radius
+smaller steering angle
+→ wider turn
 
-
-large steering angle
-→ smaller turning radius
+larger steering angle
+→ tighter turn
 ```
 
-However, Piolín uses two actual front wheels and an Ackermann linkage, so this equation is treated as a conceptual model rather than a complete description of the real vehicle.
+However, Piolín uses a real four-wheel chassis with Ackermann geometry, mechanical linkage, finite track width, tire deformation, and non-ideal surfaces.
 
-The final turning radius should be measured experimentally on the current robot.
+The equation is therefore useful for understanding the trend but should not replace physical turning-radius measurements.
 
 ---
 
-# 3.9 Steering Center
+## 3.14 Open Challenge Mobility
 
-A reliable mobility system requires a repeatable neutral steering position.
+The Open Challenge uses the same mechanical mobility system shown throughout this document.
 
-Conceptually:
+What changes is the sensing information used to determine the steering command.
 
-```text
-Motor B center
-      ↓
-steering linkage center
-      ↓
-front wheels approximately straight
-      ↓
-vehicle capable of straight travel
-```
-
-<div align="center">
-
-<img
-  src="../../v-photos/v4/ackermann_center.jpg"
-  alt="Piolín steering in its centered position"
-  width="680"
-/>
-
-<br>
-
-<sub><b>Figure 3.10.</b> Front steering assembly in its mechanical center position.</sub>
-
-</div>
-
-A software value of:
+The active sensing architecture is:
 
 ```text
-steering = 0
+S1
+→ Gyro
+
+S2
+→ Left Ultrasonic
+
+S3
+→ Right Ultrasonic
+
+S4
+→ Color Sensor
 ```
 
-is only useful if it corresponds consistently to the physical steering center.
+During straight sections, the lateral ultrasonic sensors primarily describe track-relative position while the gyro provides vehicle-orientation information.
 
-If the linkage moves, the motor is reinstalled, or a front-wheel support changes, the relationship must be rechecked.
+Motor B can then make relatively small corrections while Motor A maintains forward propulsion.
+
+The Color Sensor provides course-state landmarks and determines the initial course direction.
+
+The mobility system itself remains:
+
+```text
+rear propulsion
++
+front steering
+```
+
+regardless of which sensor triggered the current correction.
 
 ---
 
-## 3.10 Steering Range
+## 3.15 Open Challenge Corners
 
-The steering system also has physical limits.
+Corners require a temporary transition from low-curvature straight driving to a stronger steering state.
 
-<div align="center">
-
-<img
-  src="../../v-photos/v4/ackermann_left_lock.jpg"
-  alt="Piolín useful left steering limit"
-  width="650"
-/>
-
-<br>
-
-<sub><b>Figure 3.11.</b> Mechanical left steering limit used to evaluate available wheel-angle range.</sub>
-
-</div>
-
-<div align="center">
-
-<img
-  src="../../v-photos/v4/ackermann_right_lock.jpg"
-  alt="Piolín useful right steering limit"
-  width="650"
-/>
-
-<br>
-
-<sub><b>Figure 3.12.</b> Mechanical right steering limit used to evaluate available wheel-angle range.</sub>
-
-</div>
-
-The software should avoid commanding the mechanism beyond its useful physical range.
-
-Driving Motor B continuously against a mechanical stop can create:
+A useful conceptual sequence is:
 
 ```text
-unnecessary motor load
-
-linkage stress
-
-steering inconsistency
-
-slower response when reversing direction
+stable straight
+      ↓
+corner evidence detected
+      ↓
+Motor B increases steering
+      ↓
+Piolín begins changing heading
+      ↓
+corner progresses
+      ↓
+steering begins returning
+      ↓
+new wall geometry acquired
+      ↓
+stable straight
 ```
 
-The final software steering limits should therefore be established from the actual mechanical assembly.
+A successful corner must accomplish more than approximately rotating the robot.
+
+Piolín should also leave the corner in a useful position and orientation for the next straight.
+
+A robot could complete the angular rotation but still exit:
+
+```text
+too close to the inner wall
+
+too close to the outer wall
+
+with excessive residual steering
+
+at an unstable heading
+```
+
+Therefore corner **exit geometry** is just as important as corner entry.
 
 ---
 
-# 3.11 Steering Motion
+## 3.16 Clockwise and Counterclockwise Mobility
+
+The Open Challenge can begin in either navigation direction.
+
+The first valid floor color establishes the course direction:
+
+```text
+BLUE first
+→ counterclockwise
+
+ORANGE first
+→ clockwise
+```
+
+The drivetrain does not change.
+
+The steering hardware does not change.
+
+Instead, the interpretation of the lateral geometry changes.
+
+For counterclockwise driving:
+
+```text
+S2 LEFT
+→ inner side
+
+S3 RIGHT
+→ outer side
+```
+
+For clockwise driving:
+
+```text
+S3 RIGHT
+→ inner side
+
+S2 LEFT
+→ outer side
+```
+
+This is a software interpretation of fixed hardware.
+
+The physical sensor mapping always remains:
+
+```text
+S2 = LEFT
+
+S3 = RIGHT
+```
+
+---
+
+## 3.17 Obstacle Challenge Mobility
+
+The mechanical vehicle is unchanged during the Obstacle Challenge.
+
+The specialized sensing configuration changes to:
+
+```text
+S1
+→ Pixy2.1
+
+S2
+→ Left Ultrasonic
+
+S3
+→ Right Ultrasonic
+
+S4
+→ Color Sensor
+```
+
+Pixy2.1 identifies the relevant obstacle and provides image-position information, while the lateral ultrasonic sensors continue describing the surrounding track geometry.
+
+Motor A remains the propulsion actuator.
+
+Motor B remains the steering actuator.
+
+This is a significant engineering advantage because the team can develop a completely different navigation strategy without rebuilding the vehicle's mobility system.
+
+---
+
+## 3.18 Obstacle Avoidance as a Vehicle Trajectory
+
+Obstacle avoidance is not simply:
+
+```text
+see color
+→ turn
+```
+
+The vehicle must generate a complete trajectory around the pillar.
+
+A more accurate sequence is:
+
+```text
+detect target
+      ↓
+approach
+      ↓
+create lateral displacement
+      ↓
+pass correct side
+      ↓
+clear pillar
+      ↓
+countersteer
+      ↓
+recover track geometry
+```
+
+The obstacle color determines the required passing side:
+
+```text
+RED
+→ pass RIGHT
+
+GREEN
+→ pass LEFT
+```
+
+but the steering system must still determine how to create that trajectory physically.
+
+---
+
+## 3.19 Red Pillar Mobility
 
 <div align="center">
 
 <img
-  src="../../v-photos/v4/steering_motion.gif"
-  alt="Piolín Ackermann steering moving from left through center to right"
+  src="../../v-photos/v4/obstacle_red_run.jpg"
+  alt="Piolín performing a red pillar obstacle maneuver"
   width="700"
 />
 
 <br>
 
-<sub><b>Figure 3.13.</b> Complete steering movement demonstrating the transformation from Motor B rotation to front-wheel motion.</sub>
+<sub><b>Figure 3.15.</b> Piolín executing a red-pillar maneuver during Obstacle Challenge testing.</sub>
 
 </div>
 
-The steering animation provides useful evidence that the wheels do not simply pivot independently. They are mechanically connected through one coordinated linkage.
-
-This also makes several non-ideal effects visible:
+For a red pillar, the required objective is:
 
 ```text
-backlash
-
-mechanical play
-
-different left/right geometry
-
-linkage speed
-
-physical limits
+pass on the RIGHT
 ```
 
-These factors should be considered when tuning rapid countersteering maneuvers.
+This should not be interpreted as holding maximum right steering continuously.
+
+A useful maneuver can contain:
+
+```text
+initial steering
+
+controlled pass
+
+pillar clearance
+
+opposite steering
+
+recovery
+```
+
+The exact steering magnitude and timing depend on the vehicle's current speed, approach position, obstacle position, and surrounding track geometry.
 
 ---
 
-# 3.12 Motor Angle vs. Wheel Angle
-
-One important distinction in Piolín's mobility model is:
-
-```text
-Motor B encoder angle
-```
-
-is not the same physical quantity as:
-
-```text
-front-wheel steering angle
-```
+## 3.20 Green Pillar Mobility
 
 <div align="center">
 
 <img
-  src="../../embed/motor_to_wheel_angle.png"
-  alt="Relationship between steering motor angle and physical wheel angle"
-  width="850"
+  src="../../v-photos/v4/obstacle_green_run.jpg"
+  alt="Piolín performing a green pillar obstacle maneuver"
+  width="700"
 />
 
 <br>
 
-<sub><b>Figure 3.14.</b> Motor B rotation is transformed through the steering linkage before becoming a physical wheel angle.</sub>
+<sub><b>Figure 3.16.</b> Piolín executing a green-pillar maneuver during Obstacle Challenge testing.</sub>
 
 </div>
 
-The relationship may be approximately linear over part of the steering range, but that should not be assumed without measurement.
-
-A useful calibration can record:
+For a green pillar:
 
 ```text
-Motor B position
-vs.
-measured front-wheel angle
+pass on the LEFT
 ```
 
-for several left, center, and right positions.
+The conceptual maneuver mirrors the red objective, but the final left and right control values should not automatically be assumed to be numerically identical.
+
+A real mechanical system can contain small asymmetries in:
+
+```text
+steering linkage
+
+pivot resistance
+
+wheel alignment
+
+approach geometry
+```
+
+Therefore both maneuver directions should be validated physically.
 
 ---
 
-# 3.13 Propulsion and Steering Interaction
+## 3.21 Countersteering and Recovery
 
-The vehicle trajectory depends on both Motor A and Motor B at the same time.
+After Piolín creates lateral displacement to pass an obstacle, it must reduce that lateral motion before reaching the track boundary or the next pillar.
 
-<div align="center">
+This requires countersteering.
 
-<img
-  src="../../embed/drive_steering_interaction.png"
-  alt="Interaction between propulsion speed and steering angle"
-  width="850"
-/>
+Conceptually:
 
-<br>
+```text
+avoidance steering
+      ↓
+vehicle moves around pillar
+      ↓
+pillar clears
+      ↓
+steering reverses direction
+      ↓
+vehicle heading recovers
+      ↓
+Motor B approaches normal steering range
+```
 
-<sub><b>Figure 3.15.</b> The same steering position can produce different practical trajectories depending on propulsion speed and available response time.</sub>
+The countersteering phase is essential because successfully passing one obstacle is not enough.
 
-</div>
+Piolín must finish the maneuver in a state that allows it to continue navigating.
+
+A vehicle that passes the current pillar but exits directly toward a wall has not completed a successful obstacle maneuver.
+
+---
+
+## 3.22 Why Recovery Matters
+
+The state after a maneuver affects the next maneuver.
 
 For example:
 
 ```text
-large steering angle
-+
-low speed
-→ tight controlled maneuver
+poor obstacle exit
+      ↓
+poor next approach position
+      ↓
+larger next steering correction
+      ↓
+reduced margin
 ```
 
-while:
+This creates a chain of errors even if the first obstacle was technically passed.
+
+A more useful mobility objective is therefore:
 
 ```text
-same steering angle
+pass obstacle
 +
-higher speed
-→ larger physical displacement during steering response
+recover
++
+prepare for next section
 ```
 
-This is why Piolín cannot tune steering independently from speed.
-
-A corner that works correctly at one Motor A command may become too wide or too aggressive at another.
+rather than optimizing each obstacle independently.
 
 ---
 
-## 3.14 Why Speed Affects Cornering
+## 3.23 Reverse Mobility
 
-Motor B requires physical time to move the steering linkage.
+Because Motor A can rotate in both directions, Piolín can execute controlled reverse movement.
 
-During that time, Motor A may continue moving the robot forward.
-
-Therefore:
+Reverse can support:
 
 ```text
-higher speed
-→ more distance traveled while steering changes
+repositioning
+
+recovery
+
+increased maneuvering space
+
+parking
 ```
 
-A delayed steering command can therefore become a large path error when propulsion speed increases.
+but it should not be treated as a universal solution for navigation errors.
 
-The relevant chain is:
+Every reversal:
 
 ```text
-corner condition detected
-      ↓
-EV3 calculates command
-      ↓
-Motor B begins moving
-      ↓
-Piolín continues traveling
-      ↓
-front wheels reach intended angle
+takes time
+
+changes track geometry
+
+changes steering behavior
+
+changes sensor observations
 ```
 
-The distance covered during this sequence forms part of practical corner behavior.
+Therefore a reverse maneuver should have a defined purpose and a clear completion condition.
 
 ---
 
-# 3.15 Straight-Line Mobility
+## 3.24 Encoder-Based Movement
 
-During a straight section, the desired vehicle state is approximately:
+The EV3 motor encoder provides a rotational reference that can be used to estimate vehicle displacement.
 
-```text
-front wheels near neutral
-+
-stable propulsion
-+
-small steering corrections only when required
-```
-
-The robot should not continuously oscillate from left to right when the environmental geometry already indicates a stable trajectory.
-
-Repeated large corrections create:
-
-```text
-zig-zag motion
-
-additional path length
-
-more steering activity
-
-greater sensor variation
-
-less predictable corner entry
-```
-
-A strong straight-line controller therefore aims to make corrections early enough that large emergency steering commands become less necessary.
-
----
-
-## 3.16 Mechanical Straight-Line Bias
-
-Straight-line drift can originate from several sources.
-
-```text
-front steering not centered
-
-rear wheel misalignment
-
-unequal wheel behavior
-
-chassis geometry
-
-drivetrain resistance
-
-software correction bias
-```
-
-For this reason, the diagnostic sequence should begin mechanically.
-
-```text
-Check wheel alignment
-      ↓
-Check steering center
-      ↓
-Check drivetrain freedom
-      ↓
-Then evaluate software
-```
-
-Software should not be used to hide a mechanical problem that can be corrected physically.
-
----
-
-# 3.17 Wheel Encoder Distance
-
-Motor encoders provide a useful internal measurement of rotational movement.
-
-A theoretical wheel-distance relationship can be written as:
+The theoretical relationship for a wheel-driven system is:
 
 ```text
 distance =
-wheel revolutions × wheel circumference
+(encoder rotation / 360°)
+×
+wheel circumference
 ```
 
 or:
 
 ```text
 distance =
-(encoder angle / 360°) × π × D
+(encoder rotation / 360°)
+×
+π × D
 ```
 
 where:
 
 ```text
 D
-= effective wheel diameter
+= effective driven-wheel diameter
 ```
 
-<div align="center">
-
-<img
-  src="../../embed/motor_encoder_distance.png"
-  alt="Conversion from encoder angle to theoretical wheel displacement"
-  width="830"
-/>
-
-<br>
-
-<sub><b>Figure 3.16.</b> Encoder rotation can be converted into an estimated travel distance when the effective wheel geometry is known.</sub>
-
-</div>
-
-The equation is useful for:
+This relationship can support:
 
 ```text
 controlled forward movement
 
-reverse movement
+reverse displacement
 
 parking
 
-relative displacement
-
-experimental odometry
+relative motion testing
 ```
 
-but it remains an estimate of physical displacement.
-
----
-
-## 3.18 Why Encoder Distance Is Not Perfect Odometry
-
-The encoder measures rotational motion.
-
-It does not directly measure the robot's position on the mat.
-
-Errors can enter through:
+However, it remains an estimate because:
 
 ```text
 wheel slip
@@ -832,505 +1113,87 @@ tire deformation
 
 turning
 
-mechanical backlash
-
-effective wheel diameter
-
 surface variation
 ```
 
-During a curve, the wheels also travel different paths.
+can create a difference between calculated wheel travel and actual vehicle displacement.
 
-Therefore the simplest encoder-distance calculation is most reliable for approximately straight movement.
-
-For complete vehicle localization, additional sensing and geometric assumptions would be required.
+For this reason, Piolín does not treat simple encoder conversion as perfect global odometry.
 
 ---
 
-# 3.19 Open Challenge Mobility
-
-The physical mobility system used during Open is:
-
-```text
-Motor A
-→ propulsion
-
-
-Motor B
-→ steering
-
-
-S2/S3
-→ lateral geometry
-
-
-Gyro
-→ heading/orientation support
-
-
-Color Sensor
-→ course-state landmarks
-```
-
-The mechanical drivetrain and steering system do not change when the Open software changes.
-
-This is important because the control problem can then be improved while preserving a stable vehicle platform.
-
----
-
-## 3.20 Open Straight Sections
-
-During Open, Piolín should use its mobility system to maintain a stable path without excessive steering.
-
-The lateral ultrasonic sensors primarily describe the relationship between the robot and track boundaries, while the gyro helps characterize orientation.
-
-The resulting mobility objective is:
-
-```text
-stable Motor A propulsion
-+
-small Motor B corrections
-+
-avoid wall proximity
-+
-prepare for corner entry
-```
-
-The mechanical architecture supports this because steering can change without directly changing the propulsion motor command.
-
----
-
-# 3.21 Open Corner Mobility
-
-Corners require a temporary transition from straight-line motion to high vehicle curvature.
-
-A conceptual sequence is:
-
-```text
-STRAIGHT
-   ↓
-corner evidence
-   ↓
-steering increases
-   ↓
-vehicle yaws
-   ↓
-corner progresses
-   ↓
-steering returns toward center
-   ↓
-new straight geometry acquired
-```
-
-<div align="center">
-
-<img
-  src="../../v-photos/v4/open_corner_run.jpg"
-  alt="Piolín physically executing an Open Challenge corner"
-  width="700"
-/>
-
-<br>
-
-<sub><b>Figure 3.17.</b> Piolín executing a real Open Challenge corner using the same rear-drive and front-steering mobility architecture.</sub>
-
-</div>
-
-The final corner trajectory depends on:
-
-```text
-entry position
-
-entry heading
-
-Motor A speed
-
-Motor B steering command
-
-steering response time
-
-wheel geometry
-
-track friction
-```
-
-This explains why a corner cannot be calibrated from steering angle alone.
-
----
-
-## 3.22 Corner Exit
-
-A successful corner is not complete when Piolín simply rotates approximately 90 degrees.
-
-The vehicle must also exit into a useful geometry for the next straight.
-
-A poor corner can have the correct overall heading but still leave Piolín:
-
-```text
-too close to the inner wall
-
-too close to the outer wall
-
-at a residual steering angle
-
-with lateral motion still developing
-```
-
-The mobility system therefore treats:
-
-```text
-corner exit
-```
-
-as a distinct phase from:
-
-```text
-corner rotation
-```
-
-This distinction is important for achieving repeatable multi-lap navigation.
-
----
-
-# 3.23 Obstacle Challenge Mobility
-
-The mechanical mobility platform is unchanged during Obstacles.
-
-The major difference is the source of steering information.
-
-```text
-OPEN
-
-Gyro + ultrasonics + color
-        ↓
-mobility decisions
-```
-
-becomes:
-
-```text
-OBSTACLES
-
-Pixy + ultrasonics + color
-        ↓
-mobility decisions
-```
-
-Motor A and Motor B retain exactly the same physical roles.
-
-This allows obstacle software development to focus on perception and maneuver logic rather than requiring a separate drivetrain.
-
----
-
-# 3.24 Pillar Avoidance as a Mobility Maneuver
-
-A pillar avoidance maneuver requires more than steering toward one side.
-
-The complete physical sequence is closer to:
-
-```text
-approach
-   ↓
-steer away from collision path
-   ↓
-establish side-pass trajectory
-   ↓
-move alongside pillar
-   ↓
-clear pillar
-   ↓
-countersteer
-   ↓
-recover stable course position
-```
-
-The mobility system must therefore support rapid changes in curvature.
-
-Motor B creates the lateral trajectory while Motor A controls how quickly the maneuver develops in physical space.
-
----
-
-## 3.25 Red Pillar Mobility
-
-The competition rule requires:
-
-```text
-RED
-→ pass RIGHT
-```
-
-This means Piolín must create a trajectory that places the vehicle on the required side of the pillar.
-
-<div align="center">
-
-<img
-  src="../../v-photos/v4/obstacle_red_run.jpg"
-  alt="Piolín passing a red pillar on the required right side"
-  width="700"
-/>
-
-<br>
-
-<sub><b>Figure 3.18.</b> Real red-pillar mobility maneuver in the Obstacle Challenge.</sub>
-
-</div>
-
-The maneuver may contain:
-
-```text
-initial steering
-
-temporary hold
-
-countersteer
-
-recenter
-```
-
-rather than one constant wheel angle.
-
-This reflects the fact that obstacle avoidance is a trajectory-generation problem, not simply a color-to-steering lookup.
-
----
-
-## 3.26 Green Pillar Mobility
-
-The corresponding Green rule is:
-
-```text
-GREEN
-→ pass LEFT
-```
-
-<div align="center">
-
-<img
-  src="../../v-photos/v4/obstacle_green_run.jpg"
-  alt="Piolín passing a green pillar on the required left side"
-  width="700"
-/>
-
-<br>
-
-<sub><b>Figure 3.19.</b> Real green-pillar maneuver showing the opposite required passing direction.</sub>
-
-</div>
-
-Although the two maneuvers are conceptually mirrored, their final software values do not have to be numerically identical.
-
-Real mechanical systems can contain:
-
-```text
-small steering asymmetry
-
-different wall geometry
-
-different approach position
-
-different target position
-```
-
-The final calibration should therefore be based on measured performance rather than assuming perfect symmetry.
-
----
-
-# 3.27 Countersteering
-
-Once Piolín has moved laterally around an obstacle, it must reverse part of the steering action to recover.
-
-This is **countersteering** in the context of Piolín's obstacle maneuver.
-
-For example:
-
-```text
-initial steer
-→ creates lateral displacement
-
-
-countersteer
-→ reduces heading/lateral error
-```
-
-Without an effective recovery phase, the robot may successfully pass one pillar but continue toward a wall or enter the next obstacle with poor geometry.
-
-The mobility objective is therefore not:
-
-```text
-avoid current obstacle
-```
-
-only.
-
-It is:
-
-```text
-avoid current obstacle
-+
-finish in a useful state for the next event
-```
-
----
-
-# 3.28 Reverse Mobility
-
-Piolín can reverse by commanding Motor A in the opposite direction.
-
-Reverse movement can be useful when:
-
-```text
-additional reaction distance is needed
-
-the robot must recover from an unsafe geometry
-
-a parking maneuver requires backward displacement
-
-a controlled repositioning maneuver is being tested
-```
-
-However, reverse motion should not be used as a universal correction for every navigation error.
-
-Each reversal costs time and may change the robot's geometry relative to walls and obstacles.
-
-A successful reverse maneuver therefore needs a clear objective.
-
----
-
-## 3.29 Timed Reverse vs. Encoder Reverse
-
-A reverse command can be defined using time:
-
-```text
-reverse for T seconds
-```
-
-or using encoder displacement:
-
-```text
-reverse for N motor degrees
-```
-
-The timed method is simple but depends more strongly on actual motor speed and battery/mechanical conditions.
-
-Encoder-based movement provides a more direct rotational reference.
-
-However:
-
-```text
-encoder displacement
-≠
-perfect physical distance
-```
-
-because tire slip and vehicle geometry still exist.
-
-The appropriate method depends on the maneuver and the required precision.
-
----
-
-# 3.30 Parking Mobility
-
-Parking combines several aspects of Piolín's mobility architecture:
-
-```text
-course-state information
-
-vehicle alignment
-
-propulsion distance
-
-steering
-
-final position
-```
+## 3.25 Parking Mobility
 
 <div align="center">
 
 <img
   src="../../v-photos/v4/parking_area.jpg"
-  alt="Parking area used for Piolín autonomous mobility testing"
+  alt="Parking area used for Piolín autonomous testing"
   width="700"
 />
 
 <br>
 
-<sub><b>Figure 3.20.</b> Parking area used to develop the final autonomous positioning sequence.</sub>
+<sub><b>Figure 3.17.</b> Parking area used to develop Piolín's final positioning behavior.</sub>
 
 </div>
 
-The parking strategy is still under development, so this document does not claim one final parking trajectory.
+Parking combines several mobility requirements into one final maneuver.
 
-The important mobility requirement is that Piolín must finish its autonomous run not only with the correct course progression but with a controlled final vehicle displacement.
+Piolín must consider:
+
+```text
+course progression
+
+approach position
+
+vehicle heading
+
+steering
+
+propulsion displacement
+
+final stopping point
+```
+
+The final parking strategy is still being developed and should therefore not be described as a fully validated solution yet.
+
+The current engineering objective is to combine course-state information with vehicle displacement and environmental references so that parking becomes more repeatable than a purely time-based stop.
 
 ---
 
-# 3.31 Starting Position
+## 3.26 Starting Mobility
 
-Initial mobility is also a special case.
+The beginning of an autonomous run is also a special mobility condition.
 
-At the beginning of a run, the robot may not yet have the same geometric context available later in the course.
-
-The vehicle must transition from:
+At the start:
 
 ```text
-stationary starting position
+Piolín is stationary
+
+course direction may not yet be established
+
+normal wall geometry may not yet be acquired
 ```
 
-to:
+The controller must transition from this initial state into stable course following.
 
-```text
-stable course-following state
-```
+An excessively aggressive first steering command can produce a collision even if the normal straight-line controller works correctly later.
 
-without immediately producing an excessive steering correction.
-
-This transition can be difficult when Piolín begins closer to one track boundary than another.
-
-The mechanical system must therefore support a gentle acquisition maneuver before normal navigation becomes fully active.
+The initial mobility phase should therefore acquire the track geometry progressively rather than assuming that the robot already begins in its ideal steady-state position.
 
 ---
 
-## 3.32 Why Starting Geometry Matters
+## 3.27 Vehicle Geometry and Mobility
 
-The same controller can produce different initial paths if the robot starts:
-
-```text
-near inner wall
-
-near center
-
-near outer wall
-```
-
-because the initial lateral error is different.
-
-The mobility controller must distinguish:
-
-```text
-large initial position error
-```
-
-from:
-
-```text
-emergency collision condition
-```
-
-Otherwise it may command an aggressive steering action that sends the vehicle across the corridor.
-
-This is primarily a software decision, but the physical consequence is determined by the mobility system.
-
----
-
-# 3.33 Vehicle Geometry
-
-Several physical dimensions influence mobility:
+Several physical dimensions affect Piolín's behavior:
 
 ```text
 wheelbase
 
-front track width
+front track
 
-rear track width
+rear track
 
 wheel diameter
 
@@ -1339,493 +1202,475 @@ overall width
 steering linkage dimensions
 ```
 
-These values affect:
+These quantities influence:
 
 ```text
 turning radius
 
-Ackermann geometry
-
-encoder-distance conversion
-
 corner clearance
 
-parking behavior
+Ackermann behavior
+
+encoder conversion
+
+parking geometry
 ```
 
-The current V4 robot has undergone mechanical changes, so final numerical values should be taken from a fresh physical measurement rather than inherited from earlier Piolín versions.
+Piolín has undergone several mechanical changes during development, so dimensions from earlier versions should not automatically be published as current V4 specifications.
 
----
-
-## 3.34 Wheelbase
-
-Wheelbase is the longitudinal distance between the front and rear axle reference lines.
-
-In a simplified model:
-
-```text
-longer wheelbase
-→ larger turning radius for same steering angle
-
-
-shorter wheelbase
-→ tighter turning capability
-```
-
-However, wheelbase also influences vehicle stability and the physical space required for components.
-
-Piolín's final wheelbase should therefore be documented as a measured structural parameter once V4 measurements are finalized.
-
----
-
-## 3.35 Track Width
-
-Front and rear track widths affect lateral stability and turning geometry.
-
-Track width should ideally be measured:
-
-```text
-wheel center
-to
-wheel center
-```
-
-rather than outside-edge to outside-edge, because center-to-center measurements are more useful for vehicle kinematics.
-
-The current values should be physically remeasured before publishing them as final.
-
----
-
-# 3.36 Turning Radius
-
-Turning radius is one of the most useful complete-system measurements for Piolín.
-
-It includes the combined effects of:
-
-```text
-wheelbase
-
-steering geometry
-
-Motor B range
-
-wheel alignment
-
-tire behavior
-```
-
-A practical turning-radius experiment can command a stable steering position and allow the robot to drive through a complete arc.
+Final values should come from measurements of the current physical robot.
 
 <div align="center">
 
 <img
-  src="../../embed/turning_radius_test.png"
-  alt="Piolín measured turning-radius experiment"
-  width="850"
+  src="../../v-photos/v4/chassis_top.jpg"
+  alt="Top view of Piolín current chassis and wheel geometry"
+  width="720"
 />
 
 <br>
 
-<sub><b>Figure 3.21.</b> Reserved evidence figure for the measured relationship between steering command and physical turning radius.</sub>
+<sub><b>Figure 3.18.</b> Top view of the current chassis used as the physical reference for final V4 mobility measurements.</sub>
 
 </div>
 
-This graph should contain only real measurements from the current V4 robot.
-
 ---
 
-# 3.37 Straight-Line Testing
+## 3.28 Chassis and Mobility
 
-A fixed-distance straight-line test can help evaluate:
-
-```text
-steering center
-
-mechanical bias
-
-distance repeatability
-
-drivetrain behavior
-```
+The chassis maintains the relative position of the major mobility components.
 
 <div align="center">
 
 <img
-  src="../../embed/straight_line_test.png"
-  alt="Piolín measured straight-line mobility test"
-  width="850"
+  src="../../v-photos/v4/chassis_bottom.jpg"
+  alt="Bottom view of Piolín chassis and mobility structure"
+  width="720"
 />
 
 <br>
 
-<sub><b>Figure 3.22.</b> Reserved evidence figure for measured straight-line deviation and repeatability.</sub>
+<sub><b>Figure 3.19.</b> Bottom view showing the structural relationship between the drivetrain, steering system, and chassis.</sub>
 
 </div>
 
-A useful test can begin with:
-
-```text
-same start position
-
-same Motor A command
-
-Motor B centered
-
-same test distance
-```
-
-and measure final lateral displacement.
-
-Repeating the experiment helps distinguish a constant mechanical bias from random variation.
-
----
-
-# 3.38 Mobility Repeatability
-
-A successful autonomous vehicle must not only perform one correct maneuver.
-
-It must reproduce that maneuver repeatedly.
-
-Relevant mobility tests include:
-
-```text
-straight-line repeatability
-
-left-turn repeatability
-
-right-turn repeatability
-
-reverse displacement
-
-obstacle recovery
-
-parking displacement
-```
-
-For each experiment, important controlled variables include:
-
-```text
-software version
-
-battery condition
-
-starting position
-
-track condition
-
-mechanical configuration
-```
-
-This transforms qualitative observations into engineering evidence.
-
----
-
-# 3.39 Mobility and Mechanical Play
-
-Small changes in mechanical geometry can become visible at the vehicle scale.
+If the chassis flexes or a critical mount moves, the mechanical relationships assumed by the controller can change.
 
 For example:
 
 ```text
-small steering-linkage play
-        ↓
-small wheel-angle uncertainty
-        ↓
-larger lateral path difference
-        ↓
-different wall distance after several centimeters
+steering support shifts
+→ wheel center changes
 ```
 
-This amplification is why steering backlash matters even when it appears small while the robot is stationary.
+or:
 
-The complete vehicle must therefore be evaluated dynamically.
+```text
+drive support becomes misaligned
+→ drivetrain resistance increases
+```
+
+The chassis therefore contributes directly to mobility repeatability.
 
 ---
 
-# 3.40 Mobility and Sensor Placement
+## 3.29 Mechanical Mobility Inspection
 
-Piolín's mobility system changes what the sensors observe.
+Before changing navigation software because the robot behaves differently, the mechanical system should be inspected.
 
-When the robot moves laterally:
-
-```text
-ultrasonic distances change
-```
-
-When it rotates:
+A useful sequence is:
 
 ```text
-gyro angle changes
+rear wheels secure?
+      ↓
+rear drivetrain free?
+      ↓
+Motor A mount secure?
+      ↓
+front steering free?
+      ↓
+Motor B mount secure?
+      ↓
+steering center correct?
+      ↓
+left/right steering range free?
+      ↓
+chassis rigid?
 ```
 
-When it passes over a floor landmark:
+<div align="center">
+
+<img
+  src="../../v-photos/v4/drive_motor_mount.jpg"
+  alt="Piolín Motor A mounting"
+  width="650"
+/>
+
+<br>
+
+<sub><b>Figure 3.20.</b> Motor A mounting should remain mechanically stable so drivetrain geometry does not change between runs.</sub>
+
+</div>
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/steering_motor_mount.jpg"
+  alt="Piolín Motor B steering mount"
+  width="650"
+/>
+
+<br>
+
+<sub><b>Figure 3.21.</b> Motor B mounting forms part of the steering reference and must remain stable during calibration and competition runs.</sub>
+
+</div>
+
+This process prevents software from being used to compensate for a mechanical failure.
+
+---
+
+## 3.30 Mechanical Play
+
+Small amounts of clearance exist in LEGO mechanical assemblies.
+
+These can appear in:
 
 ```text
-Color Sensor state changes
+axles
+
+pins
+
+steering pivots
+
+linkages
+
+motor connections
 ```
 
-When it steers during Obstacles:
+The effect may be especially noticeable when steering direction reverses.
+
+For example:
 
 ```text
-Pixy camera viewpoint changes
+Motor B turns right
+      ↓
+controller requests left
+      ↓
+motor reverses
+      ↓
+mechanical clearance is crossed
+      ↓
+front wheels begin responding left
 ```
 
-Therefore sensors do not observe a fixed world independently from movement.
+During that short interval, Motor A may continue moving the vehicle.
 
-The system forms a feedback loop:
+A small mechanical clearance at the linkage can therefore become a larger positional difference on the track.
+
+---
+
+## 3.31 Mobility and Sensors Form a Feedback Loop
+
+Piolín's sensors do not observe the environment independently from vehicle motion.
+
+When Piolín moves or turns:
+
+```text
+S2/S3 geometry changes
+
+gyro heading changes in Open
+
+Pixy viewpoint changes in Obstacles
+
+S4 crosses different floor regions
+```
+
+The complete system is therefore a feedback loop:
 
 ```text
 SENSORS
    ↓
 EV3
    ↓
-MOTORS
+MOTOR COMMANDS
    ↓
-ROBOT MOVES
+MOBILITY SYSTEM
    ↓
-SENSOR GEOMETRY CHANGES
+ROBOT CHANGES POSITION
+   ↓
+SENSOR CONDITIONS CHANGE
    ↓
 SENSORS
 ```
 
-This closed-loop relationship is fundamental to Piolín's navigation architecture.
+This is why mobility and perception cannot be tuned completely independently.
 
 ---
 
-# 3.41 Mobility and Camera Geometry
+## 3.32 Mobility and Ultrasonic Geometry
 
-During Obstacles, steering changes not only the vehicle path but also the orientation of Pixy2.1.
-
-This means:
+Piolín's two ultrasonic sensors are mounted laterally:
 
 ```text
-Motor B steering
-      ↓
-vehicle yaw
-      ↓
-camera yaw
-      ↓
-pillar X position changes
+S2 = LEFT
+
+S3 = RIGHT
 ```
 
-Some apparent target motion inside the camera image is therefore generated by Piolín itself.
+<div align="center">
 
-This is one reason the obstacle controller should not interpret visual coordinates without considering the current maneuver state.
+<img
+  src="../../v-photos/v4/PiolinUSlabeling.png"
+  alt="Piolín left and right ultrasonic sensor labeling"
+  width="700"
+/>
 
----
+<br>
 
-# 3.42 Mobility and Ultrasonic Geometry
+<sub><b>Figure 3.22.</b> Fixed physical ultrasonic mapping used by Piolín: S2 LEFT and S3 RIGHT.</sub>
 
-The lateral ultrasonic sensors also depend on vehicle orientation.
+</div>
 
-When Piolín is parallel to a wall, a lateral sensor can produce a useful perpendicular-distance approximation.
+When the robot is approximately parallel to a wall, the lateral measurements provide useful track-relative information.
 
-During a corner or large steering maneuver:
+During stronger steering or a corner, however, the robot's orientation changes and the sensor beams intersect the environment differently.
+
+Therefore:
 
 ```text
-vehicle orientation changes
+distance change
 ```
 
-and the same sensor beam can intersect the wall differently.
-
-Therefore ultrasonic values during a corner should not necessarily be interpreted with exactly the same assumptions as values during a stable straight.
-
-Mechanical mobility and sensor geometry must be considered together.
-
----
-
-# 3.43 Mobility and Battery Condition
-
-Motor commands create physical motion through the electrical and mechanical system.
-
-A change in battery condition, drivetrain friction, or steering resistance can therefore alter practical vehicle response even when the same software command is used.
-
-For reproducible mobility tests, Piolín should maintain reasonably consistent electrical and mechanical conditions.
-
-This is especially important when comparing:
+does not always mean:
 
 ```text
-corner timing
-
-reverse displacement
-
-parking
-
-full-run time
+pure lateral translation
 ```
+
+Some of the variation can come from vehicle yaw.
+
+This is one reason mobility state matters when interpreting sensor data.
 
 ---
 
-# 3.44 Mobility Failure Diagnosis
+## 3.33 Mobility and Pixy2.1
 
-A mobility failure can originate from several different subsystems.
-
-| Observed behavior | Possible causes |
-| :--- | :--- |
-| Robot does not move | Motor A, Port A, drivetrain, software |
-| Robot moves slowly | Battery condition, Motor A, drivetrain friction |
-| Robot drifts constantly | Steering center, alignment, controller bias |
-| Robot zig-zags | Excessive correction, steering response, sensing noise |
-| Left turn differs greatly from right | Mechanical asymmetry, calibration, software |
-| Robot turns too late | Detection timing, Motor B response, excessive speed |
-| Robot turns too sharply | Steering command, speed, corner duration |
-| Robot cannot recover after pillar | Countersteer, speed, geometry, sensor arbitration |
-| Reverse distance inconsistent | Timing, traction, battery, encoder strategy |
-| Parking position varies | Approach geometry, propulsion displacement, steering, traction |
-
-The correct diagnostic process should identify whether the first failure occurs in:
+During the Obstacle Challenge, steering also changes the orientation of Pixy2.1.
 
 ```text
-perception
-
-control command
-
-motor response
-
-mechanical transmission
-
-vehicle motion
+Motor B changes steering
+      ↓
+Piolín changes yaw
+      ↓
+camera viewpoint rotates
+      ↓
+pillar position in image changes
 ```
 
-before changing software parameters.
+Therefore a pillar moving across the Pixy image does not necessarily indicate that the physical pillar itself changed position relative to the track.
+
+Some of the visual motion is created by Piolín's own trajectory.
+
+This is why target selection and obstacle steering must consider the current maneuver state.
 
 ---
 
-# 3.45 Mechanical Mobility Inspection
+## 3.34 Mobility and Battery Condition
 
-Before an important run, Piolín's mobility hardware should be inspected in a consistent order:
+Motor behavior depends on the complete electrical and mechanical system.
+
+Changes in:
 
 ```text
-Check rear wheels
-      ↓
-Check front wheels
-      ↓
-Check Motor A mount
-      ↓
-Check drivetrain freedom
-      ↓
-Check Motor B mount
-      ↓
-Check steering center
-      ↓
-Check left/right steering motion
-      ↓
-Check linkage play
-      ↓
-Check cable clearance
-      ↓
-Check sensor mounts
+battery condition
+
+drivetrain friction
+
+steering resistance
+
+wheel traction
 ```
 
-A physical failure discovered before the run is much easier to correct than one diagnosed after several software changes.
+can alter physical response even when software commands remain unchanged.
+
+For this reason, quantitative mobility comparisons should keep important test conditions reasonably consistent.
+
+A steering controller should not be judged from one run performed under a significantly different mechanical or electrical condition from another.
 
 ---
 
-# 3.46 Current Mobility Components
+## 3.35 Current Mobility Architecture vs. Alternatives
 
-The current mobility system consists of:
+Several mobility designs could potentially complete a WRO Future Engineers course.
 
-| Component | Mobility Role |
-| :--- | :--- |
-| EV3 Large Motor A | Propulsion |
-| Rear drivetrain | Transfers propulsion |
-| Rear wheels | Generate longitudinal traction |
-| EV3 Medium Motor B | Steering actuator |
-| Ackermann linkage | Converts Motor B rotation to front-wheel angles |
-| Front wheels | Produce vehicle curvature |
-| Motor encoders | Measure actuator rotation |
-| LEGO Technic chassis | Preserves vehicle geometry |
-| EV3 controller | Coordinates propulsion and steering |
-
-No separate left/right drive motors are used to create differential steering.
-
-No hobby servo is used for steering.
-
-The same mechanical mobility platform is used during both competition rounds.
-
----
-
-# 3.47 Alternatives Considered
-
-Several mobility architectures could theoretically be used for WRO Future Engineers.
-
-| Mobility Architecture | Advantage | Limitation for Piolín |
+| Architecture | Advantage | Limitation for Piolín |
 | :--- | :--- | :--- |
-| Differential drive | Mechanically simple steering | Turns through wheel-speed difference and tire scrub |
-| Four-wheel skid steer | Strong maneuverability | Higher lateral tire scrub and more drive complexity |
-| Servo steering + separate motor controller | Precise dedicated steering possibilities | Additional non-EV3 electronics and power integration |
-| Two drive motors + front steering | Greater propulsion options | More motors, synchronization, mechanical complexity |
-| **Single rear propulsion + Ackermann steering** | **Separates speed and direction using only two EV3 motors** | **Requires a carefully calibrated mechanical steering linkage** |
+| Differential drive | Simple turning concept | Requires independent left/right propulsion and produces tire scrub |
+| Four-wheel skid steer | Strong low-speed maneuverability | Increased drive and friction complexity |
+| Multiple drive motors + front steering | More propulsion possibilities | More actuators and synchronization |
+| External servo steering | Dedicated angular actuator | Adds non-EV3 electrical integration |
+| **Single rear drive + Ackermann-style front steering** | **Separates propulsion and direction with only two EV3 motors** | **Requires accurate mechanical steering calibration** |
 
-Piolín's current solution was selected because it achieves the required vehicle behavior while preserving a relatively simple EV3-centered architecture.
+Piolín's selected architecture keeps the actuator count low while using mechanical geometry to create the required steering behavior.
 
 ---
 
-# 3.48 Why Two Motors Are Enough
+## 3.36 Why Differential Steering Was Not Selected
 
-Piolín performs all primary vehicle mobility with only:
+Differential drive turns by using different wheel velocities:
 
 ```text
-1 propulsion motor
-
-1 steering motor
+left speed
+≠
+right speed
 ```
 
-This keeps the actuator architecture compact.
+Piolín instead uses:
 
-The design does not require:
+```text
+common propulsion
++
+front steering
+```
+
+This makes the physical steering principle more similar to a conventional road vehicle.
+
+The trade-off is that the front mechanical linkage becomes more important and requires careful calibration.
+
+Rather than adding another propulsion actuator, Piolín uses the geometry of the front assembly to generate the difference between inner and outer turning paths.
+
+---
+
+## 3.37 Why Two Motors Are Sufficient
+
+Piolín performs the primary mobility functions using only:
+
+```text
+1 × Large Motor
+→ propulsion
+
+1 × Medium Motor
+→ steering
+```
+
+The design therefore does not require:
 
 ```text
 four independent wheel motors
 
-a separate steering servo
+separate left/right drivetrain control
 
-multiple motor drivers
+external steering servo
+
+additional motor drivers
 ```
 
-The trade-off is that the mechanical transmission and steering geometry must do more of the work.
+This demonstrates one of the central mechanical principles of Piolín:
 
-This represents one of the central mechanical decisions in Piolín:
+> **Use mechanical geometry to provide vehicle behavior without adding unnecessary actuators.**
 
-> **Use mechanical geometry to reduce actuator complexity.**
+The cost of that simplification is that drivetrain condition and steering geometry must remain mechanically repeatable.
 
 ---
 
-# 3.49 Current vs. Legacy Mobility
+## 3.38 Same Mobility Platform in Both Competition Rounds
 
-The current V4 mobility architecture should be distinguished from previous mechanical configurations.
+<div align="center">
 
-Historical robot versions may show:
+<img
+  src="../../v-photos/v4/piolin_obstacle_isometric.jpg"
+  alt="Piolín Obstacle Challenge configuration using the same mobility platform"
+  width="720"
+/>
+
+<br>
+
+<sub><b>Figure 3.23.</b> The Obstacle Challenge uses the same drivetrain and steering system as the Open Challenge.</sub>
+
+</div>
+
+The mechanical mobility platform does not change between Open and Obstacles.
+
+The following remain common:
 
 ```text
-different wheel arrangement
+Motor A
 
-different dimensions
+Motor B
 
-different sensor positions
+rear drivetrain
 
-different steering reinforcement
+rear wheels
 
-different drivetrain details
+front steering linkage
+
+front wheel geometry
+
+chassis
 ```
 
-Those systems remain useful engineering history but should not be used as the dimensional or mechanical specification of the current robot.
+The major round-specific change occurs in perception:
 
-The final current architecture is defined by the actual V4 build and its current photographs, measurements, and tests.
+```text
+OPEN
+→ Gyro on S1
+
+OBSTACLES
+→ Pixy2.1 on S1
+```
+
+This allows the team to develop two navigation strategies while maintaining one physical vehicle platform.
 
 ---
 
-# 3.50 Values Intentionally Not Claimed as Final
+## 3.39 Full Track Context
 
-The following mobility parameters should be physically measured on the current V4 robot before they are published as final values:
+<div align="center">
+
+<img
+  src="../../v-photos/v4/full_track.jpg"
+  alt="Full competition-style track used for Piolín testing"
+  width="740"
+/>
+
+<br>
+
+<sub><b>Figure 3.24.</b> Track environment in which Piolín's mobility system must combine straight driving, corners, obstacle maneuvers, and parking.</sub>
+
+</div>
+
+A complete run requires several mobility behaviors to work consecutively:
 
 ```text
-overall vehicle length
+start
 
-overall vehicle width
+straight driving
 
-overall vehicle height
+corner entry
 
+corner exit
+
+multiple laps
+
+pillar avoidance in Obstacles
+
+recovery
+
+final positioning
+```
+
+The usefulness of the mobility design therefore cannot be evaluated only from one isolated steering test.
+
+The system must preserve useful vehicle geometry from one maneuver to the next.
+
+---
+
+## 3.40 Values Not Yet Published as Final
+
+The following parameters should be measured from the current V4 robot before being treated as final specifications:
+
+```text
 wheelbase
 
 front track width
@@ -1836,204 +1681,195 @@ front wheel diameter
 
 rear wheel diameter
 
-drivetrain gear ratio
-
-maximum useful steering angle
-
-left/right wheel steering angles
-
-minimum turning radius
+drivetrain ratio
 
 effective wheel circumference
 
+maximum useful wheel steering angles
+
+Motor B-to-wheel-angle relationship
+
+minimum turning radius
+
+left/right turning-radius difference
+
 straight-line encoder scale
 
-measured reverse displacement
-
-maximum validated competition speed
+maximum validated driving speed
 
 final Open corner speed
 
 final Obstacle speed
 
+final reverse displacement
+
 final parking displacement
 ```
 
-Earlier measurements should not automatically be copied into current documentation.
+Earlier Piolín values should not automatically be copied into the current documentation because the physical robot has changed during development.
 
 ---
 
-# 3.51 Recommended Mobility Measurements
+## 3.41 Recommended Mobility Characterization
 
-A complete V4 mobility characterization can eventually contain:
+The current mechanical platform can later be characterized quantitatively using a small set of repeatable experiments.
 
 ### Straight-line test
 
-```text
-fixed Motor A command
-fixed steering center
-fixed travel distance
-repeat several times
-measure lateral deviation
-```
-
-### Steering calibration
+Use:
 
 ```text
-Motor B encoder position
-vs.
-physical wheel angle
+same start position
+
+same Motor A command
+
+same steering center
+
+same travel distance
 ```
 
-### Turning-radius test
+and compare the final position across several trials.
 
-```text
-fixed speed
-fixed steering position
-measure actual path radius
-```
+This can reveal persistent mechanical bias and repeatability.
 
 ### Encoder-distance test
 
-```text
-command known encoder displacement
-measure actual physical displacement
-```
+Command a fixed Motor A encoder displacement and measure the actual physical travel distance.
+
+This provides an experimental conversion between motor rotation and vehicle displacement.
+
+### Turning test
+
+Command a fixed Motor A speed and a repeatable Motor B position, then measure the actual vehicle turning radius.
+
+The experiment should be repeated for both left and right steering.
+
+### Steering-center repeatability
+
+Move Motor B between different positions and repeatedly return to center, then inspect whether the front wheels return to approximately the same physical orientation.
 
 ### Reverse repeatability
 
-```text
-same reverse command
-repeat several trials
-measure final displacement
-```
+Command the same reverse displacement several times and compare the final vehicle position.
 
-### Left/right comparison
-
-```text
-same magnitude steering command
-compare physical left and right trajectories
-```
-
-These tests would provide quantitative evidence for the mechanical decisions already documented qualitatively.
+These tests should be performed using the current V4 robot rather than values inherited from previous mechanical versions.
 
 ---
 
-# 3.52 Complete Mobility System
+## 3.42 Mobility Failure Diagnosis
 
-Piolín's full mobility chain can be represented as:
+A mobility problem can originate from perception, software, actuation, or mechanics.
+
+| Observed Behavior | Possible Causes |
+| :--- | :--- |
+| Piolín does not move | Motor A, Port A, software, drivetrain |
+| Vehicle becomes slower | Battery condition, drivetrain friction, wheel resistance |
+| Persistent drift | Steering center, alignment, software correction bias |
+| Zig-zag motion | Excessive steering correction, delayed response, mechanical play |
+| Left and right turns differ | Steering asymmetry, linkage geometry, software calibration |
+| Corner starts too late | Detection timing, excessive speed, steering response |
+| Corner becomes too tight | Excessive steering, release timing, low entry clearance |
+| Obstacle is passed but wall is hit afterward | Countersteering or recovery failure |
+| Reverse movement varies | Traction, timing, encoder strategy, mechanical condition |
+| Parking position varies | Approach geometry, propulsion displacement, steering, traction |
+
+The diagnostic process should identify the first stage that behaves incorrectly.
+
+A useful sequence is:
 
 ```text
-                      EV3
-                       │
-          ┌────────────┴────────────┐
-          │                         │
-          ▼                         ▼
-       MOTOR A                   MOTOR B
-          │                         │
-          ▼                         ▼
-    REAR DRIVETRAIN          STEERING LINKAGE
-          │                         │
-          ▼                         ▼
-     REAR WHEELS              FRONT WHEELS
-          │                         │
-          └────────────┬────────────┘
-                       ▼
-                 VEHICLE MOTION
-                       │
-          ┌────────────┼────────────┐
-          ▼            ▼            ▼
-      TRANSLATION     YAW       CURVATURE
-                       │
-                       ▼
-              NEW SENSOR GEOMETRY
-                       │
-                       ▼
-                      EV3
+sensor information correct?
+      ↓
+EV3 decision correct?
+      ↓
+motor command correct?
+      ↓
+motor physically responds?
+      ↓
+mechanism responds?
+      ↓
+vehicle follows expected trajectory?
 ```
+
+This prevents every physical failure from being treated automatically as a software problem.
+
+---
+
+## 3.43 Current Mechanical Definition
+
+The current Piolín mobility system consists of:
+
+| Component | Function |
+| :--- | :--- |
+| EV3 Large Motor A | Main propulsion actuator |
+| Rear drivetrain | Transfers Motor A rotation |
+| Rear wheels | Provide driven traction |
+| EV3 Medium Motor B | Steering actuator |
+| Ackermann-style linkage | Coordinates front-wheel steering |
+| Front steering pivots | Allow wheel-angle changes |
+| Motor encoders | Provide actuator rotation references |
+| LEGO Technic chassis | Preserves the geometry of the mobility system |
+| EV3 | Coordinates propulsion and steering commands |
+
+This mechanical architecture is shared between both competition rounds.
+
+---
+
+## 3.44 Final Engineering Assessment
 
 <div align="center">
 
 <img
   src="../../v-photos/v4/piolin_bottom.jpg"
-  alt="Bottom view of Piolín showing the complete mechanical mobility system"
+  alt="Bottom view of Piolín showing the complete mechanical mobility architecture"
   width="720"
 />
 
 <br>
 
-<sub><b>Figure 3.23.</b> Bottom view of Piolín showing how propulsion, wheel placement, steering, and chassis structure form one integrated mobility platform.</sub>
+<sub><b>Figure 3.25.</b> Bottom view of Piolín showing the physical integration of the drivetrain, wheel layout, steering system, and chassis.</sub>
 
 </div>
 
-This relationship demonstrates that mobility is not an isolated mechanical function.
+Piolín's mobility architecture is based on a deliberate separation between **propulsion** and **direction control**.
 
-It directly determines:
+Motor A provides rear-wheel propulsion.
 
-```text
-what the sensors observe
+Motor B controls an Ackermann-style front steering mechanism.
 
-how quickly the controller must react
+The drivetrain, wheel geometry, steering linkage, tires, chassis, and control timing convert those two actuator commands into the final vehicle trajectory.
 
-how corners are executed
-
-how obstacles are passed
-
-how recovery occurs
-
-where Piolín finally parks
-```
-
----
-
-# 3.53 Final Engineering Assessment
-
-Piolín's mobility architecture was designed around a clear separation of functions:
-
-```text
-Motor A
-→ controls longitudinal motion
-
-
-Motor B
-→ controls vehicle curvature
-```
-
-The rear drivetrain transforms Motor A rotation into wheel traction, while the Ackermann-style front linkage transforms Motor B movement into coordinated front-wheel steering.
-
-The result is a vehicle platform capable of:
+The design allows Piolín to perform:
 
 ```text
 straight driving
 
-controlled corners
+clockwise and counterclockwise corners
 
-forward motion
+forward movement
 
-reverse motion
+reverse movement
 
-pillar avoidance
+red-pillar avoidance
+
+green-pillar avoidance
 
 countersteering
 
-recentering
+post-obstacle recovery
 
-parking
+parking maneuvers
 ```
 
-using only two actuators.
+without changing the mechanical platform between competition rounds.
 
-The same mechanical platform is retained for both the Open and Obstacle Challenges. What changes between rounds is primarily the perception and control logic, not the underlying mobility mechanism.
+The architecture also demonstrates that vehicle mobility is not purely a software problem. A navigation algorithm can only be repeatable if the physical steering center, drivetrain resistance, wheel alignment, mechanical rigidity, and sensor geometry remain sufficiently consistent.
 
-This is important because it allows Piolín's engineering development to build on one stable mechanical foundation instead of solving the motion problem twice.
+Piolín therefore treats mobility as a **mechatronic system** in which mechanics, sensing, electrical actuation, and software continuously influence one another.
 
-The final design philosophy can therefore be summarized as:
+The main design principle can be summarized as:
 
-> **Piolín uses a simple two-actuator vehicle architecture in which mechanical geometry provides the steering behavior and software coordinates propulsion and direction according to the current environment.**
-
-The effectiveness of this design depends not only on motor commands but also on steering geometry, wheel alignment, traction, drivetrain friction, vehicle speed, mechanical repeatability, and sensor feedback.
-
-For that reason, Piolín's mobility system is treated as a complete **mechatronic subsystem** rather than as a pair of motors.
+> **Use a simple two-actuator vehicle architecture, preserve the mechanical geometry as consistently as possible, and let the EV3 coordinate propulsion and steering according to the current environment.**
 
 ---
 
