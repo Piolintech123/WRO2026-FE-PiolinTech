@@ -1,5 +1,10 @@
 # Phase 2 — Mechanical and Navigation Development
 
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/1c69496e-6b70-4709-8284-e27ac4f175b2" alt="Prototype Phase 1.5" width="450"/>
+  <p><em>Prototype Phase 2 featuring reinforced dual-layer structural bracing, a multi-sensor front bumper, and manually secured cable connections.</em></p>
+</div>
+
 ## 1. From Prototype to Vehicle Architecture
 
 Phase 2 represents the stage in which Piolín evolved from an initial EV3 mobility prototype into a robot designed more deliberately around the requirements of **WRO Future Engineers**.
