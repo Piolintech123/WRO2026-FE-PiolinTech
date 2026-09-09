@@ -10,15 +10,29 @@
 
 <br>
 
-<sub><b>Figure 4.1.</b> LEGO Mindstorms EV3 Medium Motor installed on Piolín as the dedicated steering actuator connected to Motor Port B.</sub>
+<sub><b>Figure 4.1.</b> LEGO EV3 Medium Motor connected to Port B and used as Piolín's dedicated steering actuator.</sub>
 
 </div>
 
-Piolín uses one **LEGO Mindstorms EV3 Medium Motor** connected to **Motor Port B** to control the complete front steering mechanism. Unlike Motor A, which is responsible for propulsion, Motor B does not move the robot forward. Its purpose is to position the front wheels so that Piolín can follow straight trajectories, negotiate corners, avoid obstacles, recover after lateral maneuvers, and align itself during parking.
+Piolín uses a **LEGO Mindstorms EV3 Medium Motor connected to Motor Port B** as the only active actuator in the front steering system. Unlike Motor A, which produces propulsion, Motor B does not directly move the vehicle forward or backward. Its responsibility is to reposition the front steering linkage so that the two front wheels create the curvature required by the autonomous controller.
 
-The steering system is one of the most important mechanical-control interfaces in the robot because every navigation decision eventually has to become a physical wheel angle. Ultrasonic sensing, gyro correction, Pixy detections, color-state logic, and obstacle decisions can all calculate a desired direction, but none of those systems can move the robot laterally by themselves. Motor B is the actuator that converts those navigation decisions into physical steering.
+The current steering architecture is:
 
-Piolín does not use differential steering. Instead, Motor B drives a mechanical **Ackermann-style linkage** connected to both front wheels. This gives the vehicle a car-like turning behavior and creates a clear separation between propulsion and direction.
+```text
+EV3
+ ↓
+Motor Port B
+ ↓
+EV3 Medium Motor
+ ↓
+Mechanical steering linkage
+ ↓
+Left + Right front wheel angles
+ ↓
+Vehicle curvature
+```
+
+This division of responsibilities is fundamental to Piolín's mechanical architecture:
 
 ```text
 Motor A
@@ -29,517 +43,339 @@ Motor B
 → steering
 ```
 
-The result is a system in which vehicle motion depends on the coordinated operation of both actuators rather than on different speeds between two drive wheels.
+The vehicle therefore behaves as an Ackermann-style car rather than as a differential-drive robot.
+
+The steering system is especially important because every wall correction, corner, obstacle maneuver, recentering action, and parking adjustment eventually becomes a physical Motor B movement.
 
 ---
 
-## 4.1 Steering System Architecture
+## 4.1 Why a Dedicated Steering Motor Is Used
 
-The complete steering path can be represented as:
+Piolín separates propulsion and steering mechanically.
 
-```text
-Navigation decision
-        ↓
-EV3
-        ↓
-Motor Port B
-        ↓
-EV3 Medium Motor
-        ↓
-Mechanical steering linkage
-        ↓
-Left and right front wheel angles
-        ↓
-Vehicle turning trajectory
-```
-
-<div align="center">
-
-<img
-  src="../../embed/steering_system_architecture.png"
-  alt="Piolín steering system architecture from EV3 command to front wheel motion"
-  width="850"
-/>
-
-<br>
-
-<sub><b>Figure 4.2.</b> Steering actuation chain from an EV3 navigation command to the physical front-wheel trajectory.</sub>
-
-</div>
-
-This chain is important because a steering value in software does not directly represent a vehicle turning radius. The commanded motor position first passes through the Medium Motor, then through the steering linkage, then through the physical wheel geometry, and finally through the interaction between tires and the competition surface.
-
-For this reason:
+A differential-drive robot normally turns by controlling the relative speeds of two drive motors. Piolín instead has one propulsion system and one steering system.
 
 ```text
-software steering command
-≠
-motor encoder angle
-≠
-physical wheel angle
-≠
-turning radius
+REAR
+Motor A
+→ vehicle movement
+
+
+FRONT
+Motor B
+→ direction of movement
 ```
 
-Each of these quantities describes a different layer of the steering system.
+This architecture was selected because WRO Future Engineers is fundamentally a vehicle-navigation challenge. A front-steered vehicle produces continuous curved trajectories rather than rotating around its center.
+
+Using a dedicated steering actuator also allows the software to reason independently about:
+
+```text
+how fast Piolín should move
+```
+
+and:
+
+```text
+how strongly Piolín should steer
+```
+
+before those two decisions interact physically.
 
 ---
 
 ## 4.2 Why the EV3 Medium Motor Was Selected
 
-The Medium Motor was selected because steering requires a different type of actuation from propulsion.
+The steering actuator has different mechanical requirements from the propulsion actuator.
 
-Motor A must continuously move the complete vehicle. Motor B only needs to reposition a mechanical linkage through a limited angular range. The steering actuator therefore benefits from being compact, responsive, and capable of repeatable position control rather than being optimized primarily for sustained propulsion load.
+Motor A must continuously move the complete vehicle.
 
-<div align="center">
-
-<img
-  src="../../v-photos/v4/steering_motor_mount.jpg"
-  alt="EV3 Medium Motor mounting and steering linkage integration"
-  width="680"
-/>
-
-<br>
-
-<sub><b>Figure 4.3.</b> Mechanical integration of the EV3 Medium Motor with Piolín's front steering system.</sub>
-
-</div>
-
-Using the Medium Motor also helps keep the front section of the chassis compact. A larger steering actuator would occupy more space around the front axle and could interfere with the linkage, sensor placement, or wheel-clearance geometry.
-
-The selection therefore follows the mechanical requirement rather than simply choosing the largest available actuator.
+Motor B instead performs relatively limited angular movements such as:
 
 ```text
-Propulsion
-→ high continuous vehicle load
-→ Large Motor
+left correction
 
+right correction
 
-Steering
-→ controlled angular positioning
-→ Medium Motor
+return to center
+
+corner steering
+
+obstacle avoidance
+
+countersteering
 ```
 
-This division gives each motor a specific role and avoids unnecessary mechanical capacity in the steering subsystem.
+The EV3 Medium Motor fits this role because the steering system benefits from a compact actuator capable of controlled position changes.
+
+The selection was therefore based on the physical role:
+
+| Requirement | Motor A | Motor B |
+| :--- | :---: | :---: |
+| Move complete vehicle | Yes | No |
+| Continuous propulsion | Yes | No |
+| Angular positioning | Secondary | Primary |
+| Rear drivetrain | Yes | No |
+| Front steering linkage | No | Yes |
+| EV3 Port | A | B |
+
+Using a second Large Motor for steering would add size and mechanical capacity that the current front steering architecture does not require.
 
 ---
 
-## 4.3 Why Ackermann Steering Was Used
+## 4.3 Ackermann-Style Steering
 
-Piolín uses an **Ackermann-style steering mechanism** rather than rotating both front wheels through exactly the same angle.
+Motor B operates an **Ackermann-style front steering mechanism**.
 
 <div align="center">
 
 <img
   src="../../v-photos/v4/ackermann_top.jpg"
-  alt="Top view of Piolín Ackermann steering linkage"
+  alt="Top view of Piolín Ackermann-style steering mechanism"
   width="720"
 />
 
 <br>
 
-<sub><b>Figure 4.4.</b> Top view of Piolín's current Ackermann-style front steering mechanism.</sub>
+<sub><b>Figure 4.2.</b> Top view of Piolín's installed front steering mechanism.</sub>
 
 </div>
 
-During a turn, the inner front wheel travels along a smaller radius than the outer front wheel. If both wheels were forced to the same angle, one or both tires would have to scrub laterally against the surface more than necessary.
+During a turn, the left and right front wheels should not necessarily remain at identical angles.
 
-Ideal Ackermann geometry therefore requires:
+The wheel closer to the center of the turn follows a smaller-radius path than the wheel farther away.
+
+Conceptually:
 
 ```text
 INNER WHEEL
+→ smaller turning radius
 → larger steering angle
 
 
 OUTER WHEEL
+→ larger turning radius
 → smaller steering angle
 ```
 
-The ideal relationship can be expressed as:
+This is the central idea behind Ackermann steering.
+
+Piolín's system is described as **Ackermann-style** rather than claiming mathematically perfect Ackermann geometry. The actual relationship is determined by the LEGO linkage, pivot positions, wheel spacing, and steering-arm geometry installed on the physical robot.
+
+---
+
+## 4.4 Ackermann Geometry
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/ackermann_geometry.png"
+  alt="Ackermann steering geometry used to explain Piolín's turning mechanism"
+  width="720"
+/>
+
+<br>
+
+<sub><b>Figure 4.3.</b> Ackermann geometry showing why the inner and outer front wheels follow different turning radii.</sub>
+
+</div>
+
+The steering geometry can be understood through the relationship between:
 
 ```text
-cot(THETA_OUTER) - cot(THETA_INNER) = W / L
+wheelbase
+
+front track width
+
+inner wheel angle
+
+outer wheel angle
+
+turning center
+```
+
+In an idealized Ackermann model, the extended wheel directions intersect near a common instantaneous center of rotation.
+
+A common geometric relationship can be written as:
+
+```text
+cot(δ_outer) - cot(δ_inner)
+=
+T / L
 ```
 
 where:
 
 ```text
-W = front track width
+δ_inner
+→ inner front-wheel steering angle
 
-L = wheelbase
 
-THETA_INNER = inner front-wheel angle
+δ_outer
+→ outer front-wheel steering angle
 
-THETA_OUTER = outer front-wheel angle
+
+T
+→ front track width
+
+
+L
+→ wheelbase
 ```
 
-The same turning geometry can also be represented through a vehicle-center turning radius `R`:
+This equation describes the idealized geometry.
 
-```text
-THETA_INNER =
-atan(
-L / (R - W/2)
-)
-```
-
-and:
-
-```text
-THETA_OUTER =
-atan(
-L / (R + W/2)
-)
-```
-
-These equations describe the ideal geometric relationship. They are not used here to claim that the LEGO linkage produces mathematically perfect Ackermann steering at every position.
-
-The physical Piolín mechanism is better described as **Ackermann-style** because real LEGO geometry includes finite link lengths, discrete mounting locations, mechanical play, and non-ideal pivot placement.
+Piolín's actual mechanism should still be evaluated experimentally because LEGO linkage clearances and real pivot positions can create differences from the theoretical model.
 
 ---
 
-## 4.4 Actual Steering Motion
+## 4.5 Inner and Outer Steering Angles
 
 <div align="center">
 
 <img
-  src="../../v-photos/v4/steering_motion.gif"
-  alt="Piolín steering system moving from left through center to right"
-  width="680"
+  src="../../v-photos/v4/ackermann_angles.png"
+  alt="Inner and outer steering angles in Piolín Ackermann steering"
+  width="720"
 />
 
 <br>
 
-<sub><b>Figure 4.5.</b> Actual movement of Piolín's current steering mechanism through its usable range.</sub>
+<sub><b>Figure 4.4.</b> Relationship between the inner and outer front-wheel angles during an Ackermann-style turn.</sub>
 
 </div>
 
-The steering GIF provides direct evidence of the installed mechanism. It shows how one Medium Motor moves both front wheels through the mechanical linkage and makes it easier to observe the relative motion of the left and right steering assemblies.
-
-This visual evidence is especially valuable because steering is a dynamic mechanism. A single photograph can show its construction, but it cannot clearly show:
+During a turn:
 
 ```text
-movement continuity
-
-return toward center
-
-relative wheel motion
-
-mechanical clearance
-
-left-to-right transition
+δ_inner > δ_outer
 ```
 
-The GIF should still be interpreted as physical evidence rather than mathematical proof of exact Ackermann geometry.
+because the inner wheel must follow a tighter radius.
 
----
+This distinction is important when documenting Piolín because one Motor B position ultimately creates **two different wheel-angle responses**.
 
-## 4.5 Motor B Encoder Position
-
-The EV3 Medium Motor contains an internal rotational encoder. The EV3 can therefore know the approximate rotational position of Motor B and use that position as the steering actuator reference.
-
-Conceptually:
-
-```text
-Motor B encoder
-      ↓
-steering reference
-      ↓
-mechanical linkage
-      ↓
-front-wheel orientation
-```
-
-However, the motor encoder measures the **motor shaft**, not the wheels.
-
-Therefore:
+Therefore the steering system cannot be described simply as:
 
 ```text
 Motor B = 20°
+therefore
+both wheels = 20°
 ```
 
-does not imply:
+That would not correctly describe the installed linkage.
+
+Instead:
 
 ```text
-front wheels = 20°
+Motor B position
+        ↓
+linkage displacement
+        ↓
+left wheel angle
++
+right wheel angle
 ```
 
-The mechanism between them transforms the motion.
-
-<div align="center">
-
-<img
-  src="../../embed/motor_to_wheel_angle.png"
-  alt="Relationship between Motor B encoder position and front wheel steering angle"
-  width="820"
-/>
-
-<br>
-
-<sub><b>Figure 4.6.</b> Motor B encoder position is transformed through the mechanical linkage before becoming a physical front-wheel angle.</sub>
-
-</div>
-
-The actual relationship may also be nonlinear. A fixed change in motor encoder position near the center does not necessarily create exactly the same wheel-angle change as the same motor movement close to a steering limit.
-
-This is why the steering system must be calibrated as an installed mechanism.
+and which wheel becomes the inner wheel depends on the direction of the turn.
 
 ---
 
-## 4.6 Mechanical Steering Center
+## 4.6 Motor B Angle Is Not Wheel Angle
 
-One of the most important references in the complete robot is the **steering center**.
-
-<div align="center">
-
-<img
-  src="../../v-photos/v4/ackermann_center.jpg"
-  alt="Piolín front wheels aligned at steering center"
-  width="680"
-/>
-
-<br>
-
-<sub><b>Figure 4.7.</b> Piolín's front wheels positioned at the physical steering-center reference.</sub>
-
-</div>
-
-The mechanical center represents the position at which the front wheels are aligned as closely as practical with the vehicle's longitudinal direction.
-
-The software can then define a corresponding reference:
+One of the most important steering relationships is:
 
 ```text
-STEERING_CENTER
-```
-
-All steering corrections are made relative to this position.
-
-Conceptually:
-
-```text
-LEFT                   CENTER                    RIGHT
-  ←-----------------------|------------------------→
-                          0
-```
-
-The exact numerical convention depends on the active code, but in Piolín's current steering convention:
-
-```text
-positive steering
-→ LEFT
-
-
-negative steering
-→ RIGHT
-```
-
-The sign convention is useful only if the physical motor orientation remains unchanged. If Motor B were physically reversed, the same software signs could produce the opposite wheel movement.
-
-For that reason, steering direction should always be verified physically after mechanical changes.
-
----
-
-## 4.7 Why Mechanical Center Matters
-
-A small center error can affect the entire navigation system.
-
-Suppose the software believes:
-
-```text
-Motor B = CENTER
-```
-
-but the actual wheels are slightly turned.
-
-Piolín then begins a straight section with a small natural curvature.
-
-The navigation system may observe:
-
-```text
-wall distance changes
-```
-
-or:
-
-```text
-gyro heading error
-```
-
-and continuously correct something that is actually caused by mechanical misalignment.
-
-The resulting behavior can appear as:
-
-```text
-zig-zag
-
-persistent wall drift
-
-unequal left/right corrections
-
-different corner behavior by direction
-```
-
-This is why steering-center verification should happen before wall-following gains or gyro gains are tuned.
-
-A fundamental calibration principle is:
-
-> **Software should not be used to hide a mechanical center error that can be corrected physically.**
-
----
-
-## 4.8 Left and Right Steering Limits
-
-The steering mechanism has finite physical limits.
-
-<div align="center">
-
-<img
-  src="../../v-photos/v4/ackermann_left_lock.jpg"
-  alt="Piolín steering mechanism at its usable left limit"
-  width="620"
-/>
-
-<br>
-
-<sub><b>Figure 4.8.</b> Steering mechanism near its usable left-side limit.</sub>
-
-</div>
-
-<div align="center">
-
-<img
-  src="../../v-photos/v4/ackermann_right_lock.jpg"
-  alt="Piolín steering mechanism at its usable right limit"
-  width="620"
-/>
-
-<br>
-
-<sub><b>Figure 4.9.</b> Steering mechanism near its usable right-side limit.</sub>
-
-</div>
-
-The software should not command Motor B beyond the mechanically useful range.
-
-Excessive steering travel can cause:
-
-```text
-linkage binding
-
-increased tire scrub
-
-motor stall load
-
-structural flex
-
-unpredictable steering geometry
-```
-
-A software limit can therefore be represented conceptually as:
-
-```python
-STEER = max(
-    STEER_RIGHT_LIMIT,
-    min(STEER_LEFT_LIMIT, STEER_REQUEST)
-)
-```
-
-The exact current limit values should only be documented once the current V4 steering system is measured and verified.
-
----
-
-## 4.10 Usable Range vs. Mechanical Maximum
-
-The greatest mechanically possible steering angle is not necessarily the best angle to use during autonomous navigation.
-
-Close to the mechanical extremes, several undesirable effects can become stronger:
-
-```text
-tire scrub
-
-linkage stress
-
-nonlinearity
-
-large lateral acceleration
-
-slow recovery
-
-greater swept path
-```
-
-Therefore Piolín should use a **validated usable range** rather than simply command the largest physically possible steering motion.
-
-This distinction is important:
-
-```text
-MECHANICAL MAXIMUM
+MOTOR B ENCODER ANGLE
 ≠
-RECOMMENDED CONTROL LIMIT
+FRONT-WHEEL ANGLE
 ```
 
-The final control limit should be based on real turning behavior and repeatability.
+The EV3 measures Motor B rotation through the motor encoder.
 
----
+That rotational position passes through a mechanical linkage before reaching the wheels.
 
-## 4.11 Steering Symmetry
+```text
+Motor B
+   ↓
+linkage input
+   ↓
+steering arms
+   ↓
+wheel pivots
+   ↓
+physical wheel angles
+```
 
-Ideally, equal-magnitude left and right motor requests should produce approximately comparable vehicle behavior.
-
-In reality, LEGO steering mechanisms can develop slight asymmetries because of:
+The conversion depends on:
 
 ```text
 link length
 
-mounting position
+connection points
 
-axle friction
+pivot position
 
-tire friction
+steering-arm geometry
 
-structural flex
-
-mechanical play
+mechanical clearance
 ```
 
-This means that:
+and may not be perfectly linear throughout the steering range.
 
-```text
-+X Motor B
-```
-
-and:
-
-```text
--X Motor B
-```
-
-may not create perfectly symmetrical physical trajectories.
-
-<div align="center">
-
-<img
-  src="../../embed/steering_symmetry_test.png"
-  alt="Comparison of Piolín left and right steering response"
-  width="820"
-/>
-
-<br>
-
-<sub><b>Figure 4.10.</b> Steering symmetry can be evaluated by comparing equal-magnitude left and right commands under the same physical conditions.</sub>
-
-</div>
-
-If significant asymmetry appears, the first step should be to inspect the linkage mechanically before introducing separate software corrections.
-
-Only persistent, repeatable physical asymmetry should justify direction-specific calibration.
+For this reason, a numerical Motor B command should never be presented as the physical front-wheel angle unless that relationship has been measured on Piolín.
 
 ---
 
-## 4.12 Steering Repeatability
+## 4.7 Mechanical Center
 
-A useful steering system should not only reach one desired position once. It should return to similar physical positions repeatedly.
+The steering system requires a repeatable neutral reference.
 
-A repeatability sequence can be:
+```text
+LEFT
+  ←
+CENTER
+  →
+RIGHT
+```
+
+The mechanical center is the position at which the front wheels are approximately aligned for straight vehicle motion.
+
+The software can then represent steering relative to that reference.
+
+Conceptually:
+
+```text
+STEERING_CENTER
+        ↓
+0 relative steering error
+```
+
+with commands on either side representing left or right steering.
+
+A correct software center does not automatically guarantee straight driving if the physical mechanism is misaligned.
+
+Therefore steering-center verification should include:
+
+```text
+Motor B reference
+
+front wheel orientation
+
+linkage symmetry
+
+straight-line vehicle behavior
+```
+
+rather than relying only on the motor encoder.
+
+---
+
+## 4.8 Centering Repeatability
+
+A useful steering system should repeatedly return to approximately the same physical wheel position when Motor B returns to its reference.
+
+A basic mechanical test is:
 
 ```text
 CENTER
@@ -553,376 +389,438 @@ RIGHT
 CENTER
 ```
 
-repeated several times.
-
-If the final center changes significantly between cycles, possible causes include:
+If the final center differs depending on which direction the mechanism approached from, possible causes include:
 
 ```text
-linkage backlash
+mechanical backlash
 
-loose axle connections
+joint clearance
 
-structural movement
+linkage flex
 
-motor-reference error
+motor-position error
 
-mechanical binding
+steering friction
 ```
 
-<div align="center">
+This matters because Piolín frequently changes steering direction during:
 
-<img
-  src="../../embed/steering_repeatability.png"
-  alt="Piolín steering repeatability test"
-  width="820"
-/>
+```text
+wall correction
 
-<br>
+corner exit
 
-<sub><b>Figure 4.11.</b> Steering repeatability test structure for comparing repeated center, left, and right positioning.</sub>
+pillar avoidance
 
-</div>
+countersteering
 
-This type of mechanical validation is especially important before tuning high-level navigation software.
+recentering
+```
+
+A repeatable center makes all of those behaviors easier to tune.
 
 ---
 
-## 4.13 Steering Backlash and Mechanical Play
+## 4.9 Mechanical Play and Backlash
 
-No LEGO linkage is perfectly rigid.
+Some clearance is unavoidable in a LEGO Technic steering system.
 
-Small clearances exist between:
+Potential sources include:
 
 ```text
-axles
-
 pins
 
-holes
+axles
 
-steering arms
+pivot joints
 
-wheel pivots
+linkage connections
+
+gears
 ```
 
-When Motor B changes direction, part of the motor movement may initially take up this mechanical clearance before the wheels begin changing angle.
-
-This is known as backlash or mechanical play.
+When Motor B reverses direction, part of its initial movement may first remove mechanical clearance before producing a visible change at the front wheels.
 
 Conceptually:
 
 ```text
-Motor changes direction
-        ↓
-linkage clearance taken up
-        ↓
+Motor B reverses
+      ↓
+linkage clearance changes side
+      ↓
+mechanical play is taken up
+      ↓
 wheel movement begins
 ```
 
-Backlash can affect rapid sequences such as:
+This becomes particularly important during fast transitions such as:
 
 ```text
-avoid obstacle
+avoid
 → countersteer
-→ recenter
 ```
 
-because the commanded motor reversal may not immediately produce an equal physical wheel reversal.
+because the software may change direction before the mechanical steering system has fully responded.
 
-The current documentation therefore avoids claiming "zero play" or perfect steering response.
-
----
-
-## 4.14 Steering and Chassis Rigidity
-
-The steering mechanism relies on the chassis to maintain the relative positions of Motor B, the front pivots, and the linkage.
-
-If the front chassis flexes:
+The current documentation therefore does not claim:
 
 ```text
-motor command remains the same
-```
-
-but:
-
-```text
-physical wheel geometry changes
-```
-
-This can create inconsistent steering even if the motor itself is operating correctly.
-
-<div align="center">
-
-<img
-  src="../../v-photos/v4/steering_front_structure.jpg"
-  alt="Piolín front chassis structure supporting the steering system"
-  width="680"
-/>
-
-<br>
-
-<sub><b>Figure 4.12.</b> Front structural assembly supporting Motor B, steering linkage, and front-wheel pivots.</sub>
-
-</div>
-
-For this reason, structural reinforcement is part of steering accuracy.
-
-A steering problem should not automatically be treated as a motor-control problem.
-
----
-
-## 4.15 Steering and Vehicle Speed
-
-The same physical steering angle can produce different practical behavior depending on vehicle speed.
-
-At higher speed:
-
-```text
-more distance is traveled
-during the same steering-response time
-```
-
-and lateral acceleration increases approximately according to:
-
-```text
-A_LATERAL =
-V² / R
-```
-
-where:
-
-```text
-V = vehicle speed
-
-R = turning radius
-```
-
-This means that increasing speed has a nonlinear effect on cornering demand.
-
-If vehicle speed doubles while turning radius remains the same:
-
-```text
-lateral acceleration
-increases by approximately 4×
-```
-
-This does not mean the robot literally experiences ideal rigid-body dynamics at every moment, but it demonstrates why steering and speed must be tuned together.
-
-<div align="center">
-
-<img
-  src="../../embed/drive_steering_interaction.png"
-  alt="Interaction between vehicle speed and steering intensity"
-  width="820"
-/>
-
-<br>
-
-<sub><b>Figure 4.13.</b> Steering performance depends on the interaction between Motor B position and Motor A propulsion speed.</sub>
-
-</div>
-
----
-
-## 4.16 Steering During Straight-Line Navigation
-
-During a straight section, Motor B normally remains relatively close to the mechanical center.
-
-The controller should avoid reacting aggressively to every small sensor variation because constant high-frequency steering corrections can create zig-zag.
-
-Conceptually:
-
-```text
-small navigation error
-        ↓
-small steering correction
-
-
-large navigation error
-        ↓
-stronger steering correction
-```
-
-This is preferable to a binary controller in which the robot is either:
-
-```text
-CENTER
+zero backlash
 ```
 
 or:
 
 ```text
-FULL STEER
+perfect steering repeatability
 ```
 
-with nothing between them.
-
-Progressive steering allows the mechanical system to stabilize smoothly.
+The goal is instead to keep mechanical play low enough for repeatable autonomous control.
 
 ---
 
-## 4.17 Steering During the Open Challenge
+## 4.10 Mechanical Steering Range
 
-During Open, Motor B receives steering decisions influenced primarily by:
+Motor B cannot rotate indefinitely while connected to the steering mechanism.
 
-```text
-S1 Gyro
+The linkage has a physically useful range.
 
-S2 Left Ultrasonic
-
-S3 Right Ultrasonic
-
-S4 course state
-```
-
-The ultrasonic sensors describe lateral track geometry, while the gyro describes orientation.
-
-The EV3 can therefore separate two types of error:
+Beyond that range, additional Motor B movement may produce:
 
 ```text
-POSITION ERROR
-→ too close / too far from wall
+little useful wheel-angle increase
 
+mechanical binding
 
-HEADING ERROR
-→ vehicle rotated relative to desired direction
+higher motor load
+
+structural stress
 ```
 
-<div align="center">
-
-<img
-  src="../../embed/open_gyro_wall_fusion.png"
-  alt="Open Challenge fusion of gyro and wall information for steering"
-  width="850"
-/>
-
-<br>
-
-<sub><b>Figure 4.14.</b> Motor B steering during Open is influenced by both lateral wall geometry and gyro-based orientation information.</sub>
-
-</div>
-
-The current strategy does not expect the gyro to determine lateral position, and it does not expect the ultrasonic sensors to provide a direct angular measurement.
-
-Each sensor contributes the type of information it measures best.
-
----
-
-## 4.18 Why Gyro Correction Should Not Fight Wall Correction
-
-Because Open combines gyro and ultrasonic information, two steering requests can theoretically disagree.
-
-For example:
-
-```text
-gyro says:
-correct slightly LEFT
-```
-
-while:
-
-```text
-wall geometry says:
-correct RIGHT
-```
-
-If both controllers independently produce large commands, they can fight each other and create oscillation.
-
-A better architecture combines their influence inside one steering decision.
+The software should therefore define a **usable steering range** rather than attempting to drive the mechanism to its absolute mechanical stop.
 
 Conceptually:
 
 ```text
-wall correction
-+
-gyro correction
-        ↓
-combined steering request
-        ↓
-Motor B
+LEFT LIMIT
+     │
+     │ usable range
+     │
+CENTER
+     │
+     │ usable range
+     │
+RIGHT LIMIT
 ```
 
-The gyro correction should therefore act as a stabilizing contribution rather than completely overriding valid wall geometry.
-
-This is one reason the gyro is described as **assisting** Open navigation rather than replacing the lateral controller.
+The final numerical limits should only be published after the current V4 steering system is physically measured.
 
 ---
 
-## 4.19 Steering During Open Corners
+## 4.11 Why Maximum Steering Is Not Always Better
 
-Cornering requires a larger steering request than normal straight-line corrections.
+A larger steering command creates a tighter intended trajectory only up to the point where the mechanical and tire geometry remain useful.
 
-The sequence can be represented as:
+Excessive steering can increase:
 
 ```text
-straight navigation
-        ↓
-corner condition detected
-        ↓
-steering magnitude increases
-        ↓
-vehicle rotates through corner
-        ↓
-gyro approaches expected heading change
-        ↓
-new wall geometry appears
-        ↓
-steering reduced
-        ↓
-straight stabilization
+tire scrub
+
+rolling resistance
+
+mechanical load
+
+trajectory instability
 ```
+
+It can also make recovery more difficult because Motor B must travel farther before reaching the opposite steering direction.
+
+For example:
+
+```text
+large avoidance angle
+        ↓
+pillar cleared quickly
+        ↓
+but...
+        ↓
+large countersteering movement required
+```
+
+The best steering command is therefore not automatically the largest available command.
+
+It is the smallest command that reliably produces the required trajectory with adequate clearance.
+
+---
+
+## 4.12 Steering Motion
 
 <div align="center">
 
 <img
-  src="../../embed/open_corner_steering_sequence.png"
-  alt="Piolín Open Challenge corner steering sequence"
-  width="850"
+  src="../../v-photos/v4/steering_motion.gif"
+  alt="Physical movement of Piolín front steering system"
+  width="680"
 />
 
 <br>
 
-<sub><b>Figure 4.15.</b> Conceptual Motor B sequence during an Open Challenge corner.</sub>
+<sub><b>Figure 4.5.</b> Physical movement of the current steering linkage through its operating range.</sub>
 
 </div>
 
-The corner should not end solely because a fixed amount of time has elapsed if better information is available.
+The animation provides useful physical evidence of how Motor B changes both front wheel orientations through the linkage.
 
-The current direction of development is to use:
+It demonstrates:
 
 ```text
-gyro rotation
-+
-recovered wall geometry
+coordinated wheel motion
+
+movement through center
+
+direction reversal
+
+real linkage behavior
 ```
 
-as evidence that the vehicle has completed the turn.
+The animation is more useful than a purely conceptual diagram because it shows the actual mechanism that Piolín's software controls.
+
+It should not, however, be interpreted as proof of ideal theoretical Ackermann geometry.
 
 ---
 
-## 4.20 Steering During the Obstacle Challenge
+## 4.13 Steering Requires Vehicle Motion
 
-During Obstacles, the gyro is not connected.
+Unlike differential drive, Piolín cannot rotate meaningfully in place by simply changing the steering angle.
 
-S1 is occupied by Pixy2.1.
-
-Motor B decisions are therefore influenced by:
+Ackermann steering produces a curved vehicle trajectory only when the vehicle also moves.
 
 ```text
-Pixy signature
-
-Pixy X position
-
-Pixy block dimensions
-
-left ultrasonic
-
-right ultrasonic
-
-course state
+Motor B changes wheel angle
+        +
+Motor A moves vehicle
+        ↓
+Piolín turns
 ```
 
-The pillar color determines the required passing side:
+This relationship is fundamental.
+
+If Motor B turns while Motor A is stopped:
+
+```text
+wheel orientation changes
+```
+
+but:
+
+```text
+vehicle heading does not immediately change
+```
+
+The robot must translate forward or backward for the steering geometry to create a change in position and orientation.
+
+This is why propulsion speed and steering response must be tuned together.
+
+---
+
+## 4.14 Steering and Speed Interaction
+
+The same Motor B position can produce different practical behavior depending on how quickly Piolín is moving.
+
+At greater forward speed:
+
+```text
+same steering geometry
++
+more vehicle movement per unit time
+```
+
+can make the trajectory develop more quickly.
+
+At lower speed:
+
+```text
+more time for sensing and correction
+```
+
+is available, but the vehicle also develops its Ackermann trajectory more slowly.
+
+This creates a trade-off:
+
+```text
+TOO FAST
+→ less reaction time
+→ larger correction distance
+
+
+TOO SLOW
+→ slower trajectory development
+→ inefficient maneuver
+```
+
+The objective is therefore not to independently find:
+
+```text
+best steering
+```
+
+and:
+
+```text
+best speed
+```
+
+but to find a useful combination of both.
+
+---
+
+## 4.15 Steering During Straight Navigation
+
+During a stable straight section, Motor B should remain relatively close to the steering center.
+
+The navigation system then makes smaller corrections based on the active sensor architecture.
+
+During Open:
+
+```text
+S2/S3
+→ lateral geometry
+
+
+Gyro
+→ heading information
+```
+
+The EV3 converts those measurements into a steering correction around the center reference.
+
+Conceptually:
+
+```text
+STEERING =
+CENTER
++
+CORRECTION
+```
+
+The correction should be strong enough to prevent growing positional or heading error but not so aggressive that Piolín repeatedly crosses its desired trajectory.
+
+---
+
+## 4.16 Zig-Zag and Steering Overcorrection
+
+A recurring prototype failure was zig-zag motion.
+
+A common sequence was:
+
+```text
+error detected
+      ↓
+strong steering correction
+      ↓
+vehicle crosses desired path
+      ↓
+error changes sign
+      ↓
+strong opposite correction
+      ↓
+repeat
+```
+
+This can be caused by several factors:
+
+```text
+steering gain too high
+
+vehicle speed too high
+
+mechanical backlash
+
+sensor noise
+
+multiple controllers competing
+
+late correction
+```
+
+Therefore zig-zag should not automatically be solved by changing Motor B limits.
+
+The source of the oscillation must first be identified.
+
+---
+
+## 4.17 Steering During Open Corners
+
+Open corners require a stronger and more deliberate steering state than normal straight-line correction.
+
+Conceptually:
+
+```text
+STRAIGHT
+   ↓
+corner evidence detected
+   ↓
+CORNER STATE
+   ↓
+Motor B moves to larger steering request
+   ↓
+Motor A moves vehicle through arc
+   ↓
+turn progresses
+   ↓
+Motor B returns toward center
+   ↓
+straight geometry reacquired
+```
+
+The current Open architecture can use gyro information to support turn progress while the lateral ultrasonic sensors help verify when useful wall geometry returns.
+
+This is more robust than assuming that one fixed Motor B position held for one fixed time will always generate exactly the same physical turn.
+
+---
+
+## 4.18 Why Timed Steering Alone Is Limited
+
+A purely timed turn might behave as:
+
+```text
+Motor B = turn
+Motor A = drive
+wait X seconds
+Motor B = center
+```
+
+This can work during controlled tests, but its physical result depends on:
+
+```text
+battery condition
+
+vehicle speed
+
+friction
+
+entry position
+
+entry heading
+
+steering response
+```
+
+Therefore:
+
+```text
+same time
+≠
+guaranteed same orientation
+```
+
+The current Open architecture benefits from the Gyro Sensor because the software can observe actual vehicle rotation rather than relying only on elapsed time.
+
+---
+
+## 4.19 Steering During Obstacle Avoidance
+
+During the Obstacle Challenge, Motor B remains the same actuator, but the information driving its command changes.
+
+Pixy2.1 determines important visual characteristics of the target.
 
 ```text
 RED
@@ -933,916 +831,616 @@ GREEN
 → pass LEFT
 ```
 
-However, Motor B should not use one fixed steering value for every red or green detection.
+However:
 
-The required steering depends on where the pillar appears relative to the robot and how much safe space is available between the vehicle and the surrounding walls.
+```text
+RED
+```
+
+does not mean:
+
+```text
+set Motor B permanently to maximum right
+```
+
+and Green does not imply one permanent maximum-left angle.
+
+The desired steering can depend on:
+
+```text
+target X position
+
+target apparent size
+
+current wall geometry
+
+vehicle speed
+
+current obstacle state
+```
+
+The steering system therefore converts a perception objective into a controlled vehicle trajectory rather than a simple color-to-angle command.
 
 ---
 
-## 4.21 Pixy Horizontal Position and Steering
+## 4.20 Countersteering
 
-Pixy can report a block's horizontal image coordinate.
+Once Piolín has moved around a pillar, Motor B must usually transition toward an opposite steering direction or toward center.
 
-Conceptually:
-
-```text
-pillar far left in image
-pillar near center
-pillar far right in image
-```
-
-represent different relative visual situations.
-
-The EV3 can calculate a visual error such as:
-
-```text
-E_X =
-X_TARGET - X_BLOCK
-```
-
-and use that error as one factor in the steering request.
-
-<div align="center">
-
-<img
-  src="../../embed/pixy_x_to_steering.png"
-  alt="Relationship between Pixy horizontal block position and steering request"
-  width="840"
-/>
-
-<br>
-
-<sub><b>Figure 4.16.</b> Pixy horizontal block position can influence the magnitude of an obstacle-avoidance steering request.</sub>
-
-</div>
-
-The final target value and control gain should only be documented once the current obstacle code has been calibrated.
-
----
-
-## 4.22 Pillar Passing Side vs. Steering Direction
-
-A particularly important distinction is:
-
-```text
-PASS LEFT OF PILLAR
-```
-
-does not always mean:
-
-```text
-STEER LEFT forever
-```
-
-An obstacle maneuver contains several phases.
-
-For example, a green pillar requires a left-side pass:
-
-```text
-GREEN
-   ↓
-move trajectory toward left side of pillar
-   ↓
-pass obstacle
-   ↓
-countersteer
-   ↓
-recover normal trajectory
-```
-
-Similarly, red requires a right-side pass followed by recovery.
-
-<div align="center">
-
-<img
-  src="../../embed/obstacle_steering_sequence.png"
-  alt="Obstacle avoidance steering phases"
-  width="850"
-/>
-
-<br>
-
-<sub><b>Figure 4.17.</b> Obstacle steering is a multi-phase maneuver: avoidance, passing, countersteering, and recovery.</sub>
-
-</div>
-
-This is important because one of the main software problems during development was maintaining the avoidance direction for too long or reacting to a new camera observation before the previous maneuver had fully completed.
-
----
-
-## 4.23 Countersteering
-
-Countersteering is the action that returns Piolín from a displaced obstacle-avoidance path toward a useful straight trajectory.
-
-Suppose Motor B steers strongly to avoid a pillar. The vehicle begins following a curved path away from the obstacle.
-
-Once the pillar is passed, maintaining the same steering request would continue moving Piolín toward the track boundary.
-
-The controller therefore needs an opposite steering phase.
+This is **countersteering**.
 
 ```text
 AVOID
    ↓
+vehicle moves around pillar
+   ↓
 PASS
    ↓
-COUNTERSTEER
+countersteer
    ↓
-RECENTER
+recover heading / lateral position
 ```
 
-The timing and strength of this reversal matter greatly.
+Countersteering is important because the avoidance steering that created clearance from the pillar also leaves Piolín laterally displaced.
 
-Too early:
+Without recovery, the robot may:
 
 ```text
-vehicle returns toward pillar
+approach a wall
+
+enter next corner poorly
+
+misalign the camera
+
+reduce visibility of next pillar
 ```
 
-Too late:
-
-```text
-vehicle approaches wall
-```
-
-Too strong:
-
-```text
-vehicle overshoots center
-```
-
-Too weak:
-
-```text
-vehicle remains displaced
-```
-
-This is one reason Motor B control cannot be reduced to simple fixed left/right commands.
+The timing of countersteering is therefore closely tied to pass confirmation and recovery logic.
 
 ---
 
-## 4.24 Steering and Post-Obstacle Recentering
+## 4.21 Why Early Countersteering Fails
 
-After an obstacle, Piolín needs to establish a useful starting position for the next part of the course.
-
-The lateral ultrasonic sensors provide important recovery information.
+If Motor B begins countersteering before Piolín has physically cleared the pillar:
 
 ```text
-Pixy
-→ obstacle identity / visual position
-
-
-S2 + S3
-→ surrounding wall geometry
+vehicle begins returning
+      ↓
+pillar still alongside
+      ↓
+clearance decreases again
+      ↓
+possible collision
 ```
 
-Once the pillar is no longer the primary steering concern, Motor B can progressively return control toward the wall-based navigation reference.
+This is one reason:
 
-<div align="center">
+```text
+camera target disappeared
+```
 
-<img
-  src="../../embed/obstacle_recenter.png"
-  alt="Piolín steering recovery after passing a pillar"
-  width="850"
-/>
+cannot automatically mean:
 
-<br>
+```text
+countersteer now
+```
 
-<sub><b>Figure 4.18.</b> Post-obstacle recovery uses countersteering and lateral wall information to return Piolín toward a stable trajectory.</sub>
+The pillar may have left the camera's field of view because Piolín itself rotated.
 
-</div>
-
-The recovery phase is as important as the avoidance itself because the next pillar may appear shortly after the previous maneuver.
+During obstacle development, lateral ultrasonic context became useful for determining whether the physical obstacle had actually been passed.
 
 ---
 
-## 4.25 Steering During Reverse Motion
+## 4.22 Why Late Countersteering Fails
 
-Piolín can also steer while Motor A is driving backward.
-
-The front wheels still determine vehicle curvature, but the trajectory is experienced in reverse.
-
-For this reason, the same wheel position produces a different movement pattern relative to the vehicle's direction of travel.
-
-Reverse steering is particularly relevant when Piolín backs away from:
+The opposite problem occurs when recovery begins too late.
 
 ```text
-a wall
-
-a pillar
-
-an unsuccessful approach
-
-a parking position
+pillar passed
+      ↓
+avoidance steering continues
+      ↓
+vehicle moves farther laterally
+      ↓
+wall becomes close
+      ↓
+strong recovery required
 ```
 
-The steering system itself does not change, but the software must interpret the desired recovery path correctly.
+This can produce another oscillation.
+
+The desired maneuver therefore balances:
+
+```text
+enough avoidance to clear pillar
+```
+
+with:
+
+```text
+early enough recovery to preserve track geometry
+```
+
+Motor B performance is consequently linked directly to obstacle-state timing.
 
 ---
 
-## 4.26 Steering and Parking
+## 4.23 Steering and Camera Geometry
 
-Parking requires more precise alignment than ordinary navigation because the final position matters more than simply avoiding a collision.
-
-Motor B may need to:
+During Obstacles, changing Piolín's steering also changes the orientation of the entire camera.
 
 ```text
-align before entry
-
-hold a controlled angle
-
-change steering during entry
-
-return toward center
+Motor B steering
+      ↓
+vehicle begins rotating
+      ↓
+Pixy viewpoint rotates
+      ↓
+pillar X position changes
 ```
 
-while Motor A controls displacement.
+This means some apparent target movement in the camera is caused by Piolín itself.
 
-The exact Open and Obstacle parking strategies are still being tuned, so this document does not present one final parking steering angle.
+A pillar can also leave the field of view before it has been physically passed.
 
-The important hardware fact is that the same Motor B and Ackermann mechanism are used for:
+The steering and vision systems therefore cannot be designed as completely independent subsystems.
+
+Motor B changes both:
 
 ```text
-wall corrections
-
-corners
-
-obstacle avoidance
-
-countersteering
-
-parking
+vehicle trajectory
 ```
 
-This makes steering calibration one of the most reusable calibrations in the entire robot.
+and:
+
+```text
+camera viewing direction
+```
+
+during the maneuver.
 
 ---
 
-## 4.27 Steering Control Smoothing
+## 4.24 Steering and Ultrasonic Geometry
 
-A requested steering value can change suddenly in software.
+Motor B also affects the geometry measured by the lateral ultrasonic sensors.
 
-For example:
+While Piolín is aligned with a wall, a lateral sensor has a relatively direct geometric relationship with that wall.
 
-```text
-+20
-→
--20
-```
-
-between consecutive control iterations.
-
-Physically commanding that transition immediately can produce a strong steering reversal.
-
-A smoothing concept can instead produce:
+When the chassis rotates:
 
 ```text
-+20
-+12
-+4
--4
--12
--20
+sensor direction rotates too
 ```
 
-over several updates.
+and the measured distance may change even before the vehicle has translated significantly.
 
-One general smoothing relationship is:
+Therefore a rapid ultrasonic change during a strong steering maneuver does not necessarily mean that Piolín instantly moved the same physical distance sideways.
+
+This interaction is considered when designing wall recovery and corner logic.
+
+---
+
+## 4.25 Mechanical Friction
+
+Motor B performance depends strongly on the mechanical resistance of the steering system.
+
+Potential sources include:
 
 ```text
-STEER_NEW =
-ALPHA × STEER_PREVIOUS
-+
-(1 - ALPHA) × STEER_REQUEST
+tight pivots
+
+wheel friction
+
+linkage misalignment
+
+axle friction
+
+structural contact
+
+cables interfering with steering
 ```
 
-where `ALPHA` determines how strongly the previous command is retained.
+If steering appears slow or weak, the first response should not automatically be:
 
-<div align="center">
+```text
+increase Motor B command
+```
 
-<img
-  src="../../embed/steering_smoothing.png"
-  alt="Comparison between abrupt and smoothed steering commands"
-  width="820"
-/>
+A stronger software command can hide a mechanical problem while increasing motor load.
 
-<br>
+The preferred diagnostic sequence is:
 
-<sub><b>Figure 4.19.</b> Conceptual comparison between abrupt steering changes and progressive command smoothing.</sub>
+```text
+inspect mechanism
+      ↓
+verify free movement
+      ↓
+verify Motor B response
+      ↓
+verify physical wheel response
+      ↓
+then tune control
+```
 
-</div>
+---
 
-Smoothing can reduce oscillation and mechanical shock, but too much smoothing also delays reaction.
+## 4.26 Structural Rigidity
+
+The steering system must also remain structurally stable.
+
+If Motor B is firmly mounted but the surrounding Technic structure flexes:
+
+```text
+Motor B moves
+      ↓
+support structure moves
+      ↓
+part of actuator motion becomes chassis deformation
+      ↓
+wheel response changes
+```
+
+This reduces steering repeatability.
+
+The steering motor mount, linkage supports, and front wheel pivots must therefore work as one mechanical assembly.
+
+A control algorithm can only be calibrated reliably if this mechanical relationship remains stable between runs.
+
+---
+
+## 4.27 Left/Right Symmetry
+
+Theoretical steering geometry may suggest symmetrical behavior between left and right turns.
+
+The physical LEGO mechanism may not be perfectly symmetrical because of:
+
+```text
+linkage placement
+
+mechanical play
+
+component mounting
+
+cable routing
+
+friction
+```
 
 Therefore:
 
 ```text
-more smoothing
-→ greater stability
-→ slower response
-
-
-less smoothing
-→ faster response
-→ potentially more oscillation
+same Motor B magnitude left
 ```
 
-The final amount should be selected from actual driving behavior rather than from theory alone.
+does not automatically guarantee:
+
+```text
+exact mirror of same magnitude right
+```
+
+The final steering calibration should verify both directions independently.
+
+If real measurements show a consistent asymmetry, software can account for it after the mechanical structure has first been checked.
 
 ---
 
-## 4.28 Steering Deadband
+## 4.28 Steering Calibration Procedure
 
-A deadband can be used around the steering center so that extremely small control errors do not constantly move Motor B.
-
-Conceptually:
+A practical calibration sequence for the current V4 steering system is:
 
 ```text
-if ABS(error) <= DEAD_BAND:
-    steering correction = 0
+1. Verify linkage moves freely.
+
+2. Find physical straight-wheel position.
+
+3. Associate that position with STEERING_CENTER.
+
+4. Move Motor B progressively left.
+
+5. Determine useful left limit.
+
+6. Return to center.
+
+7. Move progressively right.
+
+8. Determine useful right limit.
+
+9. Repeat center-return tests.
+
+10. Measure actual wheel angles if required.
+
+11. Perform slow straight-driving test.
+
+12. Perform controlled left/right curve tests.
 ```
 
-The purpose is not to ignore meaningful navigation error.
-
-It is to prevent sensor noise or extremely small variations from producing constant left-right movement.
-
-A useful deadband must balance:
-
-```text
-stability
-```
-
-against:
-
-```text
-position accuracy
-```
-
-A deadband that is too small may contribute to zig-zag.
-
-A deadband that is too large allows the robot to drift before correcting.
+The process should be performed on the actual competition configuration rather than relying on old V3 steering values.
 
 ---
 
-## 4.29 Steering Response and Zig-Zag
+## 4.29 Measuring Wheel Angles
 
-Zig-zag behavior can be caused by several different mechanisms.
-
-```text
-controller too aggressive
-
-steering response too delayed
-
-deadband too small
-
-sensor noise
-
-mechanical center incorrect
-
-steering backlash
-
-vehicle speed too high
-```
-
-Therefore, observing zig-zag does not prove that one PID or steering gain is wrong.
-
-The diagnostic process should first determine whether the oscillation originates from:
+The new steering-angle documentation allows Piolín to distinguish between:
 
 ```text
-SENSING
-MECHANICS
-CONTROL
-or
-SPEED
+Motor B encoder position
 ```
 
-<div align="center">
+and:
 
-<img
-  src="../../embed/steering_zigzag_diagnostics.png"
-  alt="Steering zig-zag diagnostic causes"
-  width="850"
-/>
+```text
+actual wheel geometry
+```
 
-<br>
+A useful measurement set can record:
 
-<sub><b>Figure 4.20.</b> Zig-zag can result from sensing, mechanical alignment, control aggressiveness, or vehicle speed rather than from one single steering parameter.</sub>
+| Motor B Position | Inner Wheel Angle | Outer Wheel Angle | Direction |
+| :---: | :---: | :---: | :--- |
+| — | — | — | Left |
+| — | — | — | Left |
+| Center | Approx. 0 | Approx. 0 | Straight |
+| — | — | — | Right |
+| — | — | — | Right |
 
-</div>
+The table should only be completed with physically measured V4 values.
+
+Once those measurements exist, they can help establish:
+
+```text
+Motor B position
+        ↓
+actual steering geometry
+        ↓
+estimated vehicle curvature
+```
+
+without falsely assuming a one-to-one relationship.
 
 ---
 
-## 4.30 Ackermann Geometry vs. Actual Competition Path
+## 4.30 Turning Radius
 
-Ideal Ackermann equations describe wheel geometry under simplified assumptions.
+The steering geometry ultimately determines vehicle curvature.
 
-The real competition robot also includes:
-
-```text
-tire deformation
-
-track friction
-
-mechanical play
-
-finite chassis rigidity
-
-changing speed
-
-wall corrections
-
-camera-driven maneuvers
-```
-
-Therefore, theoretical Ackermann geometry provides a useful reference but cannot alone predict the exact path Piolín will follow.
-
-The engineering process is:
+For a simplified bicycle-model approximation:
 
 ```text
-theory
-  ↓
-mechanical implementation
-  ↓
-measurement
-  ↓
-calibration
-  ↓
-track validation
-```
-
-This distinction prevents theoretical calculations from being presented as experimental results.
-
----
-
-## 4.31 Turning Radius
-
-For a simplified bicycle model:
-
-```text
-R =
-L / tan(DELTA)
+R ≈ L / tan(δ)
 ```
 
 where:
 
 ```text
-R = approximate turning radius
+R
+→ approximate turning radius
 
-L = wheelbase
 
-DELTA = equivalent steering angle
+L
+→ wheelbase
+
+
+δ
+→ equivalent steering angle
 ```
 
-This relationship explains a basic property of steering:
+For a real Ackermann vehicle, the inner and outer wheels have different angles, so the complete geometry is more detailed.
+
+The simplified expression is still useful for understanding the physical trend:
 
 ```text
-larger wheel angle
+larger steering angle
 → smaller turning radius
 
 
-smaller wheel angle
+smaller steering angle
 → larger turning radius
 ```
 
-However, Piolín's current final wheelbase and effective physical steering angle should be measured before a final numerical minimum turning radius is published.
-
-<div align="center">
-
-<img
-  src="../../embed/ackermann_geometry.png"
-  alt="Ideal Ackermann geometry and turning radius"
-  width="840"
-/>
-
-<br>
-
-<sub><b>Figure 4.21.</b> Ideal geometric relationship between wheelbase, steering angle, and vehicle turning radius.</sub>
-
-</div>
+The final Piolín turning radius should be measured physically rather than published from theoretical geometry alone.
 
 ---
 
-## 4.32 Why Minimum Turning Radius Matters
+## 4.31 Alternative Steering Architectures
 
-The minimum usable turning radius influences:
+Several other steering architectures could theoretically have been used.
 
-```text
-corner width
-
-obstacle avoidance clearance
-
-recovery path
-
-parking geometry
-```
-
-A steering mechanism that can achieve extremely tight wheel angles is not necessarily better if those angles create excessive scrub or make recovery unstable.
-
-The target is therefore not:
-
-```text
-smallest possible R
-```
-
-but rather:
-
-```text
-smallest repeatable and controllable R
-```
-
-that remains useful in the actual competition environment.
-
----
-
-## 4.33 Comparison with Differential Steering
-
-Piolín could theoretically have used differential steering, where two independently driven wheels turn the robot by rotating at different speeds.
-
-That architecture has advantages. It is mechanically simple and can produce very tight turns.
-
-However, it behaves differently from the vehicle-like architecture desired for Piolín.
-
-| Steering Architecture | Strength | Limitation for Piolín |
+| Architecture | Advantage | Limitation for Piolín |
 | :--- | :--- | :--- |
-| Differential drive | Simple turning and small rotation radius | Vehicle does not follow conventional front-steered geometry |
-| Single rigid front steering axle | Simpler than Ackermann | Greater tire scrub because front wheels share one angle |
-| External hobby servo steering | Compact and fast | Requires non-LEGO actuator integration, power, and control interface |
-| Large EV3 Motor steering | Strong actuator | Larger and less space-efficient for steering |
-| **EV3 Medium Motor + Ackermann-style linkage** | **Direct EV3 integration and car-like steering** | **Requires mechanical calibration and linkage design** |
+| Differential drive | Simple turning control | Does not match selected vehicle architecture |
+| Two-wheel skid steering | Can rotate sharply | Different WRO vehicle behavior and tire interaction |
+| Hobby servo steering | Compact positional actuator | Requires additional non-EV3 integration |
+| Large EV3 Motor steering | Higher torque | Larger than required for current mechanism |
+| **EV3 Medium Motor + Ackermann-style linkage** | **Native EV3 integration and car-like steering** | **Requires mechanical linkage calibration** |
 
-The selected architecture therefore balances:
+The selected system keeps Piolín inside the EV3 motor ecosystem while producing the vehicle-like front steering behavior required by the design.
+
+---
+
+## 4.32 Why a Hobby Servo Was Not Used
+
+A conventional hobby servo can be very effective for vehicle steering.
+
+However, using one would require an additional integration method between:
 
 ```text
-vehicle-like motion
+EV3
+```
 
-LEGO compatibility
+and:
+
+```text
+servo electronics
+```
+
+The current Medium Motor already provides:
+
+```text
+EV3 compatibility
+
+position feedback
 
 software control
 
-mechanical simplicity
-
-reproducibility
+mechanical integration
 ```
+
+without another motor controller or power interface.
+
+The servo alternative could reduce actuator size, but it would also increase electrical and software integration complexity.
+
+The current Medium Motor was therefore retained.
 
 ---
 
-## 4.34 Why an External Servo Was Not Used
+## 4.33 Why Differential Steering Was Not Used
 
-A conventional hobby servo could provide compact position-controlled steering and is common in small autonomous vehicles.
+Differential steering could simplify the mechanical front axle because the robot would not require a steering linkage.
 
-However, adding one would require a different electrical and control architecture.
+However, it would fundamentally change Piolín's vehicle behavior.
 
-Possible additional requirements could include:
+A differential robot controls turning through:
 
 ```text
-servo-compatible power supply
-
-signal interface
-
-additional electronics
-
-non-LEGO mechanical mounting
-
-new software interface
+left-wheel speed
+vs.
+right-wheel speed
 ```
 
-The EV3 Medium Motor already provides encoder feedback and is directly supported by the main controller.
+Piolín instead controls:
 
-For Piolín, the Medium Motor therefore gives enough steering capability without creating another actuator ecosystem.
+```text
+rear propulsion
++
+front steering
+```
 
-The choice was not based on the claim that an EV3 Medium Motor is universally better than a servo. It was based on compatibility with the rest of the robot.
+The Ackermann-style architecture provides a more car-like trajectory and aligns better with the mechanical concept chosen for Future Engineers.
+
+The team therefore accepted the additional mechanical steering complexity in exchange for vehicle-like motion.
 
 ---
 
-## 4.35 Why a Large Motor Was Not Used for Steering
+## 4.34 Values Intentionally Not Claimed as Final
 
-A Large Motor could also move the steering linkage, but its larger size and different role would offer little advantage in the current front assembly.
-
-The steering subsystem needs:
+The following steering values should not be published as final until they have been physically measured on the current V4 mechanism:
 
 ```text
-controlled position
+Motor B mechanical center value
 
-compact installation
+usable left Motor B limit
 
-sufficient steering torque
+usable right Motor B limit
 
-rapid left/right changes
-```
+maximum inner-wheel angle
 
-rather than propulsion-oriented continuous mechanical output.
+maximum outer-wheel angle
 
-The Medium Motor satisfies these requirements while leaving more space around the front structure.
+Motor B angle-to-wheel-angle relationship
 
-This allows the Large Motor to remain dedicated to the mechanically more demanding propulsion subsystem.
+front track width
 
----
+exact wheelbase
 
-## 4.36 Interaction with Sensor Geometry
+minimum turning radius
 
-Steering changes the orientation of the entire robot.
+left/right steering asymmetry
 
-That means every strong Motor B command changes how the lateral ultrasonic sensors see the walls.
-
-For example:
-
-```text
-robot begins turn
-       ↓
-chassis rotates
-       ↓
-US sensor orientation changes relative to wall
-       ↓
-measured distance changes
-```
-
-Part of that distance change can result from actual lateral movement, while another part can result from angular orientation.
-
-This is especially important during corners.
-
-The controller should not assume that every ultrasonic distance change is caused purely by sideways displacement.
-
-<div align="center">
-
-<img
-  src="../../embed/steering_ultrasonic_geometry.png"
-  alt="Effect of robot steering angle on lateral ultrasonic wall measurements"
-  width="850"
-/>
-
-<br>
-
-<sub><b>Figure 4.22.</b> Vehicle rotation changes the geometry observed by the lateral ultrasonic sensors even before large lateral displacement occurs.</sub>
-
-</div>
-
-This is another reason the gyro is useful during Open.
-
----
-
-## 4.37 Interaction with Pixy Field of View
-
-Steering also changes what Pixy2.1 can see.
-
-During an obstacle maneuver:
-
-```text
-Motor B steers
-     ↓
-robot yaw changes
-     ↓
-camera orientation changes
-     ↓
-pillar moves through image
-```
-
-A pillar that disappears from the Pixy image has not necessarily been physically passed.
-
-It may simply have moved outside the camera's current field of view.
-
-This means camera-loss logic should not automatically command immediate steering reversal.
-
-The steering subsystem and vision subsystem must be interpreted together.
-
----
-
-## 4.38 Steering Failure Modes
-
-Several observable failures can originate in the steering subsystem.
-
-| Observed Behavior | Possible Cause |
-| :--- | :--- |
-| Robot constantly curves on a straight | Mechanical center error |
-| Left turns stronger than right | Linkage asymmetry or unequal calibration |
-| Steering responds late | Excessive smoothing, backlash, mechanical resistance |
-| Steering oscillates | High gain, sensor noise, excessive speed, poor center |
-| Motor moves but wheels barely move | Loose linkage / backlash |
-| Motor stalls near limit | Steering command exceeds useful mechanical range |
-| Robot exits corners rotated | Corner steering or gyro/geometry transition issue |
-| Robot passes pillar but hits wall | Countersteering/recovery too late |
-| Robot turns back toward pillar | Countersteering too early |
-| Same command gives different results | Mechanical play, traction, battery/load variation |
-
-The table emphasizes that steering failures should be diagnosed from both the mechanical and software perspectives.
-
----
-
-## 4.39 Steering Diagnostic Order
-
-When steering behaves incorrectly, the recommended diagnostic sequence is:
-
-```text
-1. Check physical wheel center
-        ↓
-2. Check linkage freedom
-        ↓
-3. Check Motor B attachment
-        ↓
-4. Check left/right physical range
-        ↓
-5. Check encoder response
-        ↓
-6. Check software sign convention
-        ↓
-7. Check steering limits
-        ↓
-8. Check sensor input
-        ↓
-9. Check controller gain/smoothing
-        ↓
-10. Check behavior at operating speed
-```
-
-This order prevents a navigation controller from being tuned around a mechanical problem.
-
----
-
-## 4.40 Steering Calibration Variables
-
-Several variables can eventually be documented from the final V4 calibration.
-
-Examples include:
-
-```text
-STEERING_CENTER
-
-STEERING_LEFT_LIMIT
-
-STEERING_RIGHT_LIMIT
-
-STEERING_DEADBAND
-
-STEERING_SMOOTHING
-
-MOTOR_TO_WHEEL_RELATION
-
-TURNING_RADIUS
-```
-
-These variables describe different properties and should not be treated as interchangeable.
-
-For example:
-
-```text
-STEERING_LEFT_LIMIT
-```
-
-is a motor-control boundary, while:
-
-```text
-TURNING_RADIUS
-```
-
-is a vehicle-level result.
-
-The relationship between them must be measured through the complete mechanical system.
-
----
-
-## 4.41 Values Intentionally Not Claimed as Final
-
-The following steering values are not presented numerically in this component document until they have been measured on the current V4 robot:
-
-```text
-final Motor B center value
-
-final left steering limit
-
-final right steering limit
-
-exact wheel angle at each limit
-
-exact motor-angle to wheel-angle ratio
-
-final wheelbase
-
-final front track width
-
-minimum usable turning radius
+measured backlash
 
 steering response time
-
-measured left/right symmetry error
-
-steering repeatability error
-
-mechanical backlash magnitude
 ```
 
-Older values may remain useful as development history, but they should not be presented as final physical specifications without current validation.
+Historical estimates or values from previous robot versions should not automatically become current specifications.
+
+The current architecture is documented now, while the final numerical calibration can be added after measurement.
 
 ---
 
-## 4.42 Current Steering Architecture
+## 4.35 Final Steering Architecture
 
-The final current steering hardware is therefore:
-
-```text
-LEGO EV3
-   ↓
-Motor Port B
-   ↓
-EV3 Medium Motor
-   ↓
-Mechanical Ackermann-style linkage
-   ↓
-Two front steering wheels
-```
-
-The same steering hardware is used in:
+Piolín's steering system can be summarized as:
 
 ```text
-OPEN
-+
-OBSTACLES
+                      LEGO EV3
+                         │
+                         ▼
+                       PORT B
+                         │
+                         ▼
+                EV3 MEDIUM MOTOR
+                         │
+                         ▼
+                STEERING LINKAGE
+                     ┌───┴───┐
+                     │       │
+                     ▼       ▼
+                  LEFT     RIGHT
+                  WHEEL     WHEEL
+                     │       │
+                     └───┬───┘
+                         ▼
+                  VEHICLE CURVATURE
 ```
 
-Only the information driving the steering decision changes.
+The EV3 therefore does not directly control vehicle heading.
 
-During Open:
+It controls Motor B.
 
-```text
-gyro
-+
-ultrasonics
-+
-course state
-```
+Motor B controls the steering linkage.
 
-influence Motor B.
+The linkage controls the front wheels.
 
-During Obstacles:
+The front-wheel geometry combines with Motor A propulsion to create the physical trajectory.
 
-```text
-Pixy2.1
-+
-ultrasonics
-+
-course state
-```
-
-influence Motor B.
-
-<div align="center">
-
-<img
-  src="../../embed/steering_round_comparison.png"
-  alt="Comparison of steering inputs between Open and Obstacle Challenges"
-  width="860"
-/>
-
-<br>
-
-<sub><b>Figure 4.23.</b> Motor B remains the same actuator in both rounds while its sensor inputs change with the competition task.</sub>
-
-</div>
-
-This makes the steering system one of the most stable reusable subsystems in the complete Piolín architecture.
+This layered relationship explains why software, motor calibration, mechanical linkage design, and vehicle speed must all be considered together.
 
 ---
 
-## 4.43 Final Engineering Assessment
+## 4.36 Final Engineering Assessment
 
-Piolín's steering system was selected because it combines **direct EV3 control, compact actuation, vehicle-like motion, and a mechanically understandable linkage**.
+The EV3 Medium Motor was retained as Piolín's steering actuator because it provides a simple and fully EV3-integrated method of controlling a car-like front steering system.
 
-The Medium Motor provides a clear encoder-based steering reference, while the Ackermann-style mechanism converts that motion into coordinated front-wheel steering.
-
-The architecture also exposes an important systems-engineering lesson: steering accuracy does not belong to one component alone.
+Its role is clearly separated from propulsion:
 
 ```text
-Sensor information
-      ↓
-Control algorithm
-      ↓
+Motor A
+→ move vehicle
+
+
 Motor B
-      ↓
-Mechanical linkage
-      ↓
-Wheel geometry
-      ↓
-Tire-track interaction
-      ↓
-Actual trajectory
+→ shape vehicle trajectory
 ```
 
-A failure in any one of those layers can appear as a steering problem.
+The steering mechanism also demonstrates an important distinction between actuator state and vehicle geometry:
 
-For that reason, Piolín's steering system is treated as a complete **mechatronic subsystem** rather than simply as an EV3 Medium Motor.
+```text
+MOTOR POSITION
+        ↓
+MECHANICAL LINKAGE
+        ↓
+WHEEL ANGLES
+        ↓
+TRAJECTORY
+```
 
-<div align="center">
+This means that successful steering cannot be achieved through software values alone.
 
-<img
-  src="../../v-photos/v4/ackermann_top.jpg"
-  alt="Complete Piolín Ackermann steering system"
-  width="720"
-/>
+The mechanical center must be repeatable.
 
-<br>
+The linkage must move freely.
 
-<sub><b>Figure 4.24.</b> Current Piolín steering subsystem integrating Motor B, mechanical linkage, front-wheel pivots, and the vehicle chassis.</sub>
+The structure must remain rigid.
 
-</div>
+The usable limits must be calibrated.
 
-The final design provides one common steering platform that can support wall navigation, gyro-assisted corners, Pixy-based obstacle avoidance, recovery maneuvers, reverse motion, and parking without changing the physical actuator between competition rounds.
+The inner and outer wheel angles must be understood separately.
+
+The software must coordinate steering with vehicle speed.
+
+The final design principle is therefore:
+
+> **Piolín's steering system is treated as a complete electromechanical subsystem, not simply as Motor B. Reliable autonomous steering depends on the relationship between the EV3 command, Medium Motor position, Ackermann linkage, wheel geometry, and actual vehicle movement.**
 
 ---
 
