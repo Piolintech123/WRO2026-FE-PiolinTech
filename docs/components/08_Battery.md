@@ -1,885 +1,1490 @@
-# 8. Battery and Main Energy Source
+# 8. Battery and Main Power Source
 
-Piolín uses the **LEGO Mindstorms EV3 power system as the main energy source for the robot**. The battery installed in the EV3 supplies the energy required by the Intelligent Brick and, through it, the directly connected motors and LEGO sensors.
+<div align="center">
 
-The battery is therefore not an isolated component. It sits at the beginning of Piolín's complete electrical and mechanical chain. Every steering correction, propulsion command, ultrasonic measurement, color-sensor reading, and EV3 computation ultimately depends on a stable source of electrical energy.
+<img
+  src="../../v-photos/v4/ev3_battery_45501.jpg"
+  alt="LEGO Mindstorms EV3 Rechargeable DC Battery 45501 used by Piolín"
+  width="650"
+/>
 
-The basic relationship is:
+<br>
 
-```text
-                     EV3 BATTERY
-                          │
-                          ▼
-                     LEGO EV3
-                          │
-          ┌───────────────┼───────────────┐
-          │               │               │
-          ▼               ▼               ▼
-        MOTORS          SENSORS        PROCESSING
-        A + B          S1–S4             EV3
-          │               │               │
-          └───────────────┴───────┬───────┘
-                                  ▼
-                         AUTONOMOUS ROBOT
-````
+<sub><b>Figure 8.1.</b> LEGO Mindstorms EV3 Rechargeable DC Battery 45501 used as Piolín's main competition power source.</sub>
 
-The final Piolín architecture intentionally keeps the primary navigation hardware within the EV3 electrical ecosystem. This reduces the need for additional motor drivers, separate high-current power rails, or multiple independent battery systems for the basic vehicle.
+</div>
 
-> [!IMPORTANT]
-> The EV3 battery is the **main power source of Piolín's vehicle-control system**.
-> It powers the EV3 and supports the LEGO motors and sensors connected directly to it.
+Piolín uses the **LEGO Mindstorms EV3 Rechargeable DC Battery, part 45501**, as its main power source. The battery is installed directly in the LEGO Mindstorms EV3 Intelligent Brick and powers the central controller together with the LEGO motors and sensors connected to it.
+
+The decision to retain the official EV3 rechargeable battery was closely connected to the overall design philosophy of Piolín. Most of the robot already belongs to the LEGO Mindstorms EV3 ecosystem, including the main controller, propulsion motor, steering motor, ultrasonic sensors, Color Sensor, and the Gyro Sensor used during the Open Challenge. Keeping the standard EV3 battery therefore avoids introducing a separate vehicle power system for components that are already designed to operate together.
+
+The current Piolín architecture does not use a second propulsion battery, an external battery pack, or a separate buck converter as part of the final competition configuration. Instead, the power system is kept centralized around the EV3.
+
+This reduces electrical complexity while also making the robot easier to reproduce and troubleshoot.
 
 ---
 
-## 8.1 Role of the Battery in Piolín
+## 8.1 Current Power Architecture
 
-The battery provides the electrical energy that allows Piolín to convert software decisions into physical movement.
-
-A sensor measurement by itself requires relatively little mechanical energy. However, once the EV3 interprets that measurement and commands a steering correction or acceleration, electrical energy from the battery must be converted into mechanical work by the motors.
-
-The complete relationship can be represented as:
+The main energy path can be represented as:
 
 ```text
-CHEMICAL ENERGY
-    Battery
-       │
-       ▼
-ELECTRICAL ENERGY
-       │
-       ▼
-     LEGO EV3
-       │
-       ├──────────→ Sensors
-       │
-       ├──────────→ Processing
-       │
-       └──────────→ Motors
-                       │
-                       ▼
-                MECHANICAL ENERGY
-                       │
-                       ▼
-                 ROBOT MOVEMENT
+LEGO EV3 Rechargeable Battery 45501
+                ↓
+         LEGO EV3 Brick
+                ↓
+      ┌─────────┼─────────┐
+      │         │         │
+      ▼         ▼         ▼
+   MOTORS    LEGO SENSORS  S1 DEVICE
 ```
 
-The battery therefore supports both **perception** and **actuation**, but the largest changes in instantaneous electrical demand normally occur when the motors are required to perform mechanical work.
-
----
-
-# 8.2 Centralized EV3 Power Architecture
-
-One of Piolín's final hardware decisions was to maintain a centralized power architecture for the LEGO vehicle-control components.
-
-The EV3 acts as both the main computational controller and the distribution point for its directly connected LEGO hardware.
+The two motors remain unchanged in both competition rounds:
 
 ```text
-EV3 BATTERY
-     │
-     ▼
-┌──────────────────────────┐
-│        LEGO EV3          │
-│                          │
-│ A  → Drive Motor         │
-│ B  → Steering Motor      │
-│                          │
-│ S1 → Front Ultrasonic    │
-│ S2 → Right Ultrasonic    │
-│ S3 → Left Ultrasonic     │
-│ S4 → Color Sensor        │
-└──────────────────────────┘
+Port A
+→ EV3 Large Motor
+→ rear propulsion
+
+
+Port B
+→ EV3 Medium Motor
+→ Ackermann steering
 ```
 
-This arrangement means that Piolín's primary navigation system does not require separate electrical regulators or external motor-control electronics between the EV3 and the LEGO components.
-
-The architecture is simpler than earlier experimental concepts that involved additional controllers and external motor electronics.
-
----
-
-# 8.3 Power Consumers
-
-The electrical loads connected to the EV3 can be separated into three main groups.
+The permanent sensors are:
 
 ```text
-                     EV3 BATTERY
-                          │
-             ┌────────────┼────────────┐
-             ▼            ▼            ▼
-          CONTROL       SENSING      ACTUATION
-             │            │            │
-             ▼            ▼            ▼
-            EV3        S1–S4        MOTOR A
-                                   + MOTOR B
+S2
+→ Left Ultrasonic
+
+
+S3
+→ Right Ultrasonic
+
+
+S4
+→ Color Sensor
 ```
 
-The **control load** consists primarily of the EV3 itself and its processing electronics.
+S1 changes according to the challenge:
 
-The **sensing load** consists of the three ultrasonic sensors and the color sensor.
+```text
+OPEN
+→ Gyro Sensor
 
-The **actuation load** consists of the drive and steering motors.
 
-These loads behave differently. Sensors and processing electronics normally require power continuously while the robot is active, whereas motor demand changes significantly according to the mechanical state of the vehicle.
+OBSTACLES
+→ Pixy2.1
+```
+
+<div align="center">
+
+<img
+  src="../../embed/power_distribution_overview.png"
+  alt="Piolín main power distribution architecture"
+  width="860"
+/>
+
+<br>
+
+<sub><b>Figure 8.2.</b> Centralized power architecture based on the EV3 Rechargeable Battery and EV3 Brick.</sub>
+
+</div>
+
+This means that changing competition rounds does not require replacing the main battery architecture.
+
+The same EV3 and the same battery remain the central electrical platform.
 
 ---
 
-## 8.4 Drive Motor Energy Demand
+## 8.2 Physical Installation
 
-The drive motor connected to **Port A** converts electrical energy into propulsion.
+<div align="center">
 
-During normal straight movement, the motor must overcome drivetrain resistance and maintain the desired vehicle speed.
+<img
+  src="../../v-photos/v4/ev3_battery_installed.jpg"
+  alt="EV3 Rechargeable Battery installed in Piolín"
+  width="680"
+/>
 
-When Piolín accelerates, the motor must additionally increase the kinetic energy of the complete robot.
+<br>
 
-The relationship is:
+<sub><b>Figure 8.3.</b> Battery installed directly in Piolín's EV3 Brick as part of the current competition configuration.</sub>
+
+</div>
+
+The battery is mechanically integrated into the EV3 rather than mounted as a separate power module elsewhere in the chassis.
+
+This provides several advantages.
+
+The battery does not require:
 
 ```text
-Battery
+an external battery tray
+
+additional power wiring
+
+a separate motor driver supply
+
+custom voltage conversion
+
+an independent charging connector
+```
+
+The controller and battery therefore behave as one compact subsystem.
+
+For a competition robot where structural space and cable organization are limited, this simplicity is valuable.
+
+---
+
+## 8.3 Why the Official EV3 Battery Was Selected
+
+The battery was selected primarily because it matches the controller and the majority of Piolín's active hardware directly.
+
+An alternative battery could theoretically provide:
+
+```text
+different capacity
+
+different voltage characteristics
+
+different physical dimensions
+```
+
+but it would also introduce additional engineering requirements.
+
+These could include:
+
+```text
+voltage regulation
+
+power connectors
+
+electrical protection
+
+mounting
+
+charging procedure
+
+compatibility verification
+```
+
+The official EV3 battery avoids most of these additional integration layers.
+
+The decision can therefore be summarized as:
+
+```text
+required performance
++
+native compatibility
++
+low integration complexity
++
+easy charging
++
+reproducibility
+```
+
+rather than selecting a power source simply because it offers the largest possible electrical capacity.
+
+---
+
+## 8.4 Battery Integration with the EV3 Ecosystem
+
+Piolín's current electronics are strongly centered around the EV3.
+
+The main LEGO components are:
+
+```text
+EV3 Intelligent Brick
+
+EV3 Large Motor
+
+EV3 Medium Motor
+
+2 × EV3 Ultrasonic Sensors
+
+EV3 Color Sensor
+
+EV3 Gyro Sensor during Open
+```
+
+All of these are designed to operate through the same controller ecosystem.
+
+Using the standard EV3 battery therefore preserves a direct relationship:
+
+```text
+BATTERY
    ↓
 EV3
    ↓
-Motor A
-   ↓
-Rear Drivetrain
-   ↓
-Rear Wheels
-   ↓
-Vehicle Motion
+LEGO HARDWARE
 ```
 
-Piolín's final measured mass is approximately:
+<div align="center">
 
-```text
-MASS = 0.80476 kg
-```
+<img
+  src="../../embed/ev3_power_ecosystem.png"
+  alt="EV3 battery and LEGO hardware power ecosystem"
+  width="840"
+/>
 
-Because the entire mass must be accelerated by the propulsion system, the mechanical load on Motor A changes according to the requested motion.
+<br>
 
-A stronger acceleration generally requires greater motor effort than maintaining a stable speed.
+<sub><b>Figure 8.4.</b> The 45501 battery powers a controller already designed to interface directly with Piolín's LEGO motors and sensors.</sub>
 
-This is one reason propulsion behavior and electrical demand cannot be considered completely independent.
+</div>
+
+The robot does not need separate motor drivers or a second electrical power architecture for its principal LEGO hardware.
 
 ---
 
-# 8.5 Steering Motor Energy Demand
+## 8.5 Open Challenge Power Configuration
 
-The steering motor on **Port B** also receives its energy through the EV3 power system.
-
-Its electrical demand is linked to the resistance of the Ackermann steering mechanism.
-
-```text
-Battery
-   ↓
-EV3
-   ↓
-Motor B
-   ↓
-Steering Linkage
-   ↓
-Front Wheels
-```
-
-A small steering correction under low mechanical resistance requires less effort than forcing the steering mechanism rapidly toward a large angle or holding it against a physical limit.
-
-For this reason, Piolín's software avoids treating the steering motor as a simple position device with unlimited mechanical authority.
-
-Mechanical steering limits also protect the electrical system by avoiding unnecessary motor load once the linkage has reached its useful range.
-
----
-
-# 8.6 Simultaneous Motor Load
-
-Motor A and Motor B can operate at the same time.
-
-This occurs frequently during autonomous navigation.
-
-For example:
-
-```text
-Corner detected
-      ↓
-Motor A continues propulsion
-      +
-Motor B increases steering
-      ↓
-Both motors operating
-```
-
-The same situation appears during obstacle avoidance:
-
-```text
-Obstacle detected
-      ↓
-Motor A controls approach speed
-      +
-Motor B produces avoidance steering
-```
-
-The battery must therefore support the complete vehicle behavior rather than only one motor operating independently.
-
-This shared-power architecture is one of the reasons battery condition can influence the physical response of the robot.
-
----
-
-# 8.7 Sensor Power
-
-The three ultrasonic sensors and the color sensor are connected directly to the EV3 sensor ports.
-
-Their power is therefore supplied through the EV3 rather than through separate batteries.
-
-```text
-EV3 BATTERY
-     ↓
-   LEGO EV3
-     │
-     ├── S1 → Front Ultrasonic
-     ├── S2 → Right Ultrasonic
-     ├── S3 → Left Ultrasonic
-     └── S4 → Color Sensor
-```
-
-This creates a clean relationship between sensing and control.
-
-The same device that provides the electrical interface to the sensors also receives their measurements and interprets them in software.
-
-No independent power source is required for the four directly connected navigation sensors.
-
----
-
-# 8.8 EV3 Processing Power
-
-The EV3 itself also consumes energy while executing Piolín's navigation software.
-
-The brick continuously performs tasks such as:
-
-```text
-Read ultrasonic sensors
-        ↓
-Read color sensor
-        ↓
-Update navigation state
-        ↓
-Interpret wall geometry
-        ↓
-Process safety conditions
-        ↓
-Calculate motor commands
-        ↓
-Communicate with external subsystem
-```
-
-This computational load is different from the mechanical load produced by the motors.
-
-The processor does not physically move Piolín, but the robot cannot operate autonomously without the EV3 remaining powered and executing the control program.
-
-The battery therefore supports both the **decision layer** and the **actuation layer** of the robot.
-
----
-
-# 8.9 Battery Condition and Robot Behavior
-
-The physical behavior of an electric motor depends partly on the electrical energy available to it.
-
-For this reason, battery condition can influence how Piolín responds even when the software command remains unchanged.
-
-Conceptually:
-
-```text
-Software command
-       ↓
-      EV3
-       ↓
-Electrical output
-       ↓
-Motor response
-       ↓
-Physical movement
-```
-
-The software command is only one element of this chain.
-
-Motor load, drivetrain resistance, steering resistance, and battery condition also influence the resulting physical motion.
-
-This is particularly relevant for Piolín because autonomous navigation depends on repeatable timing between sensing and movement.
-
-If the physical response of the drivetrain changes significantly, the robot may reach a corner or obstacle with a slightly different trajectory even though the program itself has not changed.
-
----
-
-# 8.10 Why Battery State Matters for Navigation
-
-Piolín's navigation system continuously reacts to the environment.
-
-The vehicle is therefore part of a feedback loop:
-
-```text
-Sensor measurement
-      ↓
-Navigation decision
-      ↓
-Motor command
-      ↓
-Physical movement
-      ↓
-New sensor measurement
-```
-
-Battery condition can influence the **motor-command-to-physical-movement** stage.
-
-For example, a steering command may still request the same encoder target, but the speed at which the mechanism responds can be influenced by mechanical and electrical load.
-
-Similarly, the drive motor may receive the same software command while the physical acceleration differs slightly under different operating conditions.
-
-This demonstrates why the battery is part of Piolín's control system even though it does not participate directly in navigation logic.
-
----
-
-# 8.11 Battery and Emergency Braking
-
-The front ultrasonic sensor can cause the EV3 to interrupt propulsion when a dangerous frontal condition is detected.
-
-The electrical relationship is:
-
-```text
-Front US
-   ↓
-EV3 detects danger
-   ↓
-Normal Motor A command cancelled
-   ↓
-Motor braking behavior
-   ↓
-Piolín decelerates
-```
-
-The battery remains the energy source during this event, but the EV3 changes how the propulsion motor is controlled.
-
-The physical robot does not stop instantaneously because Piolín still has momentum.
-
-Therefore, emergency braking is a combination of:
-
-```text
-Sensing
-+
-Software decision
-+
-Motor control
-+
-Vehicle mechanics
-```
-
-rather than a property of the battery alone.
-
----
-
-# 8.12 Battery and Steering Stability
-
-The steering system is mechanically loaded by the front wheels, linkage, and tire contact with the competition surface.
-
-Motor B must overcome that resistance using electrical energy supplied through the EV3.
-
-The complete relationship is:
+During the Open Challenge, Piolín uses:
 
 ```text
 EV3 Battery
      ↓
+EV3 Brick
+     │
+     ├── Motor A → Large Motor
+     ├── Motor B → Medium Motor
+     ├── S1 → Gyro
+     ├── S2 → Left Ultrasonic
+     ├── S3 → Right Ultrasonic
+     └── S4 → Color Sensor
+```
+
+<div align="center">
+
+<img
+  src="../../embed/power_distribution_open.png"
+  alt="Piolín Open Challenge power distribution"
+  width="860"
+/>
+
+<br>
+
+<sub><b>Figure 8.5.</b> Power architecture used during the Open Challenge.</sub>
+
+</div>
+
+No external computing system is required for this round.
+
+The power architecture is therefore completely centered around:
+
+```text
+45501 Battery
++
 EV3
++
+LEGO peripherals
+```
+
+This is the electrically simplest of Piolín's two current configurations.
+
+---
+
+## 8.6 Obstacle Challenge Power Configuration
+
+During the Obstacle Challenge, the Gyro Sensor is removed and Pixy2.1 occupies S1.
+
+The rest of the vehicle remains unchanged.
+
+```text
+EV3 Battery
      ↓
+EV3 Brick
+     │
+     ├── Motor A → Large Motor
+     ├── Motor B → Medium Motor
+     ├── S1 → Pixy2.1
+     ├── S2 → Left Ultrasonic
+     ├── S3 → Right Ultrasonic
+     └── S4 → Color Sensor
+```
+
+<div align="center">
+
+<img
+  src="../../embed/power_distribution_obstacle.png"
+  alt="Piolín Obstacle Challenge power distribution"
+  width="860"
+/>
+
+<br>
+
+<sub><b>Figure 8.6.</b> Obstacle Challenge power architecture with Pixy2.1 replacing the Gyro Sensor on S1.</sub>
+
+</div>
+
+In the current obstacle configuration, the Pixy2.1 connection to S1 provides the camera's connection to the EV3 without requiring the previous Arduino Nano subsystem or a separate external vehicle battery.
+
+This keeps the obstacle configuration much closer to the Open configuration than earlier prototypes were.
+
+---
+
+## 8.7 Why the Power Architecture Remains the Same Between Rounds
+
+One important advantage of Piolín's modular S1 strategy is that changing competition rounds does not require rebuilding the electrical architecture.
+
+The transition is conceptually:
+
+```text
+OPEN
+
+S1 = Gyro
+```
+
+to:
+
+```text
+OBSTACLES
+
+S1 = Pixy2.1
+```
+
+while:
+
+```text
+battery
+EV3
+Motor A
 Motor B
-     ↓
-Mechanical Torque
-     ↓
-Steering Linkage
-     ↓
-Front Wheel Direction
+S2
+S3
+S4
 ```
 
-This is another reason Piolín avoids unnecessary aggressive steering commands.
+remain unchanged.
 
-Repeatedly commanding large opposite steering angles creates more mechanical activity than maintaining a stable trajectory with smaller corrections.
+<div align="center">
 
-A smoother controller therefore benefits not only navigation stability but also overall actuator efficiency.
+<img
+  src="../../embed/power_round_comparison.png"
+  alt="Comparison between Piolín Open and Obstacle power configurations"
+  width="880"
+/>
 
----
+<br>
 
-# 8.13 Energy Use During Different Navigation States
+<sub><b>Figure 8.7.</b> Open and Obstacle configurations share the same main battery and EV3 power architecture; only the S1 sensing device changes.</sub>
 
-Piolín does not use its actuators identically throughout the entire course.
+</div>
 
-Different states create different mechanical demands.
-
-| Navigation State       | Drive Motor Behavior             | Steering Motor Behavior       |
-| :--------------------- | :------------------------------- | :---------------------------- |
-| **Straight**           | Continuous propulsion            | Small corrections             |
-| **Corner Entry**       | Controlled propulsion            | Increasing steering           |
-| **Corner**             | Controlled movement              | Stronger directional control  |
-| **Corner Exit**        | Returns toward straight behavior | Moves toward center           |
-| **Obstacle Approach**  | Controlled approach              | Prepares avoidance            |
-| **Obstacle Avoidance** | Active propulsion                | Strong directional maneuver   |
-| **Recovery**           | Continued propulsion             | Re-centering                  |
-| **Frontal Emergency**  | Brake / Stop                     | Normal navigation interrupted |
-
-This means electrical demand varies naturally according to what the robot is doing.
-
-The battery therefore supports a **dynamic load**, not one constant operating condition.
+This improves reproducibility because competition preparation does not require verifying two unrelated power systems.
 
 ---
 
-# 8.14 Power Path to the Navigation Sensors
+## 8.8 Battery and Propulsion Motor
 
-The main LEGO sensing system follows a direct electrical path:
+Motor A is the actuator that places the greatest continuous demand on Piolín's power system because it is responsible for moving the entire vehicle.
+
+The power chain is:
 
 ```text
-                        EV3 BATTERY
-                             │
-                             ▼
-                         LEGO EV3
-                             │
-             ┌───────────────┼───────────────┐
-             │               │               │
-             ▼               ▼               ▼
-            S1              S2              S3
-        Front US        Right US         Left US
-
-                             │
-                             ▼
-                            S4
-                       Color Sensor
-```
-
-This direct connection reduces the number of interfaces between the power source and the navigation sensors.
-
-It also means that the LEGO sensing subsystem and vehicle controller share one integrated power architecture.
-
----
-
-# 8.15 Relationship With the Vision Subsystem
-
-The HuskyLens and Arduino Nano form a separate functional subsystem from the EV3's native motor and sensor connections.
-
-Their **communication path** is:
-
-```text
-HuskyLens
-    ↓
-Arduino Nano
-    ↓
-USB
-    ↓
+Battery
+   ↓
 EV3
+   ↓
+Motor Port A
+   ↓
+Large Motor
+   ↓
+Rear drivetrain
+   ↓
+Vehicle motion
 ```
 
-The battery section intentionally distinguishes communication from electrical distribution.
+<div align="center">
 
-The fact that information travels through USB does not by itself define every electrical connection inside the vision subsystem.
+<img
+  src="../../v-photos/v4/motor_a_large_drive.jpg"
+  alt="EV3 Large Motor powered through Piolín's EV3 system"
+  width="650"
+/>
 
-The detailed routing of power between the EV3, Arduino Nano, and HuskyLens is therefore documented in the dedicated **Power Distribution** and wiring sections rather than being mixed with the main battery description.
+<br>
 
-This keeps the hardware documentation consistent with the physical wiring architecture.
+<sub><b>Figure 8.8.</b> Motor A is the primary propulsion load connected to the EV3 power architecture.</sub>
+
+</div>
+
+A change in available electrical conditions can therefore appear physically as a change in propulsion behavior.
+
+This is one reason battery state should be controlled during performance testing rather than ignored as an unrelated variable.
 
 ---
 
-# 8.16 Why Piolín Uses a Central Vehicle Battery Architecture
+## 8.9 Battery and Steering Motor
 
-Earlier experimental hardware concepts included more complex electronic systems and additional control hardware.
+Motor B is also powered through the EV3.
 
-The final robot returned to a simpler EV3-centered vehicle architecture.
+Its electrical demand differs from Motor A because it performs short angular movements rather than continuously propelling the full vehicle.
 
-One important advantage is that the main propulsion, steering, processing, and LEGO sensing system can operate from one integrated platform.
+However, steering load can increase when:
 
 ```text
-             ONE MAIN VEHICLE PLATFORM
+front-wheel friction increases
 
-                   EV3 Battery
-                        ↓
-                       EV3
-        ┌───────────────┼───────────────┐
-        ▼               ▼               ▼
-     Motors           Sensors        Processing
+linkage binds
+
+steering approaches its mechanical limit
+
+vehicle load presses strongly on the front wheels
 ```
 
-This reduces the number of separate energy systems that must remain synchronized during the fundamental navigation task.
+A steering system that is mechanically difficult to move creates additional motor load.
 
-The objective was not simply to minimize component count. It was to reduce unnecessary electrical complexity while preserving all of the sensing and actuation capabilities Piolín actually needs.
+For this reason, electrical performance and mechanical condition should be considered together.
+
+Increasing motor command is not the ideal solution to a steering linkage that is physically binding.
 
 ---
 
-# 8.17 Power-System Modularity
+## 8.10 Battery State as a Test Variable
 
-Although the EV3 battery is the main vehicle energy source, Piolín's architecture remains modular from a functional perspective.
+A common mistake in robot testing is to treat the battery as if its condition were identical in every run.
 
-```text
-POWER
-  ↓
-EV3 battery system
+It is not.
 
+As testing continues, the battery state changes.
 
-NAVIGATION
-  ↓
-EV3 + Ultrasonics + Color
-
-
-VISION
-  ↓
-HuskyLens + Nano
-
-
-ACTUATION
-  ↓
-Motor A + Motor B
-```
-
-Separating these responsibilities makes the architecture easier to understand.
-
-The battery provides energy.
-
-The EV3 distributes and manages the directly connected LEGO hardware.
-
-The sensors provide information.
-
-The motors convert electrical energy into mechanical movement.
-
-The vision subsystem provides additional obstacle information.
-
-No single component is documented as performing responsibilities that belong to another subsystem.
-
----
-
-# 8.18 Battery and Mechanical Efficiency
-
-Electrical energy consumed by the drive motor does not become useful vehicle motion with perfect efficiency.
-
-Some energy is lost through:
-
-```text
-Motor internal losses
-Drivetrain friction
-Axle resistance
-Tire deformation
-Wheel slip
-```
-
-The same principle applies to steering.
-
-Some electrical energy is used to overcome friction in the linkage and tire contact rather than directly changing the ideal vehicle trajectory.
-
-This creates the relationship:
-
-```text
-Battery Energy
-      ↓
-Electrical Motor Input
-      ↓
-Mechanical Motor Output
-      ↓
-Drivetrain / Steering Losses
-      ↓
-Useful Vehicle Movement
-```
-
-Reducing unnecessary mechanical friction therefore benefits both mobility and energy use.
-
-This is another example of how Piolín's electrical and mechanical systems are interconnected.
-
----
-
-# 8.19 Why Unnecessary Motor Load Is Avoided
-
-When a motor reaches a mechanical limit but the controller continues commanding additional movement, the motor cannot convert the extra effort into useful steering or propulsion.
-
-In the steering system:
-
-```text
-Motor command
-     ↓
-Mechanical limit reached
-     ↓
-No additional wheel angle
-     ↓
-Unnecessary motor load
-```
-
-For this reason, Piolín uses software steering limits that correspond to the useful mechanical range of the linkage.
-
-A similar principle applies to propulsion. Excessively aggressive acceleration can increase wheel slip without producing the same proportional increase in useful vehicle movement.
-
-The final architecture therefore aims to convert battery energy into controlled movement rather than maximizing actuator effort at every moment.
-
----
-
-# 8.20 Battery as Part of System Reliability
-
-The battery is a fundamental reliability component because every active subsystem ultimately depends on electrical power.
-
-A simplified dependency map is:
-
-```text
-                         BATTERY
-                            │
-                            ▼
-                           EV3
-                            │
-        ┌───────────────────┼───────────────────┐
-        │                   │                   │
-        ▼                   ▼                   ▼
-      Sensors             Motors            Software
-        │                   │                   │
-        └───────────────────┴──────────┬────────┘
-                                       ▼
-                              Autonomous Behavior
-```
-
-A navigation algorithm can be logically correct, but it cannot produce predictable physical behavior if the actuators do not receive sufficient energy to execute the requested motion.
-
-The power system therefore belongs to the same engineering chain as software, sensors, and mechanics.
-
----
-
-# 8.21 Battery Safety and Mechanical Placement
-
-The battery is carried inside the vehicle and therefore contributes to Piolín's total mass and mass distribution.
-
-Piolín's final measured total robot mass is approximately:
-
-```text
-0.80476 kg
-```
-
-The battery is part of that complete vehicle mass.
-
-Like other relatively heavy components, its physical position can influence the robot's center of mass and mechanical stability.
-
-The battery must also remain mechanically secure so that it does not shift relative to the chassis during acceleration, braking, or cornering.
+If one navigation parameter is tested with a recently charged battery and another is tested much later after repeated runs, the comparison may include an uncontrolled electrical variable.
 
 Conceptually:
 
 ```text
-SECURE BATTERY
-      ↓
-Stable mass distribution
-      ↓
-Consistent vehicle dynamics
+TEST A
+full / high battery condition
+
+
+TEST B
+different battery condition
 ```
 
-The battery is therefore both an electrical component and part of the mechanical packaging of the robot.
+may produce different physical behavior even if the software parameter under investigation is the only intended change.
+
+This is particularly relevant when comparing:
+
+```text
+run time
+
+acceleration
+
+corner behavior
+
+reverse response
+
+parking displacement
+```
 
 ---
 
-# 8.22 Why Battery Position Matters
+## 8.11 Why Battery State Can Affect Navigation
 
-The position of mass affects how a vehicle responds during acceleration and turning.
+Navigation depends on the physical response of the motors.
 
-If a relatively heavy component shifts during movement, the distribution of forces across the wheels can also change.
-
-For an Ackermann-steered vehicle such as Piolín, stable mechanical packaging supports predictable turning behavior.
+The control chain is:
 
 ```text
-Fixed Component Position
-        ↓
-Stable Mass Distribution
-        ↓
-Predictable Wheel Loading
-        ↓
-More Consistent Vehicle Behavior
-```
-
-The battery is therefore installed as part of the chassis architecture rather than treated as a loose external power source.
-
----
-
-# 8.23 Battery and the Final Robot Mass
-
-Piolín's complete mass of approximately **0.80476 kg** includes the controller, battery, motors, sensors, wheels, chassis structure, wiring, vision hardware, and mechanical assemblies.
-
-This means the propulsion motor must accelerate the complete electrical system along with the mechanical chassis.
-
-The vehicle-level relationship is:
-
-```text
-Battery
-   │
-   ├── Provides electrical energy
-   │
-   └── Contributes physical mass
-            ↓
-       Complete Robot
-            ↓
-        0.80476 kg
-```
-
-This dual role is common in mobile robotics: the energy source enables movement while simultaneously increasing the mass that the drivetrain must move.
-
-Battery selection and vehicle architecture are therefore mechanically connected.
-
----
-
-# 8.24 Why Exact Electrical Claims Are Kept Separate
-
-Piolín's component documentation distinguishes between confirmed robot configuration and assumptions about electrical behavior.
-
-Values such as instantaneous current consumption, exact runtime, internal voltage drop, and total power consumption depend on the real operating state of the robot.
-
-For that reason, this component section does not present estimated electrical values as if they were direct measurements from Piolín.
-
-The distinction is:
-
-```text
-CONFIRMED
+SENSOR ERROR
     ↓
-Physical battery architecture
-Connected hardware
-Power responsibilities
-
-
-OPERATING ELECTRICAL VALUES
+EV3
     ↓
-Depend on actual system load
+MOTOR COMMAND
+    ↓
+ACTUAL MOTOR RESPONSE
+    ↓
+VEHICLE MOTION
 ```
 
-This keeps the repository technically consistent and prevents theoretical estimates from being mistaken for measured competition data.
+If actual motor response changes, the same navigation command may produce a different physical trajectory.
 
-Detailed system-level power distribution is documented separately in:
+For example, if Motor A produces a different practical acceleration or speed under different electrical conditions, Piolín may travel a different distance before Motor B completes the same steering response.
+
+This means battery consistency can indirectly affect:
 
 ```text
-docs/components/09_PowerDistribution.md
+corner entry
+
+corner width
+
+obstacle reaction distance
+
+countersteering timing
+
+parking displacement
+```
+
+The battery is therefore part of control-system reproducibility even though it does not directly measure or calculate navigation.
+
+---
+
+## 8.12 Battery Condition and Cornering
+
+Consider a corner controller that reacts to a geometric or gyro condition.
+
+The sensor logic may be identical between two runs.
+
+However, if Piolín enters the corner at a different actual speed:
+
+```text
+same steering command
++
+different vehicle speed
+=
+different trajectory
+```
+
+<div align="center">
+
+<img
+  src="../../embed/battery_motion_dependency.png"
+  alt="Relationship between battery condition, motor response, and vehicle trajectory"
+  width="850"
+/>
+
+<br>
+
+<sub><b>Figure 8.9.</b> Battery condition can indirectly influence navigation through its effect on actuator response and vehicle motion.</sub>
+
+</div>
+
+This is why battery condition should be considered when diagnosing a run that changes despite identical navigation code.
+
+---
+
+## 8.13 Battery Condition and Obstacle Avoidance
+
+The same principle applies during Obstacles.
+
+A pillar avoidance sequence involves:
+
+```text
+Pixy detection
+      ↓
+EV3 interpretation
+      ↓
+Motor B steering
+      ↓
+Motor A continues propulsion
+      ↓
+vehicle changes trajectory
+```
+
+The distance Piolín travels while the vision and steering systems react depends partly on actual propulsion behavior.
+
+If the robot moves faster or slower than during calibration, the pillar can reach the vehicle at a different stage of the steering sequence.
+
+For this reason, obstacle tuning should be performed under reasonably consistent electrical conditions.
+
+---
+
+## 8.14 Battery Condition and Reverse Maneuvers
+
+Reverse motion is sometimes used to create more space before another steering or obstacle reaction.
+
+A timed reverse maneuver depends strongly on actual motor behavior.
+
+For example:
+
+```text
+reverse for X seconds
+```
+
+implicitly assumes a relationship between:
+
+```text
+time
 ```
 
 and:
 
 ```text
-docs/power_sensors/01_PowerSensorconfig.md
+distance traveled
+```
+
+If the propulsion response changes, that relationship also changes.
+
+Encoder-based displacement can reduce dependence on time, but even encoder movement is not perfect physical distance because of wheel slip and mechanical effects.
+
+This provides another reason to keep battery condition reasonably controlled during calibration.
+
+---
+
+## 8.15 Battery Condition and Parking
+
+Parking is especially sensitive to repeatability because the final vehicle position matters.
+
+A successful parking maneuver can depend on:
+
+```text
+approach speed
+
+steering position
+
+encoder displacement
+
+reverse/forward response
+
+final stopping behavior
+```
+
+Electrical inconsistency can make a time-based parking sequence less repeatable.
+
+The preferred engineering approach is therefore to combine:
+
+```text
+stable battery conditions
+
+encoder references
+
+sensor evidence
+
+mechanical calibration
+```
+
+rather than assuming timing alone will produce identical displacement.
+
+---
+
+## 8.16 Charging and Competition Preparation
+
+The rechargeable battery allows Piolín to be prepared before competition without repeatedly replacing disposable cells.
+
+A simple competition procedure should keep battery preparation consistent.
+
+Conceptually:
+
+```text
+Charge battery
+      ↓
+Install / verify battery
+      ↓
+Power EV3
+      ↓
+Verify sensors
+      ↓
+Verify steering center
+      ↓
+Run calibration / test
+      ↓
+Competition run
+```
+
+<div align="center">
+
+<img
+  src="../../embed/battery_pre_run_workflow.png"
+  alt="Piolín battery and pre-run preparation workflow"
+  width="830"
+/>
+
+<br>
+
+<sub><b>Figure 8.10.</b> Battery preparation is treated as part of the pre-run verification sequence rather than as an unrelated maintenance task.</sub>
+
+</div>
+
+This makes the electrical starting condition more reproducible between important tests.
+
+---
+
+## 8.17 Why Rechargeability Is Useful During Development
+
+WRO development involves many repeated runs.
+
+A typical development session can include:
+
+```text
+straight-line tests
+
+corner tests
+
+sensor tests
+
+obstacle tests
+
+parking tests
+
+full runs
+```
+
+Using a rechargeable battery is practical because the same power system can be restored between testing sessions without changing the robot's physical battery architecture.
+
+This also means that the battery can remain mechanically integrated in the EV3 while the robot is developed over many iterations.
+
+---
+
+## 8.18 Battery Placement and Center of Mass
+
+The battery is not electrically significant only.
+
+It also contributes to the robot's mass distribution because it is physically installed inside the EV3 Brick.
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/piolin_open_side.jpg"
+  alt="Side view of Piolín showing EV3 and battery placement within the chassis"
+  width="700"
+/>
+
+<br>
+
+<sub><b>Figure 8.11.</b> EV3 and battery placement contribute to the complete mass distribution of Piolín.</sub>
+
+</div>
+
+The current V4 center of mass has not yet been published as a measured final value, so this document does not claim an exact location.
+
+However, the battery's physical position should still be considered when evaluating:
+
+```text
+front/rear loading
+
+wheel traction
+
+chassis balance
+
+steering load
+```
+
+Moving a relatively significant component would change more than the wiring arrangement.
+
+---
+
+## 8.19 Why the Battery Is Kept Inside the Main Chassis
+
+Keeping the EV3 and its battery structurally integrated provides a compact and protected power arrangement.
+
+An externally mounted battery could create additional:
+
+```text
+cable length
+
+mounting movement
+
+connector exposure
+
+weight distribution changes
+```
+
+The current arrangement keeps the battery inside the controller assembly that is already securely attached to Piolín.
+
+This supports both electrical and mechanical reproducibility.
+
+---
+
+## 8.20 No Separate External Propulsion Battery
+
+Piolín's current competition configuration does not use a second battery dedicated to Motor A.
+
+A dual-battery architecture could theoretically separate:
+
+```text
+controller/sensors power
+```
+
+from:
+
+```text
+propulsion power
+```
+
+but it would introduce additional complexity.
+
+Possible requirements would include:
+
+```text
+additional battery
+
+additional mounting
+
+power distribution
+
+electrical isolation or common reference considerations
+
+additional charging procedure
+
+more wiring
+```
+
+The current propulsion demands do not justify introducing that second architecture.
+
+---
+
+## 8.21 No External Buck Converter in the Final Architecture
+
+Earlier hardware experiments involving non-LEGO electronics could have created reasons to consider additional voltage-conversion hardware.
+
+The current competition architecture does not use a separate buck converter as a permanent subsystem.
+
+This was a deliberate simplification.
+
+Every electrical component added to the robot creates additional:
+
+```text
+connections
+
+failure points
+
+mounting requirements
+
+reproducibility requirements
+```
+
+If the component is not necessary for the current architecture, removing it produces a cleaner system.
+
+---
+
+## 8.22 Why Additional Power Electronics Were Avoided
+
+A more complicated electrical system is not automatically a better electrical system.
+
+Consider two conceptual approaches.
+
+### Architecture A
+
+```text
+Battery
+   ↓
+EV3
+   ↓
+Robot hardware
+```
+
+### Architecture B
+
+```text
+Battery A
+Battery B
+   ↓
+Regulator
+Converter
+External controller
+Motor interface
+   ↓
+Robot hardware
+```
+
+Architecture B may offer capabilities that are useful in another robot.
+
+However, each added device creates new questions:
+
+```text
+What voltage does it require?
+
+How is it connected?
+
+How is it protected?
+
+How is it charged?
+
+What happens if it disconnects?
+
+How is it reproduced?
+```
+
+Piolín currently gains more from keeping the power architecture simple.
+
+---
+
+## 8.23 Comparison with Alternative Power Architectures
+
+| Power Architecture | Advantage | Limitation for Piolín |
+| :--- | :--- | :--- |
+| Replaceable/disposable cells | Easy to replace quickly | Requires cell replacement and consistency management |
+| External rechargeable battery | Potentially different capacity/output options | Requires custom power integration |
+| Separate propulsion and logic batteries | Can isolate major loads | Adds mass, wiring, charging, and complexity |
+| External regulated power system | Flexible voltage options | Additional converters and failure points |
+| **EV3 Rechargeable Battery 45501** | **Native EV3 integration, rechargeable, compact architecture** | **Robot performance still depends on battery condition** |
+
+The selected battery was therefore not chosen because every alternative is technically inferior.
+
+It was chosen because it fits Piolín's existing controller and actuator ecosystem with the smallest integration burden.
+
+---
+
+## 8.24 Power-System Evolution
+
+Piolín's electronics changed substantially during development.
+
+Earlier vision architectures introduced components such as:
+
+```text
+HuskyLens
+
+Arduino Nano
+
+USB communication
+```
+
+and other experimental configurations increased the number of electrical interfaces around the EV3.
+
+The current architecture intentionally moves back toward centralized power.
+
+```text
+EARLIER DEVELOPMENT
+
+EV3
++
+external vision/interface components
++
+additional communication wiring
+```
+
+became:
+
+```text
+CURRENT OPEN
+
+EV3
++
+LEGO sensors
++
+LEGO motors
+```
+
+and:
+
+```text
+CURRENT OBSTACLES
+
+EV3
++
+Pixy2.1
++
+LEGO sensors
++
+LEGO motors
+```
+
+<div align="center">
+
+<img
+  src="../../embed/evolution_power_architecture.png"
+  alt="Evolution of Piolín power and electronics architecture"
+  width="880"
+/>
+
+<br>
+
+<sub><b>Figure 8.12.</b> Evolution toward a simpler EV3-centered electrical architecture with fewer external interface components.</sub>
+
+</div>
+
+The change demonstrates that electrical simplification can be an engineering improvement even when earlier components were technically functional.
+
+---
+
+## 8.25 Battery and Software Testing
+
+Battery condition should be included in test notes whenever the team compares vehicle performance quantitatively.
+
+A useful test record can contain:
+
+```text
+test name
+
+software version
+
+battery condition / reading
+
+Motor A command
+
+Motor B settings
+
+sensor configuration
+
+observed result
+```
+
+This makes it easier to distinguish:
+
+```text
+software change
+```
+
+from:
+
+```text
+electrical-condition change
+```
+
+when comparing runs.
+
+---
+
+## 8.26 Reading Battery State Through the Controller
+
+The EV3 operating environment can provide battery-status information to software.
+
+This means diagnostic programs can record an electrical reference together with navigation data rather than relying only on a subjective description such as:
+
+```text
+battery seemed charged
+```
+
+The exact API used depends on the active software environment.
+
+Piolín currently uses different software paths for the two rounds:
+
+```text
+OPEN
+→ Pybricks MicroPython
+
+
+OBSTACLES
+→ ev3dev2 / SMBus-oriented development
+```
+
+The specific battery-reading implementation should therefore be documented in the software setup or testing utilities rather than hard-coded into this hardware overview.
+
+The important requirement is to record the electrical condition consistently when it is relevant to an experiment.
+
+---
+
+## 8.27 Battery Voltage Is Not a Navigation Parameter
+
+Battery information should be monitored, but the navigation strategy should not normally depend on arbitrary battery-specific steering changes such as:
+
+```text
+if battery lower:
+    turn more
+```
+
+unless real testing demonstrates a repeatable need and the relationship is justified.
+
+A better engineering sequence is:
+
+```text
+maintain consistent battery condition
+        ↓
+mechanically validate robot
+        ↓
+calibrate control system
+        ↓
+measure performance
+```
+
+rather than creating software compensation for poorly controlled testing conditions.
+
+---
+
+## 8.28 Electrical Condition vs. Mechanical Problems
+
+Reduced vehicle performance should not automatically be blamed on the battery.
+
+A slow robot can also result from:
+
+```text
+drivetrain friction
+
+misaligned axle
+
+wheel rubbing
+
+steering binding
+
+excessive vehicle load
+```
+
+Similarly, a steering motor that struggles can be caused by mechanical resistance rather than insufficient battery power.
+
+The diagnostic sequence should therefore distinguish:
+
+```text
+ELECTRICAL
+```
+
+from:
+
+```text
+MECHANICAL
+```
+
+before changing software.
+
+---
+
+## 8.29 Battery-Related Failure Modes
+
+| Observed Behavior | Possible Cause |
+| :--- | :--- |
+| Robot generally feels slower than previous runs | Battery condition or increased mechanical resistance |
+| Motor A response changes during long test session | Electrical state or drivetrain condition |
+| Steering appears weaker | Battery condition or steering mechanical load |
+| EV3 shuts down unexpectedly | Power/battery/contact issue |
+| Behavior differs after charging | Motor response may have changed with electrical condition |
+| Full-run time changes without code change | Battery, friction, track condition, or sensor behavior |
+| Pixy/Obstacle configuration becomes unstable | Check S1 connection and general power/communication path |
+| Robot works when stationary but fails under load | Inspect electrical state and mechanical drivetrain load |
+
+No one symptom uniquely identifies the battery.
+
+The complete system must be examined.
+
+---
+
+## 8.30 Battery Diagnostic Order
+
+When a possible power problem appears, the recommended order is:
+
+```text
+1. Inspect battery installation
+        ↓
+2. Verify EV3 powers normally
+        ↓
+3. Check battery state
+        ↓
+4. Inspect motor and sensor cables
+        ↓
+5. Test Motor A without full navigation
+        ↓
+6. Test Motor B independently
+        ↓
+7. Inspect mechanical resistance
+        ↓
+8. Verify sensor operation
+        ↓
+9. Compare with known-good charged condition
+        ↓
+10. Resume full navigation testing
+```
+
+This avoids changing navigation parameters before the electrical and mechanical platform has been verified.
+
+---
+
+## 8.31 Competition Pre-Run Power Checklist
+
+Before an important competition run, the power system should be treated as part of the robot's readiness check.
+
+A concise procedure is:
+
+```text
+Battery sufficiently charged
+        ↓
+Battery securely installed
+        ↓
+EV3 boots normally
+        ↓
+Motor A responds
+        ↓
+Motor B responds
+        ↓
+S1 device responds
+        ↓
+S2 / S3 respond
+        ↓
+S4 responds
+        ↓
+Correct round program selected
+        ↓
+Robot ready
+```
+
+<div align="center">
+
+<img
+  src="../../embed/power_pre_run_check.png"
+  alt="Piolín competition power pre-run verification"
+  width="840"
+/>
+
+<br>
+
+<sub><b>Figure 8.13.</b> Pre-run verification checks the battery together with the components whose operation depends on the EV3 power system.</sub>
+
+</div>
+
+This turns power verification into a repeatable process instead of discovering a battery-related issue during a complete autonomous run.
+
+---
+
+## 8.32 Why Battery Consistency Matters for Engineering Evidence
+
+If Piolín's repository presents test results such as:
+
+```text
+run time
+
+corner repeatability
+
+parking displacement
+
+obstacle success rate
+```
+
+those results are more meaningful if important test conditions are controlled.
+
+Battery condition is one of those conditions.
+
+For example, comparing two steering algorithms is more useful when:
+
+```text
+same robot
+
+same track
+
+same mechanical configuration
+
+similar battery condition
+```
+
+are maintained.
+
+Otherwise, an observed improvement may not come entirely from the software change.
+
+This is why electrical consistency contributes directly to the quality of engineering evidence.
+
+---
+
+## 8.33 Current Power Configuration
+
+The current competition architecture can be summarized as:
+
+```text
+MAIN POWER SOURCE
+
+LEGO Mindstorms EV3
+Rechargeable DC Battery
+Part 45501
+```
+
+which powers:
+
+```text
+LEGO EV3 Brick
+        │
+        ├── Motor A
+        │   └── Large Motor
+        │
+        ├── Motor B
+        │   └── Medium Motor
+        │
+        ├── S2
+        │   └── Left Ultrasonic
+        │
+        ├── S3
+        │   └── Right Ultrasonic
+        │
+        └── S4
+            └── Color Sensor
+```
+
+while S1 is round-specific:
+
+```text
+OPEN
+→ Gyro
+
+
+OBSTACLES
+→ Pixy2.1
+```
+
+No separate external propulsion battery, Arduino Nano power system, or permanent buck-converter subsystem is part of the current competition architecture.
+
+---
+
+## 8.34 Current vs. Legacy Power Hardware
+
+The repository should clearly distinguish current and historical electronics.
+
+### Current
+
+```text
+EV3 Battery 45501
+
+EV3 Brick
+
+EV3 motors
+
+EV3 sensors
+
+Gyro during Open
+
+Pixy2.1 during Obstacles
+```
+
+### Legacy / development-only
+
+```text
+Arduino Nano
+
+HuskyLens interface
+
+additional prototype wiring
+
+earlier external vision communication arrangements
+```
+
+Historical systems remain useful because they demonstrate engineering iteration, but they should not appear in current wiring or reproduction instructions.
+
+---
+
+## 8.35 Values Intentionally Not Claimed as Final
+
+This component document intentionally does not invent or publish unverified current values for:
+
+```text
+measured battery voltage during competition
+
+battery runtime per charge
+
+measured capacity after use
+
+current draw of complete robot
+
+Motor A peak current
+
+Motor B peak current
+
+Pixy current consumption through current installation
+
+power loss through connections
+
+measured voltage sag under acceleration
+
+number of full runs per charge
+```
+
+These quantities can be valuable engineering evidence, but they should only be added after they are measured on the actual current V4 robot.
+
+A future power test can record them systematically.
+
+---
+
+## 8.36 Suggested Battery Test
+
+A useful reproducibility experiment would compare vehicle behavior at several measured battery conditions.
+
+For each test point, the team could record:
+
+```text
+battery reading
+
+straight-line time over fixed distance
+
+representative corner behavior
+
+Motor A command
+
+software version
+```
+
+A results table could later use the structure:
+
+| Trial | Battery Reading | Motor A Command | Fixed-Distance Time | Notes |
+| :---: | :---: | :---: | :---: | :--- |
+| 1 | — | — | — | — |
+| 2 | — | — | — | — |
+| 3 | — | — | — | — |
+| 4 | — | — | — | — |
+
+No values should be entered until the experiment is physically performed.
+
+<div align="center">
+
+<img
+  src="../../embed/battery_performance_test.png"
+  alt="Piolín battery performance test graph"
+  width="850"
+/>
+
+<br>
+
+<sub><b>Figure 8.14.</b> Reserved evidence figure for measured battery condition versus vehicle performance. The graph should only be generated from real Piolín test data.</sub>
+
+</div>
+
+---
+
+## 8.37 Why the Simplest Power System Was Preferred
+
+Piolín's power-system decision follows the same engineering philosophy used in the rest of the robot.
+
+The question was not:
+
+> How many electrical components can be added?
+
+The more useful question was:
+
+> What is the simplest electrical architecture that reliably supports the hardware actually required by the robot?
+
+Because the EV3 battery already powers the controller and LEGO platform for which Piolín was designed, adding a separate general-purpose power system would create complexity without a currently demonstrated need.
+
+The final architecture therefore favors:
+
+```text
+compatibility
+
+simplicity
+
+reproducibility
+
+low wiring complexity
+
+easy charging
+
+easy troubleshooting
 ```
 
 ---
 
-# 8.25 Battery Responsibility Matrix
+## 8.38 Final Engineering Assessment
 
-The role of the main EV3 battery system can be summarized as:
+The LEGO Mindstorms EV3 Rechargeable DC Battery 45501 is more than a replaceable source of electrical energy inside Piolín. It is part of the decision to keep the complete robot centered around one consistent EV3 platform.
 
-| Function                         |       Battery Role      |
-| :------------------------------- | :---------------------: |
-| **Power EV3 controller**         |       **Primary**       |
-| **Support Motor A propulsion**   |       **Primary**       |
-| **Support Motor B steering**     |       **Primary**       |
-| **Support S1 ultrasonic**        | **Primary through EV3** |
-| **Support S2 ultrasonic**        | **Primary through EV3** |
-| **Support S3 ultrasonic**        | **Primary through EV3** |
-| **Support S4 color sensor**      | **Primary through EV3** |
-| **Determine navigation logic**   |            No           |
-| **Determine steering direction** |            No           |
-| **Measure environment**          |            No           |
-| **Provide stored energy**        |       **Primary**       |
+The current power architecture can be summarized as:
 
-The battery does not make autonomous decisions.
+```text
+                    EV3 BATTERY 45501
+                           │
+                           ▼
+                       LEGO EV3
+                           │
+          ┌────────────────┼────────────────┐
+          │                │                │
+          ▼                ▼                ▼
+       Motor A          Motor B          Sensors
+          │                │                │
+          ▼                ▼       ┌────────┼────────┐
+     Propulsion        Steering     S2/S3    S4      S1
+                                                  modular
+```
 
-Its role is to provide the energy that allows every other active vehicle subsystem to perform its assigned function.
+<div align="center">
+
+<img
+  src="../../v-photos/v4/ev3_battery_installed.jpg"
+  alt="Piolín EV3 battery installed in final architecture"
+  width="680"
+/>
+
+<br>
+
+<sub><b>Figure 8.15.</b> The 45501 battery forms part of the centralized EV3 platform shared by both Piolín competition configurations.</sub>
+
+</div>
+
+The battery was retained because it integrates naturally with the EV3, eliminates the need for unnecessary external power electronics, supports repeated development through rechargeability, and preserves the same power platform between the Open and Obstacle Challenges.
+
+At the same time, Piolín's testing methodology recognizes that electrical condition can influence physical motor response. Battery preparation and measurement are therefore treated as part of reproducible engineering testing rather than as an invisible background condition.
+
+The final design demonstrates the same principle applied throughout Piolín:
+
+> **A power system should provide the required capability with the smallest justified amount of additional electrical complexity.**
 
 ---
 
-# 8.26 Integration With the Complete Robot
+<div align="center">
 
-The main energy path can be combined with Piolín's complete functional architecture:
+### [← Back to PiolínTech Main README](../../README.md)
 
-```text
-                            BATTERY
-                               │
-                               ▼
-                           LEGO EV3
-                               │
-          ┌────────────────────┼────────────────────┐
-          │                    │                    │
-          ▼                    ▼                    ▼
-       SENSORS              PROCESSING            MOTORS
-          │                    │                    │
-          │              Navigation Logic          │
-          │                    │                    │
-          └────────────────────┼────────────────────┘
-                               │
-                               ▼
-                       AUTONOMOUS RESPONSE
-```
-
-The EV3 battery is therefore one of the few components that indirectly participates in every major vehicle function.
-
-Without sensing, Piolín cannot understand the environment.
-
-Without processing, it cannot decide what to do.
-
-Without motors, it cannot move.
-
-Without electrical energy, none of those systems can operate.
-
----
-
-# 8.27 Engineering Decision Summary
-
-The final Piolín architecture favors an **EV3-centered power system** for the fundamental vehicle hardware.
-
-This decision keeps the main controller, drive motor, steering motor, three ultrasonic sensors, and color sensor within the same integrated electrical platform.
-
-The development philosophy can be summarized as:
-
-```text
-MORE COMPLEX POWER ARCHITECTURES
-             ↓
-More interfaces and dependencies
-             ↓
-Architecture simplified
-             ↓
-EV3-centered vehicle power
-             ↓
-Clearer hardware responsibilities
-```
-
-The goal was not to create the most electrically complex robot.
-
-It was to create a power architecture appropriate for the hardware actually required by Piolín.
-
-The result is a system in which the EV3 battery supplies the vehicle-control platform while specialized external hardware remains clearly separated by function.
-
----
-
-# 8.28 Final Battery Architecture Summary
-
-Piolín's battery is the main stored-energy source behind the LEGO EV3 vehicle-control system.
-
-Its fundamental architecture is:
-
-```text
-                         EV3 BATTERY
-                              │
-                              ▼
-                          LEGO EV3
-                              │
-           ┌──────────────────┼──────────────────┐
-           │                  │                  │
-           ▼                  ▼                  ▼
-        MOTOR A            MOTOR B          SENSORS S1–S4
-          Drive             Steering             │
-           │                  │                  │
-           └──────────────────┴──────────┬───────┘
-                                         ▼
-                                  ROBOT OPERATION
-```
-
-The battery supports propulsion, steering, sensing, and computation through the EV3 platform.
-
-Its importance extends beyond simply "turning the robot on." Battery condition influences the electrical environment in which the motors and controller operate, while the battery's physical mass also contributes to the vehicle's mechanical behavior.
-
-The final engineering relationship can therefore be summarized as:
-
-> **The battery stores the energy.**
-
-> **The EV3 distributes and controls how that energy is used by the LEGO hardware.**
-
-> **The motors convert it into movement.**
-
-> **The sensors and controller use it to perceive and interpret the environment.**
-
-This centralized energy architecture supports Piolín's broader design goal of keeping the fundamental navigation system integrated, understandable, and free from unnecessary electrical complexity.
-
-Detailed power routing and subsystem distribution are documented next in:
-
-```text
-docs/components/09_PowerDistribution.md
-```
-
-```
+</div>
