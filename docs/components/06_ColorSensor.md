@@ -1,1107 +1,1730 @@
-# 6. LEGO Color Sensor
-
-Piolín uses one **LEGO Color Sensor connected to EV3 Sensor Port S4**. The sensor is mounted facing downward toward the competition surface and provides Piolín with information about the colored floor markings encountered while travelling around the track.
+# 6. Color Sensor and Course-State Detection
 
 <div align="center">
-  <img
-    width="208"
-    height="213"
-    alt="Piolín Color Sensor"
-    src="https://github.com/user-attachments/assets/59a381ff-3383-4951-9bea-b83d9a1151fd"
-  />
-  <br>
-  <sub><b>Figure 6.1.</b> LEGO Color Sensor installed on Piolín in its final downward-facing position.</sub>
+
+<img
+  src="../../v-photos/v4/color_sensor_s4_installed.jpg"
+  alt="LEGO EV3 Color Sensor installed underneath Piolín"
+  width="680"
+/>
+
+<br>
+
+<sub><b>Figure 6.1.</b> LEGO Mindstorms EV3 Color Sensor installed underneath Piolín and connected permanently to Sensor Port S4.</sub>
+
 </div>
 
-The sensor is positioned close to the competition surface so that its observation area remains concentrated on the floor directly beneath Piolín. Its physical mounting is therefore part of the sensing system itself, since changes in height, orientation, or surrounding illumination can modify the optical information received by the sensor.
+Piolín uses one **LEGO Mindstorms EV3 Color Sensor** connected permanently to **Sensor Port S4**. The sensor is mounted facing downward toward the competition mat and remains part of the robot in both the Open Challenge and the Obstacle Challenge.
 
-Unlike the ultrasonic sensors, which describe the physical geometry surrounding the robot, the color sensor does not continuously determine where Piolín should steer. Its primary purpose is to provide **course-state information**.
+Unlike the ultrasonic sensors, the Color Sensor does not primarily describe the robot's geometric position relative to the track. Unlike the Gyro Sensor, it does not directly measure vehicle rotation. Unlike Pixy2.1, it does not identify traffic pillars in front of the robot.
 
-The sensor helps Piolín determine its initial driving direction and track its progress around the course. The steering decisions themselves remain primarily dependent on the ultrasonic navigation system and the current software state.
+Its responsibility is different.
 
-The final responsibility can be summarized as:
+The Color Sensor provides **course-state information** by detecting the colored floor markings placed on the track. These markings act as physical landmarks that allow the EV3 to determine the initial travel direction and track progression through the course.
+
+The sensor therefore answers a different question from the rest of Piolín's sensing system:
 
 ```text
-COLOR SENSOR
-     │
-     ▼
-Floor Markings
-     │
-     ├───────────────┐
-     ▼               ▼
-Initial Direction   Course Progress
-     │               │
-     └───────┬───────┘
-             ▼
-          LEGO EV3
+Ultrasonics:
+Where am I relative to the walls?
+
+
+Gyro:
+How is my orientation changing?
+
+
+Pixy2.1:
+Which obstacle is in front of me?
+
+
+Color Sensor:
+Which course landmark have I reached?
 ```
 
-> [!IMPORTANT]
-> The color sensor does **not directly steer Piolín**.  
-> It provides information that allows the EV3 to understand the course state, while the ultrasonic sensors remain responsible for wall geometry and normal navigation.
+This separation of responsibilities is one of the reasons the Color Sensor remains a permanent component even though Piolín uses different specialized sensors on S1 for each competition round.
 
 ---
 
-## 6.1 Final Color Sensor Configuration
+## 6.1 Final Color-Sensor Architecture
 
-The final Piolín configuration uses one downward-facing LEGO Color Sensor.
-
-| Parameter | Final Configuration |
-| :--- | :--- |
-| **Sensor** | LEGO Color Sensor |
-| **Quantity** | **1** |
-| **EV3 Connection** | **Sensor Port S4** |
-| **Orientation** | Downward-facing |
-| **Primary Markings** | Blue and Orange |
-| **Primary Role 1** | Determine initial driving direction |
-| **Primary Role 2** | Track progress around the course |
-| **Steering Authority** | None directly |
-| **Main Controller** | LEGO Mindstorms EV3 |
-
-The physical relationship is:
+The current physical connection is fixed:
 
 ```text
-                    PIOLÍN
-              ┌───────────────┐
-              │               │
-              │     EV3       │
-              │               │
-              └───────┬───────┘
-                      │
-                      │ S4
-                      ▼
-               [ COLOR SENSOR ]
-                      │
-                      ▼
-               Competition Mat
-```
-
-Because the sensor faces downward, its field of observation is intentionally restricted to a small area directly beneath the robot.
-
----
-
-## 6.2 Why a Downward-Facing Sensor Is Used
-
-The color sensor is mounted downward because Piolín needs to identify markings located on the floor rather than objects in front of the vehicle.
-
-A forward-facing sensor would observe the surrounding environment and could be affected by walls, obstacles, or objects that are not relevant to the course-marking logic.
-
-The downward orientation creates a simpler sensing relationship:
-
-```text
-        ROBOT
-          │
-          ▼
-    COLOR SENSOR
-          │
-          ▼
-    FLOOR MARKING
-```
-
-The sensor only needs to determine what type of surface is directly underneath it.
-
-This makes the color sensor complementary to the other sensing systems:
-
-```text
-Ultrasonic Sensors
+EV3 Sensor Port S4
         ↓
-Measure surrounding walls
-
-
-HuskyLens
+LEGO EV3 Color Sensor
         ↓
-Recognizes visible obstacles
-
-
-Color Sensor
-        ↓
-Reads floor markings
-```
-
-Each sensor therefore observes a different region of the environment.
-
----
-
-## 6.3 Role in Determining Driving Direction
-
-One of the most important responsibilities of the color sensor is determining Piolín's initial direction around the course.
-
-The first valid colored floor marking detected by the robot establishes the direction that the navigation system should use.
-
-Piolín's current direction mapping is:
-
-| First Valid Color | Piolín Direction |
-| :--- | :--- |
-| **Blue** | **Counterclockwise** |
-| **Orange** | **Clockwise** |
-
-The logic can be represented as:
-
-```text
-          START
-            │
-            ▼
-     Read Color Sensor
-            │
-      ┌─────┴─────┐
-      │           │
-      ▼           ▼
-    BLUE        ORANGE
-      │           │
-      ▼           ▼
-Counterclockwise Clockwise
-      │           │
-      └─────┬─────┘
-            ▼
-   Assign Inner / Outer
-     Ultrasonic Sensors
-```
-
-This is an important connection between the color sensor and the ultrasonic navigation system.
-
-The color sensor does not tell Piolín how far it is from a wall. Instead, it tells the EV3 which physical side of the robot should be interpreted as the **inner wall** and which should be interpreted as the **outer wall**.
-
----
-
-## 6.4 Relationship With the Ultrasonic Sensors
-
-Piolín's left and right ultrasonic sensors are physically fixed on the chassis.
-
-However, their software responsibilities depend on the driving direction.
-
-Once the color sensor establishes direction, the EV3 can assign the lateral ultrasonic sensors correctly.
-
-For counterclockwise navigation:
-
-```text
-BLUE detected first
-        ↓
-COUNTERCLOCKWISE
-        ↓
-
-LEFT US  S3 = INNER
-RIGHT US S2 = OUTER
-```
-
-For clockwise navigation:
-
-```text
-ORANGE detected first
-         ↓
-CLOCKWISE
-         ↓
-
-RIGHT US S2 = INNER
-LEFT US  S3 = OUTER
-```
-
-This demonstrates that the color sensor and ultrasonic sensors solve different parts of the same navigation problem.
-
-The color sensor establishes **course orientation**, while the ultrasonic sensors provide **physical geometry**.
-
----
-
-## 6.5 Course Progress Tracking
-
-After the initial driving direction has been established, the color sensor remains useful throughout the run.
-
-Piolín uses the colored floor markings as repeatable events that indicate progress around the course.
-
-The basic relationship is:
-
-```text
-Robot moves
-    ↓
-Color strip reached
-    ↓
-Sensor detects valid color
-    ↓
-EV3 records event
-    ↓
-Robot continues
-```
-
-This allows the program to maintain a course-progress count without depending entirely on elapsed time or wheel rotation.
-
-The color sensor therefore acts as a physical reference tied directly to the competition mat.
-
----
-
-## 6.6 Piolín's Blue and Orange Counting Logic
-
-Piolín's course-tracking logic distinguishes between valid blue and orange detections.
-
-With four corner regions per lap and three laps, Piolín's implementation expects the repeated appearance of the floor markings throughout the run.
-
-The course relationship used by Piolín is:
-
-```text
-4 corners per lap
-        ×
-3 laps
-        =
-12 corner events
-```
-
-Across the complete three-lap course, Piolín's progress logic can therefore track:
-
-```text
-12 valid BLUE detections
-
-and
-
-12 valid ORANGE detections
-```
-
-The two counters provide the software with a way to confirm that the robot is continuing to encounter the expected floor markings throughout the required laps.
-
-This information can later be used by the navigation state machine to determine whether the vehicle is approaching the end of the required course.
-
----
-
-## 6.7 Why the Color Sensor Is Not Used for Steering
-
-A floor color detection provides very different information from an ultrasonic wall measurement.
-
-A color sensor can determine that Piolín is currently above a colored strip, but that does not directly indicate how far the robot is from the inner wall, how far it is from the outer wall, or how strongly the wheels should turn.
-
-For this reason, the final architecture avoids using the color sensor as the main steering reference.
-
-Instead:
-
-```text
-COLOR SENSOR
-     ↓
-Course Event
-
-
-ULTRASONIC SENSORS
-     ↓
-Navigation Geometry
-```
-
-The EV3 then combines those roles inside the state machine.
-
-This separation prevents a brief floor detection from unnecessarily overriding the continuous geometric information provided by the lateral ultrasonic sensors.
-
----
-
-## 6.8 Color Sensor Physical Mounting
-
-As shown in **Figure 6.1**, the color sensor is mounted on the lower section of Piolín and faces directly toward the competition surface.
-
-Its physical position is intentionally different from the ultrasonic sensors and HuskyLens. While those systems observe the environment around or ahead of the robot, the color sensor observes only the small floor region immediately beneath the chassis.
-
-The mechanical relationship is:
-
-```text
-       PIOLÍN CHASSIS
-             │
-             ▼
-      COLOR SENSOR
-             │
-             ▼
-       Optical Gap
-             │
-             ▼
-     COMPETITION MAT
-```
-
-Maintaining a stable sensor position helps keep the optical geometry consistent.
-
-Changes in mounting height or sensor angle can change the amount of reflected light that reaches the detector, even when the physical floor color remains the same.
-
----
-
-## 6.9 Light Isolation Casing
-
-During Piolín's development, color detection was affected by environmental illumination.
-
-The amount and direction of surrounding light can influence the light reflected from the competition surface and therefore alter the sensor values observed by the EV3.
-
-To reduce this effect, Piolín uses a **physical casing around the color sensor**.
-
-The casing creates a more controlled local environment around the sensing area.
-
-```text
-Ambient Light
-   ↘   ↓   ↙
-
- ┌─────────────┐
- │   CASING    │
- │      │      │
- │ ColorSensor │
- └──────┬──────┘
-        │
-        ▼
-       MAT
-```
-
-The purpose of the casing is not to make lighting irrelevant.
-
-Instead, it reduces the amount of uncontrolled external light reaching the sensor from the sides.
-
-This improves the consistency of the optical environment and makes the software classification more dependent on the actual floor marking beneath Piolín.
-
----
-
-## 6.10 Why Physical Light Isolation Matters
-
-Color sensing is an optical measurement.
-
-The EV3 color sensor observes light reflected from the surface beneath it.
-
-Therefore, the measurement depends not only on the physical color of the mat, but also on the light reaching and reflecting from that surface.
-
-Conceptually:
-
-```text
-Ambient / Sensor Light
-          ↓
-      Floor Surface
-          ↓
-      Reflected Light
-          ↓
-      Color Sensor
-```
-
-If the surrounding illumination changes dramatically, the reflected signal can also change.
-
-The casing helps reduce that environmental variable.
-
-This represents an important design principle in Piolín:
-
-> **Software filtering is not always the only solution to a sensing problem. Mechanical design can improve the quality of the sensor data before the software receives it.**
-
-The color-sensor casing is therefore both a mechanical and sensing component.
-
----
-
-## 6.11 3D-Printed Color Sensor Casing
-
-Piolín's repository includes a dedicated 3D model for the color-sensor casing:
-
-```text
-models/
-└── 3dprint/
-    └── ColorSensorCasing.stl
-```
-
-This custom component reflects the integration between hardware design and sensor reliability.
-
-Instead of changing the entire color-detection algorithm every time environmental light influenced the readings, the mechanical design was improved to provide the sensor with a more controlled observation region.
-
-The component can be represented as:
-
-```text
-       Piolín Chassis
-             │
-             ▼
-    ┌────────────────┐
-    │  Sensor Casing │
-    │                │
-    │  Color Sensor  │
-    └───────┬────────┘
-            │
-            ▼
-       Floor Marking
-```
-
-The casing therefore supports the optical sensing system without changing the fundamental purpose of the LEGO Color Sensor itself.
-
----
-
-## 6.12 Sensor Input and Output
-
-The color sensor can be understood as a conversion stage between the physical competition environment and the digital information used by the EV3.
-
-The **input** to the sensor is optical. Light reaches the competition surface, interacts with the material and color of the floor, and part of that light is reflected back toward the sensor.
-
-The **output** is numerical information that the EV3 software can process.
-
-The complete relationship is:
-
-```text
-PHYSICAL ENVIRONMENT
-        ↓
-Floor Color
-        ↓
-Reflected Light
-        ↓
-LEGO Color Sensor
-        ↓
-Numerical Sensor Data
-        ↓
-EV3 Software
-        ↓
-Color Classification
-        ↓
-Navigation Event
+Competition floor
 ```
 
 <div align="center">
-  <img
-    width="800"
-    height="450"
-    alt="Color Sensor Input and Output Explanation"
-    src="https://github.com/user-attachments/assets/3d5a986e-d0e8-44ca-a664-70d23bd7b0fe"
-  />
-  <br>
-  <sub><b>Figure 6.2.</b> Simplified representation of the color sensor input/output process used by Piolín.</sub>
+
+<img
+  src="../../embed/color_sensor_architecture.png"
+  alt="Piolín color sensor architecture"
+  width="800"
+/>
+
+<br>
+
+<sub><b>Figure 6.2.</b> The S4 Color Sensor converts physical floor markings into course-state information used by the EV3.</sub>
+
 </div>
 
-The diagram above shows the basic relationship between the physical environment and the information used by the navigation program.
+The sensor remains connected to S4 in both configurations:
 
-The **input** to the sensor is the light reflected from the competition surface. When Piolín passes over a blue, orange, or neutral section of the mat, the optical characteristics of that surface affect the signal observed by the sensor.
+| Configuration | S4 Component | Main Role |
+| :--- | :--- | :--- |
+| **Open Challenge** | EV3 Color Sensor | Initial direction and course progression |
+| **Obstacle Challenge** | EV3 Color Sensor | Initial direction and course progression |
 
-The **output** is numerical optical information that can be read by the EV3.
-
-Piolín's software then interprets those values and classifies the observed surface into a useful navigation category.
-
-```text
-PHYSICAL INPUT
-Floor color and reflected light
-            │
-            ▼
-     LEGO COLOR SENSOR
-            │
-            ▼
-NUMERICAL SENSOR OUTPUT
-            │
-            ▼
-     EV3 CLASSIFICATION
-            │
-      ┌─────┼─────┐
-      ▼     ▼     ▼
-    BLUE  ORANGE  OTHER
-      │     │
-      └──┬──┘
-         ▼
-  Navigation Event
-```
-
-This distinction between **sensor input** and **software interpretation** is important.
-
-The LEGO Color Sensor does not directly tell Piolín to turn, count a lap, or select a driving direction.
-
-It provides optical measurements.
-
-The EV3 software is responsible for converting those measurements into meaningful course information.
+This permanent assignment avoids unnecessary rewiring and gives both programs access to the same external course landmarks.
 
 ---
 
-## 6.13 RGB-Based Color Information
+## 6.2 Physical Placement
 
-The LEGO Color Sensor can provide reflected-color information that the EV3 software can interpret.
+The Color Sensor is mounted beneath Piolín and faces downward.
 
-In Piolín, the sensor data is used to distinguish the relevant floor markings rather than relying only on a generic predefined color category.
+<div align="center">
+
+<img
+  src="../../v-photos/v4/color_sensor_bottom_view.jpg"
+  alt="Bottom view of Piolín showing the downward-facing Color Sensor"
+  width="680"
+/>
+
+<br>
+
+<sub><b>Figure 6.3.</b> Bottom view showing the Color Sensor positioned close to the competition surface.</sub>
+
+</div>
+
+This orientation is important because the sensor must observe the reflected light from the floor rather than objects in front of or beside the robot.
+
+The physical mounting affects the quality of the measurement. Relevant factors include:
+
+```text
+sensor-to-floor distance
+
+sensor angle
+
+surrounding illumination
+
+casing geometry
+
+floor material
+
+vehicle movement
+```
+
+A software threshold that works with one physical mounting position may not work identically if the sensor height or casing changes.
+
+For this reason, Color Sensor calibration belongs to the complete installed robot rather than to the sensor alone.
+
+---
+
+## 6.3 Why the Color Sensor Is Used for Course State
+
+Piolín could theoretically estimate its progression using:
+
+```text
+wheel encoders
+
+gyro rotation
+
+elapsed time
+
+camera observations
+```
+
+However, each of these methods accumulates uncertainty.
+
+Wheel encoders estimate rotation of the drivetrain, but wheel slip and turning can create differences between encoder motion and actual track displacement.
+
+The gyro measures rotation, but it does not directly identify which physical corner or lap the robot has reached.
+
+Elapsed time changes with battery condition, vehicle speed, steering corrections, and obstacle maneuvers.
+
+Pixy2.1 is useful for obstacle recognition, but it is only installed during the Obstacle Challenge and is not needed for Open navigation.
+
+The floor markings provide something different:
+
+> **A physical external reference fixed to the competition course.**
+
+The EV3 can therefore use the Color Sensor to correct uncertainty accumulated by internal movement estimates.
+
+<div align="center">
+
+<img
+  src="../../embed/course_state_reference_comparison.png"
+  alt="Comparison of internal odometry and physical floor landmarks"
+  width="850"
+/>
+
+<br>
+
+<sub><b>Figure 6.4.</b> Physical floor landmarks provide an external course reference that does not depend entirely on accumulated encoder, gyro, or time estimates.</sub>
+
+</div>
+
+---
+
+## 6.4 Initial Direction Detection
+
+One of the first important responsibilities of S4 is determining the direction in which Piolín should navigate the course.
+
+The current convention is:
+
+```text
+BLUE first
+→ COUNTERCLOCKWISE
+```
+
+and:
+
+```text
+ORANGE first
+→ CLOCKWISE
+```
+
+<div align="center">
+
+<img
+  src="../../embed/color_direction_logic.png"
+  alt="Blue and orange initial direction logic"
+  width="820"
+/>
+
+<br>
+
+<sub><b>Figure 6.5.</b> The first valid floor-color event determines the initial course direction.</sub>
+
+</div>
+
+This information is important because direction determines how several other sensors are interpreted.
+
+For counterclockwise travel:
+
+```text
+S2 LEFT
+→ INNER
+
+S3 RIGHT
+→ OUTER
+```
+
+For clockwise travel:
+
+```text
+S2 LEFT
+→ OUTER
+
+S3 RIGHT
+→ INNER
+```
+
+The Color Sensor therefore does not directly steer Piolín, but its first valid event changes the meaning of the wall-navigation system.
+
+---
+
+## 6.5 Direction Is a State, Not a Continuous Color Command
+
+Once the initial direction has been determined, later floor detections should not continuously redefine the robot's travel direction.
 
 Conceptually:
 
 ```text
-Sensor observes floor
-        ↓
-RGB-related measurement
-        ↓
-EV3 receives values
-        ↓
-Classification logic
-        ↓
-BLUE / ORANGE / OTHER
+START
+  ↓
+No direction known
+  ↓
+First valid BLUE or ORANGE event
+  ↓
+Direction selected
+  ↓
+Direction locked
 ```
 
-This allows Piolín's software to define detection behavior according to the actual floor colors present in the competition environment.
+After this point, later floor markings represent **course progression**, not a new direction decision.
 
-The detailed RGB classification logic and software decisions are documented separately in:
+This distinction is important because the robot encounters additional colored floor regions while moving through the course.
+
+The software should therefore separate:
 
 ```text
-docs/software_obstacles_strategy/09_RGBdetection.md
+INITIAL COLOR EVENT
 ```
 
-This component section focuses on the physical sensor and its role inside the hardware architecture.
+from:
+
+```text
+PROGRESS COLOR EVENT
+```
+
+even though both originate from the same physical sensor.
 
 ---
 
-## 6.14 Software Integration
+## 6.6 Color Sensor as a Course Landmark Detector
 
-The color sensor is connected directly to S4 and can be initialized from the EV3 software environment.
+Once direction has been established, the Color Sensor becomes a progress-tracking sensor.
 
-A simplified Pybricks representation is:
-
-```python
-from pybricks.ev3devices import ColorSensor
-from pybricks.parameters import Port
-
-color_sensor = ColorSensor(Port.S4)
-```
-
-The program can then request optical information from the sensor and pass it to the color-classification logic.
-
-Conceptually:
+The basic concept is:
 
 ```text
-Color Sensor S4
-      ↓
-Raw optical information
-      ↓
-Classification
-      ↓
-Valid color event?
-      ↓
-Course-state update
-```
-
-This direct connection means that Piolín does not require the Arduino Nano or HuskyLens subsystem to identify the blue and orange floor markings.
-
----
-
-## 6.15 Independence From the Vision System
-
-The color sensor and HuskyLens are both optical devices, but their roles are completely different.
-
-The color sensor looks downward at a very small area of the competition mat.
-
-The HuskyLens looks outward into the environment and identifies visible obstacles.
-
-```text
-                HUSKYLENS
-                    │
-                    ▼
-             Forward Environment
-                    │
-                    ▼
-             Obstacle Recognition
-
-
-             COLOR SENSOR
-                    │
-                    ▼
-                 Floor
-                    │
-                    ▼
-          Course Marking Detection
-```
-
-The two sensors should therefore not be considered redundant.
-
-The HuskyLens answers:
-
-> **What obstacle is visible ahead?**
-
-The color sensor answers:
-
-> **What course marking is directly underneath Piolín?**
-
----
-
-## 6.16 Detection Locking
-
-A physical color strip occupies an area rather than a single mathematical point.
-
-As Piolín drives across a strip, the color sensor may observe the same marking across several consecutive software loops.
-
-Without additional logic, one strip could therefore be counted multiple times.
-
-```text
-Robot movement →
-
-████████████ BLUE STRIP ████████████
-
-Reading 1 → BLUE
-Reading 2 → BLUE
-Reading 3 → BLUE
-Reading 4 → BLUE
-```
-
-All four readings may correspond to the **same physical strip**.
-
-Piolín therefore uses a detection-locking concept.
-
-```text
-First valid detection
+Physical floor mark
         ↓
-Record event
+S4 detects color
         ↓
-LOCK detection
+EV3 validates event
         ↓
-Ignore repeated readings
+course counter updates
         ↓
-Sensor leaves strip
-        ↓
-UNLOCK
+navigation state advances
 ```
 
-This allows a continuous stream of sensor readings to be converted into discrete course events.
+<div align="center">
 
----
+<img
+  src="../../embed/color_course_state_logic.png"
+  alt="Color Sensor course-state processing"
+  width="850"
+/>
 
-## 6.17 Why Detection Locking Is Necessary
+<br>
 
-The purpose of the color counter is to count physical course markings, not software execution cycles.
+<sub><b>Figure 6.6.</b> A physical floor marking becomes a navigation event only after the EV3 validates the sensor detection.</sub>
 
-These are fundamentally different quantities.
+</div>
 
-Without locking:
+Piolín's intended three-lap navigation requires recognizing course progression through the repeated corners of the track.
+
+The current architecture uses valid floor events as external landmarks rather than depending only on estimated traveled distance.
+
+This provides a clearer relationship between:
 
 ```text
-One strip
-   ↓
-Several software loops
-   ↓
-Several counts
+physical track event
 ```
 
-With locking:
+and:
 
 ```text
-One strip
-   ↓
-Several software loops
-   ↓
-One valid event
-```
-
-This distinction is especially important because the EV3 program can execute many sensor-reading cycles while the robot is physically passing over a single colored area.
-
-The locking mechanism therefore belongs to the interpretation layer between physical sensing and course-state counting.
-
----
-
-## 6.18 Leaving the Color Marking
-
-After a valid strip has been recorded, the sensor must eventually observe a region that is no longer classified as that same marking.
-
-This allows the software to recognize that Piolín has physically moved away from the previous strip.
-
-The conceptual sequence is:
-
-```text
-Neutral floor
-     ↓
-Colored marking begins
-     ↓
-Valid color detected
-     ↓
-Event recorded
-     ↓
-Color remains visible
-     ↓
-No additional count
-     ↓
-Neutral / different floor returns
-     ↓
-Detection released
-```
-
-This prevents the physical width of a marking from artificially increasing the lap or corner count.
-
----
-
-## 6.19 Color Sensor and Navigation States
-
-A color event can also be useful as part of the state machine because it represents a known physical feature of the competition mat.
-
-The sensor itself does not manage the state machine.
-
-Instead:
-
-```text
-COLOR SENSOR
-      ↓
-Detection
-      ↓
-EV3 classification
-      ↓
-Course event
-      ↓
-State machine receives information
-```
-
-The state machine can then decide whether the event is relevant to direction initialization, progress counting, corner sequencing, or the end of the required run.
-
-This keeps the hardware layer simple.
-
-The sensor provides optical data. The EV3 determines how that data affects navigation.
-
----
-
-## 6.20 Relationship With Corner Navigation
-
-The color sensor and ultrasonic sensors can both provide information near corner regions, but they describe different physical properties.
-
-The ultrasonic system observes:
-
-```text
-Wall disappears
-Wall geometry changes
-Outer wall becomes reference
-Inner wall reappears
-```
-
-The color sensor observes:
-
-```text
-Colored floor marking encountered
-```
-
-The final navigation architecture therefore does not require the floor color alone to prove that a corner is physically safe to execute.
-
-Instead, color provides **course progress**, while ultrasonic geometry provides **vehicle positioning and wall interpretation**.
-
-This reduces the risk of using one sensor type for a problem that another sensor measures more directly.
-
----
-
-## 6.21 Relationship With Parking
-
-Course-progress information from the color sensor can help the EV3 understand when Piolín is approaching the end of the required three-lap sequence.
-
-Parking is not controlled by color detection alone.
-
-Instead, the lap and marking counts form part of the information available to the software before the parking state is entered.
-
-Conceptually:
-
-```text
-Color events
-     ↓
-Course count
-     ↓
-Required sequence completed
-     ↓
-Parking state becomes relevant
-```
-
-The actual parking geometry and movement are handled by the dedicated parking subsystem.
-
-Detailed parking documentation is located in:
-
-```text
-docs/software_obstacles_strategy/parking/
+software course state
 ```
 
 ---
 
-## 6.22 Why the Color Sensor Is Connected Directly to the EV3
+## 6.7 Physical Marking vs. Raw Sensor Samples
 
-The color sensor performs a fundamental course-navigation role in both normal track interpretation and lap counting.
-
-For this reason, it is connected directly to the EV3 rather than passing through the Arduino Nano.
-
-The architecture is:
+One of the most important software distinctions is:
 
 ```text
-COLOR SENSOR
-     │
-     │ S4
-     ▼
-   LEGO EV3
+ONE PHYSICAL MARKING
+≠
+ONE RAW SENSOR SAMPLE
+```
+
+While Piolín moves across one colored strip, the EV3 can read the sensor many times.
+
+For example:
+
+```text
+BLUE
+BLUE
+BLUE
+BLUE
+BLUE
+```
+
+may all belong to one physical strip.
+
+If every reading were counted independently, the course counter could increase several times while the robot had physically crossed only one landmark.
+
+The correct goal is:
+
+```text
+ONE PHYSICAL MARKING
+        ↓
+ONE VALID EVENT
 ```
 
 rather than:
 
 ```text
-Color Sensor
+ONE SENSOR SAMPLE
+        ↓
+ONE EVENT
+```
+
+This is why the Color Sensor requires an **event-processing layer** in addition to basic color classification.
+
+---
+
+## 6.8 Event Locking
+
+One method for preventing repeated counts is to use an event lock.
+
+Conceptually:
+
+```text
+NORMAL FLOOR
      ↓
-Arduino
+BLUE detected
      ↓
-EV3
+Register BLUE event
+     ↓
+LOCK BLUE
+     ↓
+Sensor remains above BLUE
+     ↓
+Do not count again
+     ↓
+Return to normal floor
+     ↓
+Release lock
 ```
 
-This reduces unnecessary communication layers.
+<div align="center">
 
-The Nano is reserved primarily for the HuskyLens vision interface, while the EV3 directly controls the LEGO sensors that are fundamental to normal navigation.
+<img
+  src="../../embed/color_event_lock.png"
+  alt="Color event locking sequence"
+  width="830"
+/>
 
----
+<br>
 
-## 6.23 Sensor Priority
+<sub><b>Figure 6.7.</b> Event locking prevents one physical floor marking from being counted repeatedly while the sensor remains over the same colored region.</sub>
 
-The color sensor provides important information, but it does not have the highest safety authority.
+</div>
 
-Piolín's control architecture distinguishes between course information and immediate physical safety.
+The same concept applies to Orange.
 
-A simplified priority relationship is:
+The exact implementation can use:
 
 ```text
-        Frontal Safety
-              ↓
-        Lateral Safety
-              ↓
-       Navigation State
-              ↓
-      Course Progress Data
+state transition
+
+neutral-floor confirmation
+
+cooldown
+
+sample confirmation
+
+or a combination
 ```
 
-A valid floor marking should not force Piolín to continue moving if the front ultrasonic sensor simultaneously detects a dangerous frontal condition.
-
-Similarly, course-counting information does not replace wall geometry during a corner.
-
-This hierarchy prevents the color sensor from being assigned responsibilities beyond what it physically measures.
+depending on the final current code.
 
 ---
 
-## 6.24 Optical Failure Considerations
+## 6.9 Why Normal Floor Is Also Important
 
-Like every optical sensor, the color sensor can be influenced by environmental and mechanical conditions.
+The ordinary competition surface is not simply an irrelevant third color.
 
-| Condition | Possible Effect | Piolín Design Response |
-| :--- | :--- | :--- |
-| **Ambient light variation** | Changes reflected-light values | Physical light-isolation casing |
-| **Sensor position variation** | Changes observed reflection | Fixed chassis mounting |
-| **Sensor angle variation** | Changes observed floor area | Downward mechanical orientation |
-| **Repeated readings over same strip** | Multiple detections | Detection locking |
-| **Temporary ambiguous value** | Incorrect classification possibility | Software validation |
-| **Dirty sensor window** | Reduced optical clarity | Accessible sensor placement |
-| **Different floor appearance** | Different reflected signal | Classification based on competition colors |
+It provides important transition information.
 
-The design therefore combines mechanical control of the sensing environment with software interpretation.
-
----
-
-## 6.25 Why Mechanical and Software Solutions Are Combined
-
-The final color-sensing architecture illustrates an important engineering principle.
-
-A software-only solution would attempt to compensate for every possible lighting change using increasingly complicated thresholds or filters.
-
-A hardware-only solution would attempt to physically isolate the sensor perfectly, which is also unrealistic.
-
-Piolín combines both approaches:
+Conceptually:
 
 ```text
-MECHANICAL
-Light-isolation casing
-        +
-Stable downward mounting
-
-        ↓
-
-SOFTWARE
-Color classification
-        +
-Detection validation
-        +
-Event locking
+NORMAL FLOOR
+→ BLUE
+→ NORMAL FLOOR
 ```
 
-This distributes the problem across hardware and software instead of forcing one subsystem to solve everything.
+is a complete event.
 
----
+The return to ordinary floor helps the software determine that Piolín has physically left the previous marking.
 
-## 6.26 Color Sensor Responsibility Matrix
-
-The final responsibility of the S4 color sensor can be summarized as:
-
-| Function | Color Sensor Role |
-| :--- | :---: |
-| **Detect blue floor markings** | **Primary** |
-| **Detect orange floor markings** | **Primary** |
-| **Determine initial direction** | **Primary input** |
-| **Track course progress** | **Primary input** |
-| **Count physical marking events** | **Used** |
-| **Determine inner/outer wall assignment** | Indirect through direction |
-| **Continuous steering control** | **No** |
-| **Wall-distance measurement** | **No** |
-| **Pillar recognition** | **No** |
-| **Frontal collision safety** | **No** |
-
-This clear division prevents overlap with Piolín's ultrasonic and vision systems.
-
----
-
-## 6.27 Integration With the Complete Robot
-
-The color sensor is one part of a larger perception architecture.
-
-```text
-                         ENVIRONMENT
-                             │
-           ┌─────────────────┼─────────────────┐
-           │                 │                 │
-           ▼                 ▼                 ▼
-     TRACK WALLS         FLOOR MARKS        OBSTACLES
-           │                 │                 │
-           ▼                 ▼                 ▼
-      ULTRASONICS       COLOR SENSOR       HUSKYLENS
-      S1 / S2 / S3           S4                 │
-           │                 │            Arduino Nano
-           │                 │                 │
-           └─────────────────┴────────┬────────┘
-                                     ▼
-                                  LEGO EV3
-                                     │
-                              Navigation Logic
-                                     │
-                          ┌──────────┴──────────┐
-                          ▼                     ▼
-                       MOTOR A               MOTOR B
-                        Drive                Steering
-```
-
-The color sensor therefore contributes one specific type of environmental information to the same EV3 that controls the rest of Piolín's autonomous behavior.
-
----
-
-## 6.28 Why One Color Sensor Is Sufficient
-
-Piolín's final architecture uses only one floor-facing color sensor.
-
-The purpose of the sensor is not to reconstruct a complete image of the floor or perform full-width visual line tracking.
-
-It only needs to identify when a relevant marking passes underneath the designated sensing location.
-
-The required sensing region is therefore localized:
-
-```text
-Robot moves forward
-        ↓
-One known sensor position
-        ↓
-Colored marking passes below
-        ↓
-Event detected
-```
-
-Adding multiple color sensors would increase hardware complexity without necessarily improving this specific course-state function.
-
-The final design therefore uses one sensor with a clearly controlled mounting position and optical environment.
-
----
-
-## 6.29 Final Color Sensor Architecture
-
-Piolín's final color-sensing architecture can be summarized as:
-
-```text
-                   COMPETITION MAT
-                         │
-                         ▼
-                  BLUE / ORANGE
-                      MARKINGS
-                         │
-                         ▼
-                  COLOR SENSOR
-                       S4
-                         │
-                         ▼
-                     LEGO EV3
-                         │
-               ┌─────────┴─────────┐
-               ▼                   ▼
-       Initial Direction      Course Progress
-               │                   │
-               └─────────┬─────────┘
-                         ▼
-                Navigation State
-```
-
-The sensor's function is intentionally narrow and clearly defined.
-
-It does not attempt to replace ultrasonic wall navigation, HuskyLens obstacle recognition, or front collision protection.
-
-Instead, it provides Piolín with a physical reference tied directly to the floor of the competition course.
-
----
-
-## 6.30 Engineering Decision Summary
-
-The final color-sensor design combines several important decisions.
-
-First, the sensor is mounted **downward**, because its responsibility is floor detection rather than forward vision.
-
-Second, the sensor is used for **direction and course progress rather than continuous steering**, which separates floor-state information from wall geometry.
-
-Third, Piolín uses a **physical light-isolation casing** to reduce the influence of uncontrolled ambient illumination before the optical information reaches the software.
-
-Finally, the software converts continuous sensor measurements into discrete course events through classification and detection-locking logic.
-
-The complete concept can be represented as:
-
-```text
-STABLE PHYSICAL MOUNT
-        +
-LIGHT ISOLATION
-        +
-RGB CLASSIFICATION
-        +
-DETECTION LOCKING
-        ↓
-COURSE INFORMATION
-```
-
-This demonstrates that Piolín's color-sensing system is not simply a sensor attached to S4.
-
-It is a complete subsystem involving mechanical placement, optical behavior, software classification, and navigation-state interpretation.
-
----
-
-## 6.31 Final Summary
-
-Piolín uses one **LEGO Color Sensor connected directly to EV3 Sensor Port S4**.
-
-Its two primary responsibilities are:
-
-```text
-1. Determine the initial course direction
-
-2. Track progress through the colored floor markings
-```
-
-The first valid blue or orange detection establishes the direction used by the navigation system:
+Therefore the classifier should conceptually distinguish:
 
 ```text
 BLUE
-  ↓
-COUNTERCLOCKWISE
-
 
 ORANGE
-  ↓
-CLOCKWISE
+
+NORMAL / OTHER FLOOR
 ```
 
-This direction then determines which lateral ultrasonic sensor is interpreted as the inner-wall reference and which becomes the outer-wall reference.
-
-After initialization, the color sensor continues to provide discrete floor-marking events used for course tracking.
-
-Detection locking prevents one physical strip from being interpreted as several independent events while Piolín passes across it.
-
-The color sensor is mechanically supported by a dedicated light-isolation casing that reduces the influence of uncontrolled ambient illumination.
-
-Its complete input/output relationship is:
+rather than only asking:
 
 ```text
-FLOOR COLOR
-    ↓
-REFLECTED LIGHT
-    ↓
-COLOR SENSOR
-    ↓
-NUMERICAL DATA
-    ↓
-EV3 CLASSIFICATION
-    ↓
-BLUE / ORANGE / OTHER
-    ↓
-COURSE EVENT
+Is this Blue?
 ```
 
-The final engineering role of the sensor can therefore be summarized as:
-
-> **The ultrasonic sensors tell Piolín where it is relative to the walls.**
-
-> **The HuskyLens tells Piolín what obstacle it sees.**
-
-> **The color sensor tells Piolín where it is within the course sequence.**
-
-Detailed sensor-processing behavior is documented separately in:
+or:
 
 ```text
-docs/power_sensors/03_color_sensor.md
+Is this Orange?
 ```
 
-while RGB classification and event-detection logic are documented in:
+This makes event release and rearming more reliable.
+
+---
+
+## 6.10 Color Classification
+
+Depending on the active software implementation, the EV3 Color Sensor can be interpreted through built-in color identification or through measured optical values such as RGB/reflected-light data.
+
+The important architectural concept is the same:
 
 ```text
-docs/software_obstacles_strategy/09_RGBdetection.md
+RAW SENSOR INFORMATION
+        ↓
+CLASSIFICATION
+        ↓
+BLUE / ORANGE / FLOOR
 ```
+
+<div align="center">
+
+<img
+  src="../../embed/color_classification_pipeline.png"
+  alt="Color Sensor classification pipeline"
+  width="820"
+/>
+
+<br>
+
+<sub><b>Figure 6.8.</b> Raw optical measurements must be classified before they become course-state information.</sub>
+
+</div>
+
+The final current numerical thresholds should come from calibration performed with the sensor installed on Piolín.
+
+This document intentionally does not invent final RGB thresholds or reflected-light limits.
+
+---
+
+## 6.11 Detecting Orange
+
+Orange is especially important because the physical floor color does not always correspond perfectly to one simple predefined EV3 color label under every lighting condition.
+
+Depending on illumination, reflectivity, sensor height, and software mode, an orange region may produce measurements closer to nearby red/brown classifications.
+
+For this reason, Piolín should not rely on the assumption that:
+
+```text
+physical ORANGE
+=
+one universal EV3 value
+```
+
+The useful question is instead:
+
+> What optical measurements does the actual competition orange produce with the current S4 mounting and casing?
+
+The current classifier should be derived from those measurements.
+
+This is one of the reasons the sensor casing became an important part of the subsystem.
+
+---
+
+## 6.12 Ambient Light as a Hardware Problem
+
+During development, the team observed that external lighting could affect color detection.
+
+Instead of attempting to solve the entire problem by continually widening software thresholds, Piolín uses a physical casing around the Color Sensor.
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/color_sensor_casing.jpg"
+  alt="Piolín color sensor light-isolation casing"
+  width="640"
+/>
+
+<br>
+
+<sub><b>Figure 6.9.</b> Custom light-isolation casing surrounding the EV3 Color Sensor.</sub>
+
+</div>
+
+The casing reduces the amount of uncontrolled light reaching the sensing region.
+
+The goal is:
+
+```text
+less environmental variation
+        ↓
+more repeatable optical measurement
+        ↓
+cleaner classification
+        ↓
+more reliable course events
+```
+
+This follows an important engineering principle:
+
+> **If measurement quality can be improved physically, that should be considered before compensating entirely through software.**
+
+---
+
+## 6.13 Why a Custom Casing Was Selected
+
+Software thresholds can compensate for some variation, but increasingly broad thresholds create a new problem.
+
+If the Blue or Orange acceptance region becomes too broad, ordinary floor measurements can begin overlapping with those classifications.
+
+Conceptually:
+
+```text
+NARROW THRESHOLD
+
+good separation
+but may miss valid variation
+```
+
+versus:
+
+```text
+VERY BROAD THRESHOLD
+
+captures more variation
+but increases false positives
+```
+
+Improving the optical environment makes the classification problem easier before threshold tuning even begins.
+
+<div align="center">
+
+<img
+  src="../../embed/color_casing_effect.png"
+  alt="Conceptual effect of light isolation on color measurement distributions"
+  width="840"
+/>
+
+<br>
+
+<sub><b>Figure 6.10.</b> Reducing uncontrolled illumination can decrease measurement spread and improve separation between floor-color classes.</sub>
+
+</div>
+
+The casing therefore belongs to both the mechanical and sensing architecture.
+
+The printable model is stored as:
+
+[`ColorSensorCasing.stl`](../../models/3dprint/ColorSensorCasing.stl)
+
+---
+
+## 6.14 Casing Mechanical Requirements
+
+The casing should reduce external light without creating new physical problems.
+
+It should not:
+
+```text
+touch the competition mat
+
+drag during motion
+
+block the sensor's intended view
+
+rotate the Color Sensor
+
+interfere with steering
+
+change height unpredictably
+```
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/color_sensor_casing_bottom.jpg"
+  alt="Bottom view of Piolín Color Sensor casing"
+  width="650"
+/>
+
+<br>
+
+<sub><b>Figure 6.11.</b> Bottom view showing the Color Sensor casing and its clearance from the competition surface.</sub>
+
+</div>
+
+A good casing therefore needs both:
+
+```text
+optical isolation
+```
+
+and:
+
+```text
+mechanical clearance
+```
+
+Improving one while damaging the other would not improve the complete robot.
+
+---
+
+## 6.15 Sensor Height
+
+Color measurement depends strongly on the distance between the sensor and the floor.
+
+If the sensor is mounted too high:
+
+```text
+less controlled reflected light
+
+larger external-light influence
+```
+
+may occur.
+
+If it is too low:
+
+```text
+casing may touch the floor
+
+surface irregularities become dangerous
+
+mechanical clearance decreases
+```
+
+The target is therefore not necessarily the smallest possible sensor-to-floor distance.
+
+It is a **repeatable mounting height that provides useful optical separation while preserving safe clearance**.
+
+The exact current V4 height should be physically measured before being published as a final specification.
+
+---
+
+## 6.16 Static vs. Dynamic Color Detection
+
+A color may be easy to identify while the robot is stationary.
+
+Competition operation is different.
+
+While moving:
+
+```text
+sensor approaches marking
+        ↓
+enters colored region
+        ↓
+crosses region
+        ↓
+leaves region
+```
+
+The number of samples collected during that interval depends on:
+
+```text
+vehicle speed
+
+marking width
+
+software loop frequency
+
+confirmation logic
+```
+
+<div align="center">
+
+<img
+  src="../../embed/color_dynamic_detection.png"
+  alt="Static versus moving color detection"
+  width="850"
+/>
+
+<br>
+
+<sub><b>Figure 6.12.</b> Dynamic color detection provides only a limited measurement window while the sensor moves across a floor marking.</sub>
+
+</div>
+
+This means a classifier that works perfectly while Piolín is held above a mark should still be validated while the robot is moving at representative competition speed.
+
+---
+
+## 6.17 Confirmation Trade-Off
+
+Color detection can use multiple readings to confirm that a classification is real.
+
+This reduces false triggers from one isolated measurement.
+
+However, confirmation introduces a trade-off.
+
+Too little confirmation:
+
+```text
+noise
+→ false event
+```
+
+Too much confirmation:
+
+```text
+robot crosses mark
+before enough valid samples occur
+→ missed event
+```
+
+The final confirmation requirement should therefore be calibrated together with the actual operating speed.
+
+This is another example of how sensing and mobility interact.
+
+---
+
+## 6.18 Cooldown
+
+A cooldown can also be used to prevent one recently detected mark from being immediately counted again.
+
+Conceptually:
+
+```text
+Valid mark detected
+       ↓
+Event registered
+       ↓
+Temporary cooldown
+       ↓
+New detections ignored
+       ↓
+Cooldown ends
+```
+
+However, a cooldown should not be selected arbitrarily.
+
+If it is too short:
+
+```text
+same physical strip
+may produce duplicate event
+```
+
+If it is too long:
+
+```text
+next legitimate course mark
+may be ignored
+```
+
+The correct value therefore depends on actual:
+
+```text
+speed
+
+track spacing
+
+event-lock behavior
+
+sensor sampling
+```
+
+The current final value should come from the active code and current testing.
+
+---
+
+## 6.19 Locking vs. Cooldown
+
+Locking and cooldown solve related but different problems.
+
+**Locking** is associated with the physical state of remaining on the same colored region.
+
+**Cooldown** is associated with time after an event.
+
+A robust event system can use one or both.
+
+```text
+LOCKING
+→ "I am still physically on this mark."
+
+
+COOLDOWN
+→ "I recently accepted an event."
+```
+
+This distinction matters because a purely time-based system may rearm while Piolín is still physically crossing a wide mark.
+
+A state-based system can instead wait for evidence that the colored region has actually ended.
+
+---
+
+## 6.20 Color Sensor During Open Challenge
+
+During Open, the complete sensing architecture is:
+
+```text
+S1 Gyro
+→ orientation
+
+
+S2 / S3 Ultrasonics
+→ wall geometry
+
+
+S4 Color Sensor
+→ course state
+```
+
+<div align="center">
+
+<img
+  src="../../embed/open_color_sensor_role.png"
+  alt="Color Sensor role inside Piolín Open Challenge architecture"
+  width="850"
+/>
+
+<br>
+
+<sub><b>Figure 6.13.</b> During Open, the Color Sensor provides course-state landmarks while gyro and ultrasonic sensors handle orientation and wall geometry.</sub>
+
+</div>
+
+The Color Sensor does not replace the gyro during corners.
+
+The gyro measures rotation.
+
+Similarly, the Color Sensor does not replace the ultrasonic sensors during wall following.
+
+It simply provides an external course event that those sensors cannot identify by themselves.
+
+---
+
+## 6.21 Why Color Does Not Directly Control Steering
+
+An earlier/simple control strategy could theoretically say:
+
+```text
+BLUE detected
+→ turn one direction
+
+
+ORANGE detected
+→ turn another direction
+```
+
+but this would combine course-state information with physical steering geometry too aggressively.
+
+A floor mark indicates:
+
+```text
+a landmark has been reached
+```
+
+but it does not necessarily describe:
+
+```text
+exact wheel angle required right now
+```
+
+The actual steering response should still depend on:
+
+```text
+wall geometry
+
+gyro orientation during Open
+
+current corner state
+
+vehicle speed
+```
+
+The current architecture therefore treats S4 as a **state trigger**, not as the primary steering controller.
+
+---
+
+## 6.22 Color Sensor During Obstacle Challenge
+
+The Color Sensor remains connected to S4 during Obstacles.
+
+The sensing architecture becomes:
+
+```text
+S1 Pixy2.1
+→ obstacle identity / image position
+
+
+S2 / S3
+→ wall geometry
+
+
+S4
+→ course state
+```
+
+<div align="center">
+
+<img
+  src="../../embed/obstacle_color_sensor_role.png"
+  alt="Color Sensor role in Piolín Obstacle Challenge"
+  width="850"
+/>
+
+<br>
+
+<sub><b>Figure 6.14.</b> During Obstacles, Pixy2.1 handles visual targets while S4 continues providing floor-based course landmarks.</sub>
+
+</div>
+
+This separation allows Pixy to focus on:
+
+```text
+RED pillar
+
+GREEN pillar
+
+PINK parking target
+```
+
+while the downward Color Sensor focuses on the competition mat.
+
+The two optical sensors therefore do not perform the same task.
+
+---
+
+## 6.23 Color Sensor vs. Pixy2.1
+
+Both devices detect color-related information, but they observe completely different parts of the environment.
+
+| Sensor | Observes | Main Purpose |
+| :--- | :--- | :--- |
+| EV3 Color Sensor | Floor directly beneath Piolín | Course landmarks |
+| Pixy2.1 | Forward camera image | Pillars and parking target |
+
+Pixy sees:
+
+```text
+ahead
+```
+
+while S4 sees:
+
+```text
+below
+```
+
+<div align="center">
+
+<img
+  src="../../embed/color_vs_pixy_perception.png"
+  alt="Comparison between downward Color Sensor and forward Pixy2.1"
+  width="850"
+/>
+
+<br>
+
+<sub><b>Figure 6.15.</b> S4 and Pixy2.1 both process color-related information but observe different physical regions and solve different navigation problems.</sub>
+
+</div>
+
+Keeping both therefore does not create unnecessary sensing duplication.
+
+---
+
+## 6.24 Color Sensor vs. Gyro
+
+The Gyro Sensor can help the EV3 estimate:
+
+```text
+how much the robot has rotated
+```
+
+but it cannot identify:
+
+```text
+which physical floor marking has been reached
+```
+
+For example, after four nominal 90-degree turns, gyro accumulation could suggest that one lap has approximately occurred.
+
+However, turning error, drift, recovery corrections, and real track trajectories make purely accumulated angular estimation less direct than observing physical floor landmarks.
+
+The Color Sensor therefore provides an independent external reference that complements gyro information.
+
+---
+
+## 6.25 Color Sensor vs. Wheel Encoders
+
+Wheel encoders can estimate theoretical traveled distance.
+
+However:
+
+```text
+wheel rotation
+≠
+perfect vehicle displacement
+```
+
+because of:
+
+```text
+wheel slip
+
+turning
+
+tire deformation
+
+mechanical backlash
+
+different path lengths during curves
+```
+
+A floor mark exists at a known physical course location independent of how much the wheel has rotated.
+
+The Color Sensor therefore reduces dependence on accumulated odometry.
+
+This is especially useful over several laps, where small displacement errors can accumulate.
+
+---
+
+## 6.26 Why Line Tracking Was Not the Main Open Strategy
+
+Color sensors are commonly used for line tracking.
+
+Piolín does not use S4 primarily as a continuous line-following sensor.
+
+The Open Challenge navigation strategy is instead based on:
+
+```text
+wall geometry
++
+gyro orientation
++
+floor landmarks
+```
+
+The reason is that Piolín's main environmental references are the track boundaries rather than one continuous floor line that defines the complete vehicle trajectory.
+
+Using S4 as a course-state detector allows the sensor to solve the problem it is best positioned to solve without forcing it to become the primary steering reference.
+
+---
+
+## 6.27 Color Classification Data Collection
+
+A strong calibration process should collect several readings for each relevant floor state.
+
+Conceptually:
+
+```text
+BLUE samples
+
+B1
+B2
+B3
+...
+BN
+```
+
+```text
+ORANGE samples
+
+O1
+O2
+O3
+...
+ON
+```
+
+and:
+
+```text
+NORMAL FLOOR samples
+
+F1
+F2
+F3
+...
+FN
+```
+
+If RGB values are used, each observation can be recorded as:
+
+```text
+(R, G, B)
+```
+
+The objective is not to find one perfect value.
+
+The objective is to understand the **distribution** produced by each surface.
+
+<div align="center">
+
+<img
+  src="../../embed/color_rgb_calibration.png"
+  alt="Piolín Color Sensor RGB calibration graph"
+  width="850"
+/>
+
+<br>
+
+<sub><b>Figure 6.16.</b> Color calibration should compare multiple measurements from Blue, Orange, and normal floor rather than relying on one isolated RGB sample.</sub>
+
+</div>
+
+This figure should be generated only after current V4 measurements are recorded.
+
+---
+
+## 6.28 Classification Margin
+
+Good classification should provide separation between the measured classes.
+
+Conceptually:
+
+```text
+BLUE VALUES
+██████████
+
+
+        separation
+
+
+                    █████████
+                    ORANGE VALUES
+```
+
+If distributions strongly overlap, simply choosing a threshold between them may not produce robust detection.
+
+Possible improvements include:
+
+```text
+improving casing
+
+adjusting sensor height
+
+changing classification method
+
+using multiple RGB relationships
+```
+
+This is preferable to pretending that overlapping measurements can always be solved with one arbitrary threshold.
+
+---
+
+## 6.29 Relative and Absolute Color Features
+
+A classifier can use absolute ranges:
+
+```text
+R within range
+
+G within range
+
+B within range
+```
+
+or relative relationships:
+
+```text
+B greater than R
+
+R greater than B
+
+channel ratios
+```
+
+depending on the measured dataset.
+
+Relative relationships can sometimes tolerate brightness changes better than one fixed absolute intensity, but they are not automatically superior.
+
+The current classifier should therefore be derived from real sensor data rather than selected only from theoretical expectations of what Blue or Orange "should" look like.
+
+---
+
+## 6.30 Color Detection and Vehicle Speed
+
+Vehicle speed directly affects how long S4 remains above a physical marking.
+
+At higher speed:
+
+```text
+less time above mark
+→ fewer sensor samples
+```
+
+At lower speed:
+
+```text
+more time above mark
+→ more samples
+```
+
+This interaction affects:
+
+```text
+confirmation count
+
+event locking
+
+cooldown
+
+classification confidence
+```
+
+Therefore, a Color Sensor configuration should be validated at the actual operating speeds used in competition.
+
+The sensor and Motor A cannot be calibrated completely independently.
+
+---
+
+## 6.31 Color Sensor During Corners
+
+Because the floor markings are associated with course transitions, S4 can provide useful information near corners.
+
+However, the physical steering maneuver should still be determined from the complete navigation state.
+
+Conceptually:
+
+```text
+COLOR EVENT
+        ↓
+course progression confirmed
+        ↓
+corner state becomes plausible
+```
+
+while:
+
+```text
+ultrasonic geometry
++
+gyro angle
+```
+
+during Open provide physical evidence about how the vehicle should execute and complete the turn.
+
+This creates stronger sensor fusion than relying on only one event source.
+
+---
+
+## 6.32 Progress Counting
+
+The current Open objective remains:
+
+```text
+3 laps
+
+12 corners
+```
+
+The Color Sensor contributes to identifying the physical events associated with that progression.
+
+Conceptually:
+
+```text
+valid floor event
+      ↓
+corner/progress count
+      ↓
+...
+      ↓
+12 corner events
+      ↓
+three-lap objective reached
+```
+
+<div align="center">
+
+<img
+  src="../../embed/color_three_lap_progress.png"
+  alt="Piolín color-based three-lap progress logic"
+  width="860"
+/>
+
+<br>
+
+<sub><b>Figure 6.17.</b> Valid floor events provide external landmarks that support progress tracking through the three-lap course.</sub>
+
+</div>
+
+The software should count **validated physical events**, not every raw sensor reading.
+
+---
+
+## 6.33 Color Sensor and Parking
+
+The Color Sensor can also contribute to determining when Piolín has reached the correct stage of the course for parking.
+
+This should be distinguished from detecting the parking target itself during Obstacles.
+
+During the Obstacle Challenge:
+
+```text
+S4
+→ course progress
+```
+
+while:
+
+```text
+Pixy Signature 1
+→ pink parking target
+```
+
+The EV3 can therefore require:
+
+```text
+correct course state
++
+parking visual evidence
+```
+
+before beginning the final parking maneuver.
+
+This reduces the chance of interpreting an unrelated pink detection too early in the run as a parking command.
+
+---
+
+## 6.34 Sensor Priority
+
+S4 does not need to dominate steering simply because a floor color is detected.
+
+A useful decision hierarchy can instead be state-dependent.
+
+For example, during Open:
+
+```text
+Color
+→ identifies event/state
+
+
+Gyro + Ultrasonics
+→ control physical trajectory
+```
+
+During Obstacles:
+
+```text
+Color
+→ course progression
+
+
+Pixy + Ultrasonics
+→ obstacle trajectory
+```
+
+This preserves the Color Sensor as a reliable **state sensor** rather than allowing one brief floor detection to override more relevant geometric information.
+
+---
+
+## 6.35 Color-Sensor Failure Modes
+
+Several observable problems can originate from the Color Sensor subsystem.
+
+| Observed Behavior | Possible Cause |
+| :--- | :--- |
+| Blue not detected | Classification threshold, sensor height, lighting, speed |
+| Orange not detected | Orange classification or illumination |
+| Normal floor detected as color | Threshold region too broad |
+| One mark counted several times | Missing/weak event lock |
+| Next mark ignored | Cooldown or release condition too long |
+| Direction selected incorrectly | Initial classification error |
+| Detection changes after casing removal | Ambient-light influence |
+| Detection changes after chassis rebuild | Sensor height/orientation changed |
+| Works while stationary but fails while moving | Confirmation too strict or speed too high |
+| Random color events | Optical noise, threshold overlap, floor reflections |
+
+The correct diagnostic response depends on which layer is failing.
+
+---
+
+## 6.36 Diagnostic Order
+
+When color detection becomes unreliable, the recommended order is:
+
+```text
+1. Check S4 connection
+        ↓
+2. Inspect sensor orientation
+        ↓
+3. Inspect casing
+        ↓
+4. Check sensor-to-floor clearance
+        ↓
+5. Observe raw readings
+        ↓
+6. Compare BLUE / ORANGE / FLOOR data
+        ↓
+7. Check classification
+        ↓
+8. Check confirmation
+        ↓
+9. Check event lock / release
+        ↓
+10. Check cooldown
+        ↓
+11. Test at real vehicle speed
+```
+
+This prevents software thresholds from being changed before obvious physical causes are eliminated.
+
+---
+
+## 6.37 Why Hardware Should Be Checked Before Thresholds
+
+Suppose Blue detection becomes inconsistent.
+
+It may be tempting to immediately widen:
+
+```text
+BLUE threshold
+```
+
+However, if the actual problem is:
+
+```text
+Color Sensor mount became loose
+```
+
+then threshold expansion would compensate for a mechanical defect rather than solve it.
+
+The same applies if:
+
+```text
+casing shifted
+
+sensor height changed
+
+light entered from one side
+```
+
+The engineering process should therefore follow:
+
+```text
+PHYSICAL SYSTEM
+      ↓
+RAW DATA
+      ↓
+CLASSIFICATION
+      ↓
+EVENT LOGIC
+```
+
+rather than starting at the last stage.
+
+---
+
+## 6.38 Comparison with Alternative Progress-Tracking Methods
+
+| Method | Advantage | Limitation for Piolín |
+| :--- | :--- | :--- |
+| Motor encoders | Already available | Accumulated distance error |
+| Gyro turn count | Useful during Open | Not available in Obstacles and does not identify physical landmark directly |
+| Time-based progress | Very simple | Strongly dependent on speed and run conditions |
+| Pixy landmarks | Rich visual information | Only installed in Obstacles and depends on camera view |
+| **S4 floor landmarks** | **Direct physical course reference available in both rounds** | **Requires optical calibration and event filtering** |
+
+The Color Sensor was therefore retained because it provides a unique external reference that is available regardless of which device occupies S1.
+
+---
+
+## 6.39 Why the Color Sensor Was Not Removed
+
+The return of the gyro and the introduction of Pixy2.1 could make the Color Sensor appear redundant.
+
+It is not.
+
+The gyro describes:
+
+```text
+orientation
+```
+
+Pixy describes:
+
+```text
+visual objects ahead
+```
+
+the ultrasonics describe:
+
+```text
+walls
+```
+
+and the Color Sensor describes:
+
+```text
+fixed floor landmarks
+```
+
+These measurements are complementary.
+
+Removing S4 would force another sensor to infer course progression indirectly.
+
+Keeping S4 allows Piolín to maintain one direct physical course-state reference in both rounds.
+
+---
+
+## 6.40 Current Color-Sensor Architecture Compared with Earlier Development
+
+The Color Sensor has remained useful through several Piolín versions even while the other sensing systems changed.
+
+Development focused less on replacing the sensor and more on improving how it was used.
+
+The progression can be summarized as:
+
+```text
+simple color detection
+        ↓
+lighting problems observed
+        ↓
+physical light isolation added
+        ↓
+classification improved
+        ↓
+event lock / confirmation logic
+        ↓
+course-state sensor
+```
+
+<div align="center">
+
+<img
+  src="../../embed/evolution_color_sensor.png"
+  alt="Evolution of Piolín Color Sensor subsystem"
+  width="880"
+/>
+
+<br>
+
+<sub><b>Figure 6.18.</b> Evolution of the Color Sensor from simple floor detection toward a physically isolated and state-aware course-landmark subsystem.</sub>
+
+</div>
+
+This evolution demonstrates that improving a sensing system does not always require replacing the sensor itself.
+
+Sometimes the stronger engineering solution is to improve:
+
+```text
+mounting
+
+environment
+
+classification
+
+state processing
+```
+
+around an already appropriate sensor.
+
+---
+
+## 6.41 Current Responsibilities
+
+The current S4 responsibilities are:
+
+| Responsibility | Open | Obstacles |
+| :--- | :---: | :---: |
+| Detect Blue floor marking | Yes | Yes |
+| Detect Orange floor marking | Yes | Yes |
+| Determine initial direction | Yes | Yes |
+| Provide course landmarks | Yes | Yes |
+| Support corner/progress counting | Yes | Yes |
+| Directly control steering | No | No |
+| Detect traffic pillars | No | No |
+| Measure heading | No | No |
+| Measure wall distance | No | No |
+
+The table makes the sensor boundary explicit.
+
+S4 is a **course-state sensor**, not a general-purpose navigation sensor.
+
+---
+
+## 6.42 Values Intentionally Not Claimed as Final
+
+The following values should only be included numerically after calibration of the current V4 installation:
+
+```text
+sensor-to-floor distance
+
+BLUE RGB thresholds
+
+ORANGE RGB thresholds
+
+normal-floor thresholds
+
+reflected-light thresholds
+
+confirmation count
+
+event-lock release condition
+
+cooldown duration
+
+minimum event duration
+
+maximum reliable detection speed
+
+measured classification error
+
+ambient-light variation
+```
+
+Historical values can remain in development documentation, but they should not automatically be reused after changes to:
+
+```text
+sensor mount
+
+casing
+
+track
+
+lighting
+
+software mode
+```
+
+---
+
+## 6.43 Final Engineering Assessment
+
+The LEGO EV3 Color Sensor remains part of Piolín because it solves a problem that the other sensors do not solve as directly: identifying **fixed physical landmarks on the competition floor**.
+
+Its role can be summarized as:
+
+```text
+                         COURSE FLOOR
+                              │
+                              ▼
+                       EV3 COLOR SENSOR
+                              │
+                              ▼
+                         CLASSIFICATION
+                              │
+                    ┌─────────┴─────────┐
+                    ▼                   ▼
+                  BLUE               ORANGE
+                    │                   │
+                    └─────────┬─────────┘
+                              ▼
+                         VALID EVENT
+                              │
+                              ▼
+                         COURSE STATE
+                              │
+                              ▼
+                            EV3
+```
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/color_sensor_bottom_view.jpg"
+  alt="Piolín final downward Color Sensor installation"
+  width="680"
+/>
+
+<br>
+
+<sub><b>Figure 6.19.</b> Current S4 installation providing a permanent floor-reference subsystem for both competition rounds.</sub>
+
+</div>
+
+The final design also demonstrates that reliable sensing is not only a software problem. The custom light-isolation casing, mounting position, classification logic, event locking, and dynamic validation all contribute to the final result.
+
+Piolín therefore treats the Color Sensor as a complete optical subsystem rather than simply as a device that returns a color name.
+
+---
+
+<div align="center">
+
+### [← Back to PiolínTech Main README](../../README.md)
+
+</div>
