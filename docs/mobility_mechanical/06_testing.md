@@ -1,423 +1,314 @@
-# 6. Mechanical and Mobility Testing
+# 6. Mobility and Mechanical Testing
 
-Piolín's mechanical system is validated through structured testing rather than only by observing whether the robot completes the course.
+<div align="center">
 
-The purpose of mechanical testing is to determine whether the physical vehicle behaves consistently enough for the autonomous software to rely on it.
+<img
+  src="../../v-photos/v4/full_track.jpg"
+  alt="Full track used for Piolín mobility and mechanical testing"
+  width="740"
+/>
 
-The testing process focuses on the interaction between:
+<br>
 
-```text
-CHASSIS
-    +
-DRIVETRAIN
-    +
-STEERING
-    +
-WHEELS
-    +
-SENSOR MOUNTING
-    ↓
-REPEATABLE VEHICLE MOTION
-```
+<sub><b>Figure 6.1.</b> Full competition-style track used to evaluate Piolín's mobility system under representative driving conditions.</sub>
 
-A navigation algorithm can only be tuned effectively if similar motor commands produce reasonably similar physical responses.
+</div>
 
-For this reason, Piolín's mobility testing separates mechanical behavior from higher-level navigation logic whenever possible.
+Piolín's mechanical design is evaluated through repeated physical testing rather than only through visual inspection or theoretical calculations. The purpose of the testing process is to determine whether the drivetrain, steering system, wheels, chassis, and vehicle geometry produce sufficiently repeatable behavior for autonomous navigation.
 
-The main mechanical subsystems evaluated are:
+The main mechanical subsystems tested are:
 
 ```text
-Steering center
+steering center
 
-Steering repeatability
+steering range
 
-Steering range
+left/right steering behavior
 
-Straight-line movement
+drivetrain freedom
 
-Drivetrain consistency
+forward movement
 
-Encoder-to-distance behavior
+reverse movement
 
-Wheel traction
+straight-line stability
 
-Corner repeatability
+corner execution
 
-Reverse movement
+obstacle maneuvering
 
-Structural stability
+post-obstacle recovery
 
-Sensor-mount stability
-
-Full vehicle integration
+parking
 ```
 
-This document describes the testing methodology used to evaluate those areas and the evidence that should be recorded for the final robot.
+Testing is also used to separate software problems from mechanical problems.
+
+A robot can produce an incorrect trajectory because:
+
+```text
+the controller made the wrong decision
+```
+
+but it can also fail because:
+
+```text
+the mechanical system did not reproduce
+the commanded motion correctly
+```
+
+For this reason, Piolín's testing process evaluates both the **command** and the **physical response**.
 
 ---
 
-## 6.1 Testing Objectives
+## 6.1 Purpose of Mechanical Testing
 
-The purpose of the mechanical validation process is to answer six main questions:
+The objective of mobility testing is not simply to prove that Piolín can move.
+
+A useful autonomous mobility system must be:
 
 ```text
-1. Does the chassis remain mechanically consistent?
+repeatable
 
-2. Does Motor A produce repeatable propulsion?
+predictable
 
-3. Does Motor B return to a repeatable steering position?
+mechanically stable
 
-4. Does the physical steering system respond consistently to commands?
+controllable
 
-5. Do drivetrain and steering behavior remain usable during real course maneuvers?
-
-6. Do mechanical changes affect sensor measurements or autonomous behavior?
+consistent between runs
 ```
 
-These questions connect directly to the WRO Future Engineers requirement for a vehicle that can repeatedly navigate the track rather than succeed only in isolated runs.
+A drivetrain that works once but changes behavior after several runs is difficult to calibrate.
+
+Likewise, a steering system that reaches a different physical center each time cannot provide a stable reference for wall following, cornering, obstacle avoidance, or parking.
+
+The testing process therefore asks questions such as:
+
+```text
+Does Motor B return to the same center?
+
+Do equal left/right commands create similar behavior?
+
+Does the drivetrain travel repeatable distances?
+
+Does reverse motion behave consistently?
+
+Does a corner exit into a useful position?
+
+Does Piolín recover after avoiding a pillar?
+
+Does parking finish in a repeatable area?
+```
+
+These questions connect mechanical design directly to autonomous performance.
 
 ---
 
-# 6.2 Current Mechanical Reference
+# 6.2 Testing Philosophy
 
-The current Piolín configuration used for mechanical testing is:
+Piolín's testing process follows a simple principle:
 
-| Parameter | Current Configuration |
-| :--- | :--- |
-| **Main controller** | LEGO EV3 |
-| **Drive actuator** | Motor A |
-| **Steering actuator** | Motor B |
-| **Drive architecture** | Rear propulsion |
-| **Steering architecture** | Ackermann-style front steering |
-| **Front wheel diameter** | 38.1 mm |
-| **Rear wheel diameter** | ~61.0 mm |
-| **Robot length** | 210 mm |
-| **Robot width** | 150 mm |
-| **Robot height** | 230 mm |
-| **Robot mass** | 0.80476 kg |
+> **Change as few variables as possible between two tests.**
 
-These values define the physical version of Piolín to which the tests in this document apply.
+If several software and mechanical variables are changed at the same time, it becomes difficult to identify which change caused the observed result.
 
-If the robot geometry changes significantly, results should not automatically be transferred to the new configuration.
+A useful experimental comparison should therefore try to preserve:
+
+```text
+same robot configuration
+
+same starting position
+
+same track
+
+same battery condition
+
+same software version
+
+same sensor arrangement
+```
+
+while changing only the variable being investigated.
+
+For example, a steering test should not simultaneously change:
+
+```text
+Motor B command
+
+Motor A speed
+
+starting position
+
+steering linkage
+```
+
+unless the purpose of the experiment is explicitly to evaluate their interaction.
 
 ---
 
-# 6.3 Why Mechanical Testing Is Separated From Software Testing
+## 6.3 Mechanical Condition Before Testing
 
-A robot can fail a navigation test for several different reasons.
+Before collecting useful test evidence, Piolín should first be placed in a known mechanical condition.
 
-For example:
-
-```text
-Robot turns too far
-```
-
-could be caused by:
+The inspection sequence includes:
 
 ```text
-Software steering command too large
+rear wheels secure
+
+drivetrain free
+
+Motor A mount secure
+
+Motor B mount secure
+
+steering linkage connected
+
+front pivots free
+
+steering center checked
+
+ultrasonic mounts stable
+
+Color Sensor mount stable
+
+S1 device correct for the round
 ```
 
-or:
+The reason is straightforward:
 
 ```text
-Mechanical steering center incorrect
+unstable hardware
+→ unstable experiment
 ```
 
-or:
-
-```text
-Linkage became loose
-```
-
-or:
-
-```text
-Vehicle speed changed
-```
-
-Similarly:
-
-```text
-Robot misses a corner
-```
-
-could originate from:
-
-```text
-Sensor interpretation
-
-Drive speed
-
-Steering delay
-
-Mechanical binding
-
-Incorrect sensor mounting
-```
-
-Mechanical testing therefore attempts to isolate the physical system before modifying software parameters.
-
-The development principle is:
-
-```text
-VERIFY MECHANICS
-       ↓
-VERIFY SENSORS
-       ↓
-TUNE CONTROL
-       ↓
-VALIDATE COMPLETE SYSTEM
-```
-
-This reduces the risk of compensating for a mechanical problem with increasingly complex software.
+A controller cannot be meaningfully compared across trials if the robot itself changes mechanically between them.
 
 ---
 
-# 6.4 Testing Conditions
+# 6.4 Test Environment
 
-Whenever possible, repeated mechanical tests should be performed under similar conditions.
+<div align="center">
 
-Important variables include:
+<img
+  src="../../v-photos/v4/full_track.jpg"
+  alt="Track environment used for Piolín testing"
+  width="740"
+/>
+
+<br>
+
+<sub><b>Figure 6.2.</b> Mechanical tests should progress from isolated subsystem tests to representative full-track runs.</sub>
+
+</div>
+
+Piolín is tested at several levels.
+
+The first level isolates the subsystem as much as possible:
 
 ```text
-Same robot configuration
+steering while stationary
 
-Same wheel set
+manual drivetrain inspection
 
-Same steering linkage
+encoder movement
 
-Same battery configuration
-
-Same track surface
-
-Same starting position
-
-Same software version
-
-Same motor command
+wheel alignment
 ```
 
-If one of these variables changes, the test record should identify that change.
+The second level introduces controlled vehicle motion:
 
-This makes comparisons between runs more meaningful.
+```text
+short straight
+
+single steering maneuver
+
+single reverse maneuver
+
+single corner
+```
+
+The final level uses the complete track:
+
+```text
+multiple corners
+
+three-lap Open behavior
+
+obstacle sequence
+
+recovery
+
+parking
+```
+
+This progression helps prevent a full-track failure from hiding the original cause.
 
 ---
 
-# 6.5 Test Record Format
+# 6.5 Test Progression
 
-Each significant mechanical test should contain enough information to reproduce the condition.
+A useful progression is:
 
-A useful record format is:
+```text
+STATIC MECHANICAL TEST
+          ↓
+LOW-SPEED MOTION TEST
+          ↓
+ISOLATED MANEUVER
+          ↓
+REPEATED MANEUVER
+          ↓
+MULTI-MANEUVER TEST
+          ↓
+FULL RUN
+```
 
-| Field | Information |
-| :--- | :--- |
-| **Date** | When the test was performed |
-| **Robot version** | Current physical configuration |
-| **Code version** | Software used during test |
-| **Test type** | Steering, drivetrain, corner, etc. |
-| **Starting condition** | Initial robot placement |
-| **Command** | Motor/steering instruction |
-| **Expected behavior** | What should physically occur |
-| **Observed behavior** | What actually occurred |
-| **Result** | Pass / partial / fail |
-| **Notes** | Mechanical observations |
-| **Evidence** | Photo, GIF, video, log, or measurement |
+Each level adds additional variables.
 
-The objective is to preserve not only whether a test succeeded but also **how the result was obtained**.
+For example, a full Obstacle Challenge run combines:
+
+```text
+camera detection
+
+steering
+
+drivetrain
+
+walls
+
+multiple pillars
+
+corners
+
+recovery
+
+parking
+```
+
+If the robot cannot reproduce a simple steering-center test, testing all of those variables together would provide little useful diagnostic information.
 
 ---
 
-# 6.6 Visual Inspection Before Dynamic Testing
+# 6.6 Steering Center Test
 
-Before running motion tests, Piolín should first be inspected mechanically.
+<div align="center">
 
-The inspection includes:
+<img
+  src="../../v-photos/v4/ackermann_center.jpg"
+  alt="Piolín steering mechanism at mechanical center"
+  width="680"
+/>
 
-```text
-Front wheels attached correctly
+<br>
 
-Rear wheels secured
+<sub><b>Figure 6.3.</b> Mechanical center is the first reference used during steering testing.</sub>
 
-Steering linkage connected
+</div>
 
-Motor B mounting stable
+The steering-center test determines whether Motor B can repeatedly return the front wheels to approximately the same neutral orientation.
 
-Motor A mounting stable
-
-Rear drivetrain rotates freely
-
-Sensor mounts secure
-
-HuskyLens mount stable
-
-Color sensor casing clear of track
-
-Cables clear of steering linkage
-```
-
-This prevents a known physical fault from contaminating the results of a software or mobility test.
-
----
-
-# 6.7 Chassis Integrity Check
-
-The chassis should maintain the relative positions of its major components during handling and motion.
-
-The areas of greatest importance are:
-
-```text
-Steering support structure
-
-Rear drivetrain support
-
-EV3 mounting
-
-Ultrasonic sensor mounts
-
-HuskyLens mount
-
-Color sensor mount
-```
-
-The test does not attempt to prove that the LEGO chassis has zero deformation.
-
-Instead, the objective is to identify visible or functionally significant unwanted movement.
-
-A chassis problem is considered relevant when it changes:
-
-```text
-Wheel alignment
-
-Steering response
-
-Sensor orientation
-
-Drivetrain resistance
-```
-
----
-
-# 6.8 Steering Center Test
-
-One of the most important mechanical tests is verifying the steering center.
-
-The purpose is to determine whether:
-
-```text
-Software center command
-        ≈
-Physical straight-wheel position
-```
-
-### Procedure
-
-1. Place Piolín on a level surface.
-2. Command Motor B to the current software steering-center position.
-3. Observe both front wheels.
-4. Check whether the wheels are approximately aligned with the longitudinal direction of the chassis.
-5. Drive the robot forward for a controlled distance.
-6. Observe whether a strong directional bias is present.
-
-The test distinguishes between:
-
-```text
-MECHANICAL CENTER ERROR
-```
-
-and:
-
-```text
-WALL-FOLLOWING CONTROL ERROR
-```
-
-A robot should not require a large continuous software correction simply to compensate for an incorrectly centered mechanical steering mechanism.
-
----
-
-# 6.9 Steering Center Evidence Table
-
-| Trial | Center Command | Visible Wheel Alignment | Straight Bias | Notes |
-| :---: | :---: | :--- | :--- | :--- |
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-| 4 |  |  |  |  |
-| 5 |  |  |  |  |
-
-This table should contain actual current measurements or observations rather than estimated values.
-
----
-
-# 6.10 Steering Range Test
-
-The steering mechanism has finite travel in both directions.
-
-The objective of this test is to identify the usable range without mechanically forcing the linkage.
-
-Conceptually:
-
-```text
-LEFT LIMIT
-    │
-    │<------- USABLE RANGE ------->│
-                                   │
-                              RIGHT LIMIT
-```
-
-The test should observe:
-
-```text
-Smooth movement
-
-No structural collision
-
-No wheel-chassis interference
-
-No linkage binding
-
-No excessive motor load
-```
-
-The mechanical limit should not be defined only by the maximum command that the software can generate.
-
-It should correspond to the physical range that the mechanism can use repeatedly without being forced beyond its normal motion.
-
----
-
-# 6.11 Steering Motion Evidence
-
-The steering GIF documented in:
-
-[Steering System](04_steering.md)
-
-is useful evidence for this subsystem.
-
-It visually demonstrates:
-
-```text
-Motor B actuation
-
-Linkage movement
-
-Left wheel response
-
-Right wheel response
-
-Return toward center
-```
-
-A GIF or short video is particularly valuable because steering is a dynamic mechanism and cannot be completely documented by a static photograph.
-
-The visual evidence should be paired with measured or observed behavior rather than being treated as quantitative proof of the steering angle.
-
----
-
-# 6.12 Steering Repeatability Test
-
-The steering system should return to approximately the same physical position when the same command is repeated.
-
-A useful sequence is:
+A test sequence can use:
 
 ```text
 CENTER
@@ -431,2018 +322,1790 @@ RIGHT
 CENTER
 ```
 
-repeated several times.
+and repeat the cycle several times.
 
-The objective is to observe whether:
-
-```text
-Center remains consistent
-
-Left position remains consistent
-
-Right position remains consistent
-
-Linkage movement remains smooth
-```
-
-This test is especially useful for detecting:
+The observation should answer:
 
 ```text
-Mechanical play
+Do the wheels return to the same visual center?
 
-Loose pivots
+Does center depend on the direction from which it was approached?
 
-Motor mounting movement
+Does Motor B stop at the expected position?
 
-Linkage deformation
+Is there visible linkage play?
 ```
+
+A different center when approached from the left and right can indicate backlash or mechanical clearance.
 
 ---
 
-# 6.13 Steering Repeatability Record
+## 6.7 Why Center Repeatability Matters
 
-| Cycle | Left Response | Return to Center | Right Response | Final Center | Notes |
-| :---: | :--- | :--- | :--- | :--- | :--- |
-| 1 |  |  |  |  |  |
-| 2 |  |  |  |  |  |
-| 3 |  |  |  |  |  |
-| 4 |  |  |  |  |  |
-| 5 |  |  |  |  |  |
+Steering center influences every other mobility test.
 
-The most important observation is whether repeated cycles produce visibly different wheel positions under the same conditions.
+If center changes:
+
+```text
+straight-line behavior changes
+```
+
+which then changes:
+
+```text
+wall distance
+
+corner approach
+
+obstacle approach
+
+parking alignment
+```
+
+Therefore a small center error can propagate into many apparently unrelated failures.
+
+The steering-center test should be repeated after:
+
+```text
+front structure changes
+
+Motor B remounting
+
+linkage changes
+
+wheel-support changes
+```
+
+before the previous software calibration is reused.
 
 ---
 
-# 6.14 Steering Reversal Test
+# 6.8 Steering Range Test
 
-Autonomous wall following often changes steering direction rapidly.
+<div align="center">
 
-For example:
+<img
+  src="../../v-photos/v4/ackermann_left_lock.jpg"
+  alt="Piolín steering at left mechanical limit"
+  width="650"
+/>
+
+<br>
+
+<sub><b>Figure 6.4.</b> Left-side usable steering limit.</sub>
+
+</div>
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/ackermann_right_lock.jpg"
+  alt="Piolín steering at right mechanical limit"
+  width="650"
+/>
+
+<br>
+
+<sub><b>Figure 6.5.</b> Right-side usable steering limit.</sub>
+
+</div>
+
+The steering-range test identifies the mechanically useful limits of Motor B.
+
+The purpose is not to force the system to its absolute maximum.
+
+Instead, the test identifies the range where:
 
 ```text
-LEFT correction
-      ↓
-CENTER
-      ↓
-RIGHT correction
+linkage remains free
+
+wheels move predictably
+
+no structure is contacted
+
+Motor B is not pushing against a hard stop
 ```
 
-The steering reversal test evaluates the physical response when Motor B changes direction.
-
-The test should observe:
-
-```text
-Delay before wheel movement
-
-Mechanical play
-
-Linkage noise
-
-Binding
-
-Difference between left-to-right
-and right-to-left response
-```
-
-This is particularly relevant because excessive steering reversals can amplify mechanical backlash and contribute to zig-zag behavior.
+These physical observations establish the safe region within which software steering limits should later be selected.
 
 ---
 
-# 6.15 Straight-Line Propulsion Test
+# 6.9 Steering Angle Characterization
 
-The drivetrain should first be evaluated with steering near mechanical center.
+<div align="center">
 
-The objective is to observe the natural vehicle tendency before wall-following corrections are applied.
+<img
+  src="../../v-photos/v4/ackermann_angles.jpg"
+  alt="Piolín Ackermann steering angle reference"
+  width="720"
+/>
 
-### Procedure
+<br>
+
+<sub><b>Figure 6.6.</b> Steering-angle reference used to characterize the relationship between Motor B command and physical wheel orientation.</sub>
+
+</div>
+
+A more detailed test can relate:
 
 ```text
-Place Piolín at known start
-        ↓
-Set steering to center
-        ↓
-Run Motor A at fixed command
-        ↓
-Travel controlled distance
-        ↓
-Observe final position
+Motor B position
 ```
 
-The test helps identify:
+to:
 
 ```text
-Steering center bias
+left wheel angle
 
-Wheel alignment issues
-
-Drivetrain asymmetry
-
-Unexpected mechanical resistance
+right wheel angle
 ```
 
-A small deviation does not automatically indicate failure.
+A measurement table can use the following format:
 
-The objective is to identify whether the deviation is consistent enough that it must be considered during navigation calibration.
+| Trial Position | Motor B Reference | Left Wheel Angle | Right Wheel Angle |
+| :--- | :---: | :---: | :---: |
+| Maximum useful left | — | — | — |
+| Intermediate left | — | — | — |
+| Center | — | — | — |
+| Intermediate right | — | — | — |
+| Maximum useful right | — | — | — |
 
----
+The table should only be populated with measured V4 values.
 
-# 6.16 Straight-Line Repeatability Record
-
-| Trial | Motor A Command | Distance Reference | Final Lateral Deviation | Direction of Bias | Notes |
-| :---: | :---: | :---: | :---: | :--- | :--- |
-| 1 |  |  |  |  |  |
-| 2 |  |  |  |  |  |
-| 3 |  |  |  |  |  |
-| 4 |  |  |  |  |  |
-| 5 |  |  |  |  |  |
-
-If the robot repeatedly deviates toward the same side, the mechanical system should be checked before compensating entirely through software.
-
----
-
-# 6.17 Rear Wheel Geometry Reference
-
-The current rear wheel diameter is:
+The purpose is to document that:
 
 ```text
-D_REAR ≈ 61.0 mm
-```
-
-with theoretical circumference:
-
-```text
-C_REAR ≈ 191.5 mm
-```
-
-The ideal wheel-distance relationship is:
-
-```text
-DISTANCE =
-(THETA_WHEEL / 360)
-×
-191.5 mm
-```
-
-This equation provides a theoretical reference for drivetrain testing.
-
----
-
-# 6.18 Encoder-to-Distance Test
-
-The purpose of this test is to compare theoretical wheel rotation with actual vehicle displacement.
-
-For example:
-
-```text
-Command a known rotational amount
-        ↓
-Measure actual track displacement
-        ↓
-Compare with theoretical value
-```
-
-If the command corresponds to actual wheel rotation:
-
-```text
-THEORETICAL_DISTANCE =
-(THETA / 360)
-×
-191.5 mm
-```
-
-The difference can be calculated as:
-
-```text
-DISTANCE_ERROR =
-MEASURED_DISTANCE
--
-THEORETICAL_DISTANCE
-```
-
-and percentage error as:
-
-```text
-ERROR_PERCENT =
-ABS(DISTANCE_ERROR)
-/
-THEORETICAL_DISTANCE
-×
-100
-```
-
-If a transmission ratio exists between Motor A and the wheels, that ratio must also be included.
-
----
-
-# 6.19 Encoder Distance Record
-
-| Trial | Encoder / Wheel Rotation | Theoretical Distance | Measured Distance | Difference | Error % |
-| :---: | :---: | :---: | :---: | :---: | :---: |
-| 1 |  |  |  |  |  |
-| 2 |  |  |  |  |  |
-| 3 |  |  |  |  |  |
-| 4 |  |  |  |  |  |
-| 5 |  |  |  |  |  |
-
-This table should use measured current data.
-
-The purpose is not to force the robot to match the ideal equation perfectly, but to quantify how physical motion differs from the theoretical model.
-
----
-
-# 6.20 Repeatability vs. Accuracy
-
-Two different drivetrain qualities should be distinguished.
-
-### Accuracy
-
-```text
-How close is measured movement
-to the theoretical or desired distance?
-```
-
-### Repeatability
-
-```text
-How similar are repeated runs
-under the same conditions?
-```
-
-For autonomous control, repeatability can be particularly important.
-
-For example:
-
-```text
-Desired distance = 500 mm
-
-Measured repeatedly:
-480
-481
-479
-482
-```
-
-is systematically offset but highly repeatable.
-
-By contrast:
-
-```text
-460
-520
-475
-540
-```
-
-is much harder to compensate for because the behavior itself is inconsistent.
-
-The real project data should be used to determine which condition applies to Piolín.
-
----
-
-# 6.21 Drivetrain Rotation Test
-
-Before full vehicle testing, the rear drivetrain can also be observed while the robot is safely lifted from the track.
-
-The objective is to check:
-
-```text
-Rear wheels rotate freely
-
-No visible drivetrain binding
-
-Axles remain aligned
-
-No structural component contacts rotating parts
-
-Motor A remains securely mounted
-```
-
-This isolates the drivetrain from tire-track friction.
-
-A system that already binds while unloaded should not be evaluated first through autonomous navigation.
-
----
-
-# 6.22 Drivetrain Load Test
-
-After unloaded inspection, the drivetrain should be evaluated with the complete vehicle on the track.
-
-The test determines whether the mechanism behaves differently when supporting the robot's full:
-
-```text
-0.80476 kg
-```
-
-mass.
-
-The test can reveal issues that do not appear when the wheels are free-spinning, including:
-
-```text
-Axle flex
-
-Increased friction
-
-Wheel rubbing
-
-Structural movement
-
-Traction problems
-```
-
----
-
-# 6.23 Wheel Slip Observation
-
-Encoder rotation does not guarantee equal physical displacement.
-
-Wheel slip can be identified when:
-
-```text
-Wheel rotation occurs
-        ↓
-Expected displacement does not
-        ↓
-Track contact is slipping
-```
-
-Potential evidence includes:
-
-```text
-Visible wheel spin
-
-Encoder distance greater than actual distance
-
-Sudden movement during acceleration
-
-Inconsistent reverse behavior
-```
-
-No fixed slip percentage should be assumed without measurement.
-
----
-
-# 6.24 Forward and Reverse Comparison
-
-Because Piolín uses the same Motor A drivetrain in both directions, forward and reverse motion can be compared.
-
-A useful test sequence is:
-
-```text
-Forward controlled distance
-        ↓
-Stop
-        ↓
-Reverse equivalent command
-        ↓
-Compare returned position
-```
-
-Perfect return to the original point is not expected because:
-
-```text
-Slip
-
-Steering alignment
-
-Mechanical backlash
-
-Surface interaction
-```
-
-can create differences.
-
-The purpose is to identify large or systematic asymmetry.
-
----
-
-# 6.25 Forward/Reverse Record
-
-| Trial | Forward Command | Forward Distance | Reverse Command | Reverse Distance | Position Difference |
-| :---: | :---: | :---: | :---: | :---: | :---: |
-| 1 |  |  |  |  |  |
-| 2 |  |  |  |  |  |
-| 3 |  |  |  |  |  |
-| 4 |  |  |  |  |  |
-| 5 |  |  |  |  |  |
-
-This test is relevant to both parking and recovery behavior.
-
----
-
-# 6.26 Low-Speed Steering Test
-
-Piolín should be evaluated at a lower propulsion speed while applying several steering positions.
-
-The objective is to isolate steering geometry without large dynamic effects.
-
-Example sequence:
-
-```text
-CENTER
-      ↓
-Small left
-      ↓
-Medium left
-      ↓
-Center
-      ↓
-Small right
-      ↓
-Medium right
-```
-
-The test should observe whether increased steering produces progressively tighter vehicle curvature.
-
-The expected qualitative relationship is:
-
-```text
-More steering
-      ↓
-Smaller turning radius
-```
-
-within the usable mechanical range.
-
----
-
-# 6.27 Turning-Radius Test
-
-A turning-radius test can quantify the relationship between steering command and vehicle path.
-
-### Procedure
-
-1. Select one fixed steering command.
-2. Maintain that steering position.
-3. Drive Piolín at a controlled low speed.
-4. Allow the robot to follow part of a circular trajectory.
-5. Record the approximate radius.
-6. Repeat for several steering commands.
-
-The theoretical bicycle-model relationship is:
-
-```text
-R =
-L / tan(DELTA)
-```
-
-but the real Piolín measurement should be treated separately because:
-
-```text
-DELTA
-```
-
-is the physical equivalent wheel angle, not simply the Motor B encoder command.
-
----
-
-# 6.28 Turning-Radius Record
-
-| Steering Command | Direction | Approx. Measured Radius | Speed Setting | Notes |
-| :---: | :--- | :---: | :---: | :--- |
-|  | Left |  |  |  |
-|  | Left |  |  |  |
-|  | Right |  |  |  |
-|  | Right |  |  |  |
-
-This table can later provide useful evidence for:
-
-[Steering Geometry](04_steering.md)
-
-and:
-
-[Parking Geometry](../software_obstacles_strategy/parking/03_ParkingGeom.md)
-
----
-
-# 6.29 Left vs. Right Steering Symmetry
-
-Ackermann steering does not require the entire mechanism to be perfectly symmetric in measured behavior, but large left/right differences should be identified.
-
-The comparison should consider:
-
-```text
-Equivalent steering command
-
-Equivalent drive speed
-
-Equivalent surface
-
-Equivalent starting geometry
-```
-
-Observe:
-
-```text
-Turn radius left
-
-Turn radius right
-
-Steering response
-
-Return to center
-```
-
-If one direction is consistently tighter than the other, that behavior should be documented rather than hidden.
-
----
-
-# 6.30 Corner Test
-
-The WRO track contains repeated corners, so corner performance must be validated dynamically.
-
-The test should evaluate:
-
-```text
-Corner entry
-
-Peak steering response
-
-Clearance from inner boundary
-
-Clearance from outer boundary
-
-Corner exit
-
-Post-corner stabilization
-```
-
-A corner should not be evaluated only by whether Piolín physically completes the turn.
-
-The exit trajectory matters because a robot that completes the corner but immediately approaches a wall has not completed a stable maneuver.
-
----
-
-# 6.31 Corner Test Sequence
-
-The physical sequence is:
-
-```text
-Approach straight
-      ↓
-Corner condition detected
-      ↓
-Steering increases
-      ↓
-Vehicle rotates
-      ↓
-Outer geometry becomes useful
-      ↓
-Inner geometry returns
-      ↓
-Steering decreases
-      ↓
-Post-corner stabilization
-```
-
-Testing should determine whether this sequence is mechanically repeatable.
-
-The software logic itself is documented in:
-
-[Corner Handling](../software_obstacles_strategy/04_cornerhandling.md)
-
----
-
-# 6.32 Corner Repeatability Record
-
-| Trial | Direction | Entry Behavior | Wall Contact | Exit Stability | Result | Notes |
-| :---: | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 |  |  |  |  |  |  |
-| 2 |  |  |  |  |  |  |
-| 3 |  |  |  |  |  |  |
-| 4 |  |  |  |  |  |  |
-| 5 |  |  |  |  |  |  |
-
-A useful final record should include multiple attempts rather than only the best successful run.
-
----
-
-# 6.33 Clockwise and Counterclockwise Testing
-
-Piolín must be capable of operating in both course directions.
-
-The mechanical system should therefore be evaluated in:
-
-```text
-CLOCKWISE
+motor encoder angle
 ```
 
 and:
 
 ```text
-COUNTERCLOCKWISE
+wheel steering angle
 ```
 
-movement.
-
-This is particularly important because:
-
-```text
-Clockwise
-      ↓
-Right side becomes inner reference
-```
-
-while:
-
-```text
-Counterclockwise
-      ↓
-Left side becomes inner reference
-```
-
-Any mechanical asymmetry can therefore affect the two travel directions differently.
+are different physical quantities.
 
 ---
 
-# 6.34 Direction Comparison Table
+# 6.10 Left/Right Steering Comparison
 
-| Test | Clockwise Result | Counterclockwise Result | Difference Observed |
-| :--- | :--- | :--- | :--- |
-| Straight stability |  |  |  |
-| Corner entry |  |  |  |
-| Corner radius |  |  |  |
-| Corner exit |  |  |  |
-| Wall recovery |  |  |  |
+A steering system should also be tested for practical symmetry.
 
-This table helps distinguish a general mobility problem from a direction-specific mechanical issue.
-
----
-
-# 6.35 Wall-Following Mechanical Test
-
-Although wall-following is primarily a sensing/control function, it is also a useful mobility test.
-
-A stable run indicates that:
+Equal-magnitude Motor B commands can be applied in opposite directions:
 
 ```text
-Drive motion
-
-Steering actuation
-
-Sensor mounting
-
-Chassis alignment
-```
-
-are cooperating sufficiently for continuous navigation.
-
-The test should evaluate:
-
-```text
-Oscillation amplitude
-
-Frequency of large steering reversals
-
-Wall contact
-
-Long straight stability
-
-Recovery after small deviations
-```
-
-Software tuning should only be interpreted after checking the mechanical conditions described earlier in this document.
-
----
-
-# 6.36 Zig-Zag Diagnostic Test
-
-If Piolín zig-zags, the cause should be isolated systematically.
-
-Potential mechanical causes:
-
-```text
-Incorrect steering center
-
-Loose linkage
-
-Uneven wheel alignment
-
-Delayed steering reversal
-
-Sensor mount movement
-```
-
-Potential control causes:
-
-```text
-Gain too high
-
-Correction range too large
-
-Correction applied too late
-
-Drive speed too high
-```
-
-The diagnostic process should therefore be:
-
-```text
-Check steering mechanically
-        ↓
-Check sensor mounting
-        ↓
-Check straight-line behavior
-        ↓
-Then modify controller
-```
-
-This prevents software from masking a physical fault.
-
----
-
-# 6.37 Speed Comparison Test
-
-Because vehicle speed affects steering dynamics, the same course segment can be tested at several Motor A speed settings.
-
-The objective is to observe how mobility changes with speed.
-
-Possible observations include:
-
-```text
-Straight stability
-
-Corner overshoot
-
-Steering responsiveness
-
-Wall correction distance
-
-Post-corner recovery
-```
-
-The relationship:
-
-```text
-A_LATERAL =
-V² / R
-```
-
-explains why the same geometric turn becomes dynamically more demanding as velocity increases.
-
----
-
-# 6.38 Speed Test Record
-
-| Speed Setting | Straight Stability | Corner Stability | Recovery Quality | Notes |
-| :---: | :--- | :--- | :--- | :--- |
-|  |  |  |  |  |
-|  |  |  |  |  |
-|  |  |  |  |  |
-
-This table should use the actual speed commands tested by the team.
-
-The goal is not automatically to choose the largest value.
-
-The goal is to find a useful balance between:
-
-```text
-Speed
-   +
-Control
-   +
-Repeatability
-```
-
----
-
-# 6.39 Obstacle-Avoidance Mechanical Validation
-
-The Obstacle Challenge adds a larger lateral trajectory change than ordinary wall following.
-
-Mechanical testing should evaluate whether Piolín can physically:
-
-```text
-Begin avoidance
-
-Create sufficient lateral movement
-
-Clear the pillar
-
-Reverse steering direction
-
-Recover toward normal path
-```
-
-The camera classification itself belongs to vision testing.
-
-This section focuses specifically on the **vehicle motion** produced after an obstacle maneuver is requested.
-
----
-
-# 6.40 Green and Red Maneuver Testing
-
-The current obstacle interpretation is:
-
-```text
-GREEN
-ID 1
-   ↓
-Pass on LEFT
+-X
 ```
 
 and:
+
+```text
++X
+```
+
+The physical responses can then be compared.
+
+Relevant observations include:
+
+```text
+wheel angle
+
+turning strength
+
+motor effort
+
+response time
+
+mechanical interference
+```
+
+The objective is not to force perfect mathematical symmetry.
+
+Instead, the test determines whether the difference between sides is important enough to affect autonomous control.
+
+If a consistent difference exists, software can later treat left and right maneuvers separately.
+
+---
+
+# 6.11 Steering Motion Test
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/steering_motion.gif"
+  alt="Piolín steering mechanism moving through the full range"
+  width="700"
+/>
+
+<br>
+
+<sub><b>Figure 6.7.</b> Dynamic steering movement used to inspect smoothness, delay, and mechanical play.</sub>
+
+</div>
+
+Static photographs show the final positions.
+
+The GIF demonstrates the movement between them.
+
+During this test, the team can observe:
+
+```text
+smoothness
+
+linkage delay
+
+backlash
+
+left/right response difference
+
+binding
+
+mechanical vibration
+```
+
+This matters because autonomous steering consists mainly of **transitions**, not only fixed positions.
+
+Piolín frequently changes between:
+
+```text
+straight correction
+
+corner steering
+
+obstacle avoidance
+
+countersteering
+
+recovery
+```
+
+The transition quality therefore matters as much as the final steering angle.
+
+---
+
+# 6.12 Straight-Line Test
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/Piolin_open_front.jpeg"
+  alt="Front view of Piolín used as a reference for straight-line alignment"
+  width="680"
+/>
+
+<br>
+
+<sub><b>Figure 6.8.</b> Front alignment of the vehicle provides a mechanical reference before straight-line testing.</sub>
+
+</div>
+
+The straight-line test evaluates the complete relationship between:
+
+```text
+steering center
+
+rear-wheel alignment
+
+drivetrain
+
+vehicle structure
+```
+
+A basic test should use:
+
+```text
+same start position
+
+Motor B at center
+
+same Motor A command
+
+same travel distance
+```
+
+and repeat the run several times.
+
+The final position can then be compared.
+
+Useful observations include:
+
+```text
+lateral drift direction
+
+final lateral displacement
+
+whether drift is consistent or random
+
+whether the vehicle remains mechanically stable
+```
+
+A consistent drift can indicate a fixed bias.
+
+A highly variable drift can indicate mechanical play, sensor influence, surface variation, or inconsistent starting geometry.
+
+---
+
+# 6.13 Mechanical Straight-Line Bias
+
+If Piolín consistently moves toward one side with Motor B physically centered, possible causes include:
+
+```text
+front-wheel alignment
+
+rear-axle alignment
+
+unequal wheel resistance
+
+chassis geometry
+
+steering-center offset
+```
+
+The appropriate response is not immediately:
+
+```text
+increase steering correction
+```
+
+The preferred sequence is:
+
+```text
+inspect wheels
+      ↓
+inspect steering center
+      ↓
+inspect drivetrain
+      ↓
+repeat straight test
+      ↓
+then modify software if necessary
+```
+
+This prevents software from compensating for a mechanical fault that may later change.
+
+---
+
+# 6.14 Drivetrain Inspection Test
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/rear_drivetrain_top.jpg"
+  alt="Top view of Piolín rear drivetrain used during mechanical inspection"
+  width="700"
+/>
+
+<br>
+
+<sub><b>Figure 6.9.</b> Rear drivetrain should be inspected before propulsion tests are interpreted as software results.</sub>
+
+</div>
+
+The drivetrain test begins with the robot powered off.
+
+The rear-wheel system should be inspected for:
+
+```text
+unexpected resistance
+
+wheel rubbing
+
+axle movement
+
+gear binding
+
+structural movement
+
+unequal left/right behavior
+```
+
+A change in any of these can alter:
+
+```text
+acceleration
+
+vehicle speed
+
+reverse behavior
+
+encoder-distance relationship
+```
+
+without any software modification.
+
+---
+
+# 6.15 Rear-Wheel Test
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/rear_wheels.jpg"
+  alt="Piolín rear driven wheels"
+  width="670"
+/>
+
+<br>
+
+<sub><b>Figure 6.10.</b> Rear-wheel condition and alignment are included in drivetrain testing.</sub>
+
+</div>
+
+The rear wheels should be inspected for:
+
+```text
+secure attachment
+
+free rotation
+
+similar condition
+
+clearance from chassis
+
+axle stability
+```
+
+Because Motor A is the only propulsion actuator, drivetrain irregularities directly influence the complete vehicle speed.
+
+A wheel rubbing against the chassis can create a navigation symptom that appears similar to a weak motor or low drive command.
+
+---
+
+# 6.16 Encoder-to-Distance Test
+
+Motor A's encoder can be used as a repeatable rotational reference.
+
+A controlled test can command a fixed encoder displacement:
+
+```text
+Motor A rotates N degrees
+```
+
+and measure:
+
+```text
+actual physical vehicle distance
+```
+
+The test should be repeated several times.
+
+A useful table is:
+
+| Trial | Motor A Encoder Movement | Measured Distance | Difference from Mean | Notes |
+| :---: | :---: | :---: | :---: | :--- |
+| 1 | — | — | — | — |
+| 2 | — | — | — | — |
+| 3 | — | — | — | — |
+| 4 | — | — | — | — |
+| 5 | — | — | — | — |
+
+This experiment provides more useful information than relying only on theoretical wheel circumference.
+
+It includes the effect of the actual robot:
+
+```text
+wheel geometry
+
+drivetrain
+
+traction
+
+mechanical condition
+```
+
+---
+
+# 6.17 Forward Repeatability Test
+
+The encoder test can also be used to evaluate repeatability.
+
+If the same command is given repeatedly:
+
+```text
+same Motor A encoder movement
+```
+
+Piolín should finish at approximately the same longitudinal position.
+
+The test does not require the displacement to perfectly match the theoretical value.
+
+The important question is:
+
+> **Does the same command produce sufficiently similar physical movement between trials?**
+
+Repeatability is particularly useful for:
+
+```text
+parking
+
+short repositioning maneuvers
+
+controlled recovery
+```
+
+---
+
+# 6.18 Reverse Repeatability Test
+
+Reverse motion should be tested separately from forward motion.
+
+The sequence can use:
+
+```text
+same starting position
+
+same steering position
+
+same reverse encoder command
+```
+
+and compare the final positions.
+
+Possible differences between forward and reverse include:
+
+```text
+drivetrain backlash
+
+traction
+
+direction-change delay
+
+mechanical play
+```
+
+Therefore:
+
+```text
+forward distance per encoder degree
+```
+
+should not automatically be assumed to be identical to:
+
+```text
+reverse distance per encoder degree
+```
+
+without testing.
+
+---
+
+# 6.19 Direction-Reversal Test
+
+A useful additional test evaluates the transition:
+
+```text
+FORWARD
+→ STOP
+→ REVERSE
+```
+
+and:
+
+```text
+REVERSE
+→ STOP
+→ FORWARD
+```
+
+The drivetrain can contain mechanical clearance.
+
+When direction changes:
+
+```text
+Motor A reverses
+      ↓
+clearance changes side
+      ↓
+rear wheels begin responding
+```
+
+This creates a small delay before the vehicle moves in the opposite direction.
+
+The effect is particularly relevant to short recovery or parking maneuvers.
+
+---
+
+# 6.20 Turning Test
+
+Turning tests evaluate the drivetrain and steering together.
+
+A controlled turning test should hold:
+
+```text
+Motor A command
+```
+
+and:
+
+```text
+Motor B steering reference
+```
+
+approximately constant while the vehicle follows an arc.
+
+The resulting path can be measured to estimate a practical turning radius.
+
+Useful comparisons include:
+
+```text
+left vs. right
+
+different steering references
+
+different Motor A speeds
+```
+
+The objective is to measure the real vehicle rather than assuming the theoretical Ackermann model perfectly predicts the path.
+
+---
+
+# 6.21 Why Turning Must Be Tested Dynamically
+
+Steering photographs establish geometry while stationary.
+
+They do not capture:
+
+```text
+tire deformation
+
+vehicle inertia
+
+traction
+
+drivetrain load
+
+dynamic steering response
+```
+
+A physical turning test therefore provides information unavailable from static measurements.
+
+This is especially important because Piolín must execute approximately 90-degree course corners repeatedly during a complete run.
+
+---
+
+# 6.22 Open Challenge Testing
+
+Open testing combines:
+
+```text
+drivetrain
+
+steering
+
+S2/S3 geometry
+
+gyro heading
+
+Color Sensor progression
+```
+
+The first Open tests should normally focus on:
+
+```text
+stable start
+
+straight-line control
+
+single corner
+
+corner exit
+```
+
+before attempting the entire three-lap sequence.
+
+A successful single corner should be repeatable from a controlled starting condition before it is assumed to work twelve times consecutively.
+
+---
+
+# 6.23 Corner-Entry Testing
+
+Corner entry can be tested by placing Piolín in the same approach position repeatedly.
+
+The observations should include:
+
+```text
+where steering begins
+
+distance to inner wall
+
+distance to outer wall
+
+vehicle heading
+
+entry speed
+```
+
+If the turn begins too late:
+
+```text
+the path becomes wide
+```
+
+If it begins too early:
+
+```text
+the path cuts inward
+```
+
+Testing should therefore focus not only on whether the robot completes the turn but on **where the turn begins**.
+
+---
+
+# 6.24 Corner-Exit Testing
+
+The exit should also be evaluated independently.
+
+Relevant questions include:
+
+```text
+Is Piolín parallel enough to the new straight?
+
+Is it too close to the inner wall?
+
+Is it too close to the outer wall?
+
+Has Motor B returned toward center?
+
+Are the ultrasonic readings usable again?
+```
+
+A corner that reaches the correct approximate heading but leaves poor geometry can create a failure several seconds later.
+
+For this reason, the test result should include both:
+
+```text
+corner rotation
+```
+
+and:
+
+```text
+corner exit condition
+```
+
+---
+
+# 6.25 Multi-Corner Testing
+
+Once one corner is repeatable, testing can progress to several consecutive corners.
+
+This reveals accumulated errors.
+
+For example:
+
+```text
+small exit error
+      ↓
+next corner begins from worse position
+      ↓
+second error becomes larger
+      ↓
+vehicle eventually collides
+```
+
+A controller that completes one isolated corner successfully may still fail during a full lap because the state between corners is not sufficiently recovered.
+
+Multi-corner testing therefore evaluates the stability of the complete navigation cycle.
+
+---
+
+# 6.26 Obstacle Challenge Testing
+
+Obstacle testing combines the same mobility platform with visual perception.
+
+The mechanical sequence is:
+
+```text
+approach
+
+avoid
+
+pass
+
+countersteer
+
+recover
+```
+
+The testing process should determine whether Piolín can complete the full sequence rather than only whether it initially turns away from the pillar.
+
+---
+
+# 6.27 Red Pillar Test
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/obstacle_red_run.jpg"
+  alt="Piolín red pillar test"
+  width="700"
+/>
+
+<br>
+
+<sub><b>Figure 6.11.</b> Representative red-pillar test used to evaluate the required pass-right trajectory and recovery.</sub>
+
+</div>
+
+The required rule is:
 
 ```text
 RED
-ID 2
-  ↓
-Pass on RIGHT
+→ pass RIGHT
 ```
 
-Both directions should be evaluated because the physical steering mechanism may not behave identically left and right.
-
-A useful record is:
-
-| Trial | Pillar | Requested Side | Pillar Cleared | Wall Contact | Recovery | Result |
-| :---: | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | Green | Left |  |  |  |  |
-| 2 | Green | Left |  |  |  |  |
-| 3 | Red | Right |  |  |  |  |
-| 4 | Red | Right |  |  |  |  |
-
-No result should be filled in unless supported by an actual current run.
-
----
-
-# 6.41 Post-Obstacle Recovery Test
-
-Avoiding the pillar is only the first half of a successful maneuver.
-
-The robot must also return to a usable trajectory.
-
-The recovery test evaluates:
+A red-pillar test should evaluate:
 
 ```text
-Position immediately after pillar
+detection
 
-Vehicle angle after avoidance
+initial steering
 
-Steering reversal
+clearance from pillar
 
-Lateral wall clearance
+wall clearance
 
-Distance required to stabilize
+countersteering
 
-Readiness for next obstacle
+final recovery
 ```
 
-This is especially important because Piolín cannot move sideways directly.
-
-Recovery requires:
+A successful test should not be defined only as:
 
 ```text
-Steering
-     +
-Forward motion
-     ↓
-Gradual lateral repositioning
+Piolín did not hit the red pillar
+```
+
+A better result is:
+
+```text
+passed correct side
++
+maintained acceptable track clearance
++
+recovered for next maneuver
 ```
 
 ---
 
-# 6.42 Front-Safety Mechanical Test
+# 6.28 Green Pillar Test
 
-The front ultrasonic system belongs mainly to sensing and safety, but its effect on mobility should also be validated.
+<div align="center">
 
-The physical test objective is to confirm that when the front safety behavior activates:
+<img
+  src="../../v-photos/v4/obstacle_green_run.jpg"
+  alt="Piolín green pillar test"
+  width="700"
+/>
+
+<br>
+
+<sub><b>Figure 6.12.</b> Representative green-pillar test used to evaluate the required pass-left trajectory.</sub>
+
+</div>
+
+For Green:
 
 ```text
-Forward motion changes
+GREEN
+→ pass LEFT
 ```
 
-without producing an unexpected mechanical response such as:
+The same test criteria apply.
+
+Testing Red and Green separately is important because the physical steering system should not automatically be assumed to behave identically in both directions.
+
+The comparison can reveal:
 
 ```text
-Drivetrain binding
+left/right steering asymmetry
 
-Uncontrolled steering
+different recovery timing
 
-Wheel interference
-```
+different wall clearance
 
-The exact distance threshold belongs to the active software and calibration documentation and should not be invented here.
-
----
-
-# 6.43 Reverse Mobility Test
-
-Reverse movement should be tested independently because drivetrain and steering behavior can differ from forward movement.
-
-The test should evaluate:
-
-```text
-Reverse start
-
-Straight reverse motion
-
-Reverse steering
-
-Direction reversal
-
-Stopping behavior
-```
-
-This is particularly useful for parking-related validation.
-
----
-
-# 6.44 Parking Mobility Test
-
-Parking combines several mechanical behaviors:
-
-```text
-Forward movement
-
-Reverse movement
-
-Steering changes
-
-Stopping
-
-Vehicle rotation
-
-Final positioning
-```
-
-The parking mobility test should record whether the drivetrain and steering system can physically execute the commanded sequence consistently.
-
-Detailed parking-specific testing belongs to:
-
-[Parking Testing](../software_obstacles_strategy/parking/05_Parkingtesting.md)
-
-This mechanical section only verifies that the vehicle platform can perform the required motion.
-
----
-
-# 6.45 Sensor-Mount Stability Test
-
-Mechanical sensor mounts should be checked before and after repeated movement.
-
-The test should inspect:
-
-```text
-S1 front ultrasonic orientation
-
-S2 right ultrasonic orientation
-
-S3 left ultrasonic orientation
-
-S4 color sensor height/orientation
-
-HuskyLens orientation
-```
-
-A mount is mechanically important because:
-
-```text
-Sensor moves
-     ↓
-Measurement geometry changes
-     ↓
-Navigation behavior changes
-```
-
-A sensor can remain electrically functional while its mechanical orientation becomes incorrect.
-
----
-
-# 6.46 Lateral Ultrasonic Mount Verification
-
-The lateral sensors are mounted at approximately:
-
-```text
-43.2 mm
-```
-
-above the floor in the current configuration.
-
-Testing should verify that both remain securely fixed and directed toward their intended side.
-
-The purpose is not to force both sensors to report identical values.
-
-Their function is to provide reliable measurements from their actual physical positions.
-
----
-
-# 6.47 Color Sensor Clearance Test
-
-The downward-facing color sensor and its casing should maintain sufficient clearance from the track.
-
-The test should check that during:
-
-```text
-Straight movement
-
-Cornering
-
-Acceleration
-
-Reverse movement
-```
-
-the casing does not unintentionally contact the floor.
-
-Mechanical contact could:
-
-```text
-Alter chassis movement
-
-Damage mounting
-
-Change sensor distance from surface
-```
-
-The exact ground-clearance value should only be added once physically measured.
-
----
-
-# 6.48 HuskyLens Mount Stability
-
-The HuskyLens mounting should remain stable during:
-
-```text
-Acceleration
-
-Cornering
-
-Obstacle avoidance
-
-Reverse movement
-```
-
-A camera mount that changes angle can alter:
-
-```text
-Field of view
-
-Pillar position in image
-
-Detection timing
-```
-
-Therefore, mechanical camera stability is relevant even though vision classification itself belongs to the sensing documentation.
-
----
-
-# 6.49 Cable Clearance Test
-
-The steering linkage should be moved through its usable left and right range while observing nearby wiring.
-
-The test checks for:
-
-```text
-Cable stretching
-
-Cable pinching
-
-Cable contact with wheels
-
-Cable contact with linkage
-
-Connector movement
-```
-
-The objective is to ensure that electrical routing does not become a mechanical resistance or failure source.
-
----
-
-# 6.50 Full-Lap Mechanical Validation
-
-After subsystem tests, Piolín should be evaluated over a complete course sequence.
-
-The purpose is to observe whether mechanical behavior remains consistent over repeated:
-
-```text
-Straight sections
-
-Corners
-
-Steering reversals
-
-Acceleration changes
-```
-
-A full lap can reveal issues that short bench tests do not show, such as:
-
-```text
-Linkage loosening
-
-Increasing drivetrain resistance
-
-Sensor mount movement
-
-Accumulated steering bias
+different camera geometry
 ```
 
 ---
 
-# 6.51 Multi-Lap Validation
+# 6.29 Obstacle Recovery Test
 
-Because the Open Challenge requires multiple laps, mechanical validation should not stop after one successful circuit.
+One of the most important tests occurs **after** the pillar has been passed.
 
-A useful sequence is:
-
-```text
-Lap 1
-  ↓
-Lap 2
-  ↓
-Lap 3
-```
-
-while observing whether the vehicle behavior changes over time.
-
-Important comparisons include:
+The robot should be evaluated for:
 
 ```text
-First corner vs later corners
+residual steering angle
 
-Early straight sections vs late straight sections
+vehicle heading
 
-Steering center before vs after run
+distance from walls
 
-Drivetrain behavior before vs after run
+readiness for next pillar
 ```
 
-This provides evidence of repeatability across the complete challenge duration.
-
----
-
-# 6.52 Multi-Lap Record
-
-| Run | Lap 1 | Lap 2 | Lap 3 | Contacts | Mechanical Change Observed | Final Result |
-| :---: | :--- | :--- | :--- | :---: | :--- | :--- |
-| 1 |  |  |  |  |  |  |
-| 2 |  |  |  |  |  |  |
-| 3 |  |  |  |  |  |  |
-
-This table should reflect actual current testing rather than only successful demonstrations.
-
----
-
-# 6.53 Repeatability Metric
-
-A useful way to summarize repeated tests is:
-
-```text
-SUCCESS_RATE =
-SUCCESSFUL_RUNS
-/
-TOTAL_RUNS
-× 100
-```
-
-For example, if a particular maneuver is attempted `N` times:
-
-```text
-SUCCESS_RATE =
-N_SUCCESS / N × 100
-```
-
-The exact success rate should only be reported after enough current trials have been recorded.
-
-This metric is useful for:
-
-```text
-Corners
-
-Obstacle avoidance
-
-Parking
-
-Full runs
-```
-
-but the definition of “successful” should be stated clearly for each test.
-
----
-
-# 6.54 Mean Measurement
-
-For repeated numerical measurements:
-
-```text
-X_1, X_2, ..., X_N
-```
-
-the arithmetic mean is:
-
-```text
-X_MEAN =
-(X_1 + X_2 + ... + X_N) / N
-```
-
-This can be used for measurements such as:
-
-```text
-Travel distance
-
-Turning radius
-
-Lateral deviation
-
-Recovery distance
-```
-
-when quantitative data is collected.
-
----
-
-# 6.55 Measurement Spread
-
-The average alone does not describe repeatability.
-
-Two sets of results can have the same mean while having very different variation.
+A failure can occur even after a technically correct pass.
 
 For example:
 
 ```text
-SET A
-
-100
-101
-99
-100
+pillar successfully passed
+      ↓
+countersteering too late
+      ↓
+Piolín continues laterally
+      ↓
+wall collision
 ```
 
-and:
-
-```text
-SET B
-
-80
-120
-90
-110
-```
-
-can have similar averages but very different consistency.
-
-Therefore, mechanical testing should preserve individual trial data rather than only the final average.
+The obstacle test must therefore include recovery as part of the success criterion.
 
 ---
 
-# 6.56 Standard Deviation
+# 6.30 Consecutive-Pillar Testing
 
-When enough quantitative trials are available, standard deviation can be used to describe variation.
+After single-pillar maneuvers are repeatable, several obstacles should be tested consecutively.
 
-For a set of measurements:
+This determines whether:
 
 ```text
-X_1 ... X_N
+target state is released
+
+steering recovers
+
+camera geometry recovers
+
+ultrasonic geometry becomes usable
+
+next obstacle is approached correctly
 ```
 
-the sample standard deviation can be represented as:
+A robot that passes an isolated pillar but fails when another appears immediately afterward does not yet have a complete obstacle-navigation solution.
+
+---
+
+# 6.31 Parking Testing
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/parking_area.jpg"
+  alt="Parking area used for Piolín testing"
+  width="700"
+/>
+
+<br>
+
+<sub><b>Figure 6.13.</b> Parking area used to test final vehicle positioning.</sub>
+
+</div>
+
+Parking tests should begin separately from full autonomous runs.
+
+A controlled parking test can establish:
 
 ```text
-s =
-sqrt(
-SUM((X_i - X_MEAN)^2)
+same approach position
+
+same heading
+
+same steering state
+
+same propulsion displacement
+```
+
+and compare the final position across multiple attempts.
+
+Useful observations include:
+
+```text
+longitudinal error
+
+lateral error
+
+final heading
+
+steering position
+
+whether the robot remains inside the required area
+```
+
+The final parking strategy is still under development, so no final success rate should be claimed until enough representative trials exist.
+
+---
+
+# 6.32 Full-Run Testing
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/full_track.jpg"
+  alt="Full track used for Piolín complete run testing"
+  width="740"
+/>
+
+<br>
+
+<sub><b>Figure 6.14.</b> Full-run testing combines every previously isolated mobility behavior into one continuous autonomous sequence.</sub>
+
+</div>
+
+A full run is the highest-level test.
+
+It combines:
+
+```text
+starting behavior
+
+straight driving
+
+cornering
+
+course progression
+
+multiple laps
+
+obstacles when applicable
+
+recovery
+
+parking
+```
+
+The full run should be performed only after the major isolated behaviors are reasonably stable.
+
+Otherwise, a single failure can be difficult to diagnose because many subsystems are active simultaneously.
+
+---
+
+# 6.33 Why One Successful Run Is Not Enough
+
+A single successful run demonstrates possibility.
+
+It does not demonstrate repeatability.
+
+Autonomous competition performance depends on the probability that the robot can reproduce the same behavior.
+
+Therefore testing should emphasize:
+
+```text
+multiple trials
+```
+
+rather than:
+
+```text
+one best attempt
+```
+
+A useful result record can contain:
+
+| Trial | Completed? | Main Failure / Observation |
+| :---: | :---: | :--- |
+| 1 | — | — |
+| 2 | — | — |
+| 3 | — | — |
+| 4 | — | — |
+| 5 | — | — |
+
+The table should be filled with actual testing evidence rather than estimated performance.
+
+---
+
+# 6.34 Success Rate
+
+Once enough comparable trials exist, a success rate can be calculated as:
+
+```text
+Success Rate =
+Successful Trials
 /
-(N - 1)
-)
+Total Trials
+× 100%
 ```
 
-A smaller spread indicates more consistent measurements under the tested conditions.
+For example, this can be calculated separately for:
 
-This statistic should only be reported when based on real recorded measurements.
+```text
+single left corner
+
+single right corner
+
+red pillar
+
+green pillar
+
+parking
+
+complete Open run
+
+complete Obstacle run
+```
+
+Separate success rates are more informative than combining unrelated maneuvers into one number.
+
+The repository should only publish success rates when the test conditions and number of trials are documented.
 
 ---
 
-# 6.57 Failure Classification
+# 6.35 Test Logging
 
-Not every unsuccessful run has the same cause.
+Each significant test should record enough information to reproduce the conditions.
 
-Mechanical test failures can be classified into categories:
+A useful log can contain:
 
-| Category | Example |
+| Field | Example of Information to Record |
 | :--- | :--- |
-| **Steering** | Linkage did not reach expected position |
-| **Drivetrain** | Wheel movement inconsistent |
-| **Structural** | Component shifted during run |
-| **Traction** | Wheel slip changed displacement |
-| **Sensor mounting** | Sensor orientation changed |
-| **Integration** | Cable interfered with moving mechanism |
-| **Unknown** | Cause not yet isolated |
+| Date | Test date |
+| Software version | File / commit / version |
+| Challenge | Open or Obstacles |
+| Battery condition | Measured or recorded state |
+| Starting position | Track location / reference |
+| Motor A setting | Active propulsion setting |
+| Steering configuration | Relevant Motor B settings |
+| Sensor configuration | Current S1 + S2/S3/S4 |
+| Mechanical configuration | Any recent hardware change |
+| Result | Success / failure / partial |
+| Observation | What happened physically |
+| Next change | Only the next variable to test |
 
-This prevents all failures from being grouped into one vague category.
-
----
-
-# 6.58 Root-Cause Process
-
-When a mobility problem appears, the investigation should follow the physical system.
-
-Example:
-
-```text
-Robot hits inner wall
-        ↓
-Was steering physically correct?
-        ↓
-Was steering center correct?
-        ↓
-Was lateral sensor still aligned?
-        ↓
-Was drivetrain speed consistent?
-        ↓
-Only then evaluate software command
-```
-
-The same approach can be represented as:
-
-```text
-OBSERVE FAILURE
-      ↓
-CHECK MECHANICS
-      ↓
-CHECK SENSOR GEOMETRY
-      ↓
-CHECK ACTUATION
-      ↓
-CHECK SOFTWARE
-      ↓
-MODIFY ONE VARIABLE
-      ↓
-RETEST
-```
-
-This makes the development process more traceable.
+This makes the development history easier to understand later.
 
 ---
 
-# 6.59 One-Variable-at-a-Time Testing
+# 6.36 Software Version Control During Testing
 
-Changing many parameters simultaneously makes it difficult to determine which change caused the result.
+The code used during a successful test should be identifiable.
 
-For example:
-
-```text
-Steering angle changed
-+
-Drive speed changed
-+
-Sensor target changed
-```
-
-followed by improved behavior does not reveal which modification was responsible.
-
-A stronger engineering process is:
+Otherwise, observations such as:
 
 ```text
-Baseline
-   ↓
-Change one parameter
-   ↓
-Test
-   ↓
-Record result
-   ↓
-Keep or revert
+this version turned better
 ```
 
-This principle applies especially to:
+become difficult to reproduce after several code changes.
+
+A useful testing workflow is:
 
 ```text
-Motor A speed
-
-Motor B steering strength
-
-Steering-center calibration
-
-Mechanical linkage geometry
+save known code version
+      ↓
+run controlled trial
+      ↓
+record result
+      ↓
+change one parameter / behavior
+      ↓
+test again
 ```
+
+Git commits or clearly named test versions can provide the software reference for each mechanical observation.
 
 ---
 
-# 6.60 Before-and-After Evidence
+# 6.37 Mechanical Changes Must Be Logged
 
-When a mechanical change is significant, evidence should show both:
+Software is not the only variable that should be documented.
+
+Mechanical changes can include:
 
 ```text
-BEFORE
+Motor A remounted
+
+Motor B remounted
+
+steering linkage changed
+
+wheel support reinforced
+
+sensor mount moved
+
+camera angle changed
+
+chassis reinforcement added
+```
+
+Any of these can alter vehicle behavior.
+
+If a mechanical change is made between two software tests but is not recorded, the resulting comparison can be misleading.
+
+---
+
+# 6.38 Battery as a Controlled Variable
+
+The battery state should remain reasonably consistent when comparing mobility tests.
+
+A different battery condition can change practical motor response.
+
+This is especially relevant when comparing:
+
+```text
+vehicle speed
+
+corner timing
+
+reverse distance
+
+parking
+
+full-run time
+```
+
+The battery should therefore be considered a test condition rather than an invisible background variable.
+
+---
+
+# 6.39 Track Condition as a Controlled Variable
+
+The track itself can also affect mobility.
+
+Relevant variables include:
+
+```text
+surface cleanliness
+
+pillar position
+
+wall placement
+
+parking configuration
+
+starting position
+```
+
+A wheel may behave differently on a dusty or contaminated section of mat.
+
+Likewise, moving an obstacle slightly can significantly change the required steering trajectory.
+
+For meaningful comparisons, track conditions should be kept as consistent as practical.
+
+---
+
+# 6.40 Starting Position Repeatability
+
+Autonomous tests should begin from a repeatable physical reference whenever possible.
+
+A small starting-position difference can affect:
+
+```text
+first wall measurement
+
+first steering correction
+
+first corner entry
+
+first obstacle approach
+```
+
+A test result should therefore distinguish between:
+
+```text
+controller failure
 ```
 
 and:
 
 ```text
-AFTER
+significantly different starting geometry
 ```
 
-where available.
-
-Examples include:
-
-```text
-Old steering mechanism
-vs.
-Current steering mechanism
-
-
-Old sensor mount
-vs.
-Current sensor mount
-
-
-Previous chassis
-vs.
-Final chassis
-```
-
-This helps demonstrate why the current mechanical design was selected.
-
-Visual evolution evidence is available through:
-
-[Robot Version Photos](../../v-photos/README.md)
+Starting position is particularly important during early Open acquisition and obstacle approach testing.
 
 ---
 
-# 6.61 Video Evidence
+# 6.41 Testing at Competition Speed
 
-Videos provide valuable evidence for mobility behavior because many important properties are dynamic.
+Low-speed testing is useful because failures are easier to observe.
 
-Useful recordings include:
+However, a controller that works slowly is not automatically validated at competition speed.
 
-```text
-Straight-line test
-
-Steering motion
-
-Corner execution
-
-Obstacle avoidance
-
-Recovery
-
-Reverse movement
-
-Parking
-
-Full lap
-```
-
-Repository video references can be organized through:
-
-[Video Evidence](../../videos/links.md)
-
-Each video should ideally identify:
+At higher speed:
 
 ```text
-What is being tested
+reaction distance increases
 
-Robot configuration
+steering develops over more physical distance
 
-Expected behavior
+corner timing changes
 
-Relevant result
+obstacle margin decreases
 ```
 
-rather than being uploaded without context.
+The testing progression should therefore be:
+
+```text
+low-speed validation
+      ↓
+intermediate-speed validation
+      ↓
+target competition-speed validation
+```
+
+rather than moving immediately to maximum available speed.
 
 ---
 
-# 6.62 Evidence Hierarchy
+# 6.42 Failure Classification
 
-Different evidence formats answer different questions.
+A useful testing process classifies failures before changing parameters.
 
-```text
-PHOTO
-   ↓
-Shows physical configuration
+### Mechanical failure
 
-
-GIF
-   ↓
-Shows mechanism movement
-
-
-VIDEO
-   ↓
-Shows complete dynamic behavior
-
-
-MEASUREMENT TABLE
-   ↓
-Provides quantitative comparison
-
-
-CODE / LOG
-   ↓
-Shows commanded behavior
-```
-
-The strongest mechanical documentation combines several forms rather than relying on only one.
-
----
-
-# 6.63 Testing vs. Demonstration
-
-A successful demonstration and a structured test are not the same thing.
-
-A demonstration answers:
-
-> Can Piolín perform this maneuver?
-
-A test answers:
-
-> How consistently can Piolín perform this maneuver under defined conditions?
-
-For engineering documentation, both are useful.
-
-However, repeatability requires:
+Examples:
 
 ```text
-Multiple trials
+wheel rubbing
 
-Defined conditions
+linkage disconnected
 
-Recorded outcomes
+drivetrain binding
+
+Motor B mount moved
 ```
 
-rather than only one successful video.
+### Perception failure
+
+Examples:
+
+```text
+wrong pillar selected
+
+color not recognized
+
+wall distance invalid
+```
+
+### Control failure
+
+Examples:
+
+```text
+steering too strong
+
+steering too weak
+
+countersteering late
+
+corner release early
+```
+
+### State failure
+
+Examples:
+
+```text
+corner counted twice
+
+target lock not released
+
+parking triggered at wrong time
+```
+
+Separating the failure type prevents random parameter changes.
 
 ---
 
-# 6.64 Suggested Current Mechanical Test Matrix
+# 6.43 Failure Reproduction
 
-The following matrix organizes the most important mechanical validations.
+When a failure occurs once, the next useful question is:
 
-| Test | Primary Subsystem | Quantitative? | Recommended Evidence |
-| :--- | :--- | :---: | :--- |
-| Steering center | Steering | Partially | Photo + straight run |
-| Steering range | Steering | Optional | GIF / video |
-| Steering repeatability | Steering | Yes/observational | Table + video |
-| Straight-line movement | Drivetrain | Yes | Measurement table |
-| Encoder-distance relation | Drivetrain | Yes | Table |
-| Forward/reverse symmetry | Drivetrain | Yes | Table + video |
-| Turning radius | Steering + mobility | Yes | Measurement table |
-| Left/right symmetry | Steering | Yes | Table |
-| Corner repeatability | Full mobility | Yes | Video + run table |
-| Clockwise vs. counterclockwise | Full mobility | Yes | Run table |
-| Obstacle bypass | Steering + drive | Yes | Video + success table |
-| Post-pillar recovery | Full mobility | Yes | Video |
-| Sensor mount stability | Structure | Observational | Before/after photos |
-| Multi-lap behavior | Full system | Yes | Video + run log |
+> **Can the same failure be reproduced under the same conditions?**
 
-The values should be filled only with current measured results.
+If the failure repeats consistently, it is easier to diagnose.
+
+If it appears randomly, possible causes include:
+
+```text
+mechanical play
+
+sensor variability
+
+starting-position variation
+
+lighting changes
+
+software timing
+
+target selection
+```
+
+The team should try to reproduce the condition before redesigning the entire controller.
 
 ---
 
-# 6.65 Current Mechanical Acceptance Philosophy
+# 6.44 One Change at a Time
 
-A subsystem should not be considered validated merely because it moves.
+A disciplined test cycle is:
+
+```text
+observe problem
+      ↓
+form hypothesis
+      ↓
+change one relevant variable
+      ↓
+repeat same test
+      ↓
+compare result
+```
 
 For example:
 
 ```text
-Motor B moves
+Problem:
+corner is too wide
+
+Possible hypothesis:
+steering begins too late
+
+Change:
+earlier corner-entry condition
+
+Do NOT simultaneously:
+increase Motor B angle
+reduce Motor A speed
+change gyro gain
+move ultrasonic sensor
 ```
 
-does not automatically mean:
-
-```text
-Steering is reliable
-```
-
-Likewise:
-
-```text
-Motor A rotates wheels
-```
-
-does not automatically mean:
-
-```text
-Drivetrain is repeatable
-```
-
-Mechanical validation requires observing whether the behavior is:
-
-```text
-Controlled
-
-Repeatable
-
-Compatible with navigation
-
-Mechanically safe
-
-Suitable for complete runs
-```
-
-This distinction improves the quality of the engineering evidence.
+If four variables are changed at once and performance improves, the team does not know which one produced the improvement.
 
 ---
 
-# 6.66 Connection to Software Tuning
+# 6.45 Test Matrix
 
-Mechanical testing should establish a stable baseline before software gains or steering constants are finalized.
+A mobility test matrix can organize the main experiments.
 
-The relationship is:
+| Test | Main Variable | Main Measurement / Observation |
+| :--- | :--- | :--- |
+| Steering center | Motor B return position | Center repeatability |
+| Steering range | Motor B position | Mechanical limits |
+| Steering symmetry | Left vs. right command | Wheel geometry / path |
+| Straight-line test | Centered steering | Lateral drift |
+| Encoder-distance | Motor A rotation | Physical displacement |
+| Reverse test | Reverse rotation | Reverse displacement |
+| Turning test | Steering command | Turning radius / path |
+| Corner test | Entry + steering | Exit geometry |
+| Red pillar | Pass-right maneuver | Clearance + recovery |
+| Green pillar | Pass-left maneuver | Clearance + recovery |
+| Parking | Final displacement | Final position |
+| Full Open | Complete system | Completion + failure point |
+| Full Obstacles | Complete system | Completion + failure point |
 
-```text
-Mechanical baseline
-        ↓
-Sensor baseline
-        ↓
-Control tuning
-        ↓
-Course testing
-```
-
-If the mechanism changes after software tuning:
-
-```text
-Mechanical response changes
-        ↓
-Previous software tuning
-may no longer be optimal
-```
-
-This is why mechanical revisions and software revisions should be tracked together.
+This matrix helps prevent testing from becoming a sequence of unrelated full runs.
 
 ---
 
-# 6.67 Connection to Reproducibility
+# 6.46 Evidence Quality
 
-Mechanical testing also supports reproducibility.
-
-A second build of Piolín should be able to verify that its physical behavior is comparable to the documented robot before running full competition software.
-
-Useful reconstruction checks include:
+Good engineering evidence should show:
 
 ```text
-Correct dimensions
+what was tested
 
-Correct wheel sizes
+how it was tested
 
-Steering centers correctly
+what changed
 
-Drivetrain rotates freely
+what was measured
 
-Sensors remain fixed
+what happened
 
-Vehicle can move straight
-
-Vehicle can steer both directions
+what decision followed
 ```
 
-This creates a bridge between:
+A statement such as:
 
-[Reproducibility Documentation](../reproducibility/)
+> "The robot was better."
 
-and the mechanical system.
+is much weaker than:
+
+> "The same starting position and drive command were used. After reducing the steering response, the repeated left-right oscillation decreased during the same straight section."
+
+The repository should prefer the second style.
 
 ---
 
-# 6.68 Confirmed Values vs. Test Results
+# 6.47 Quantitative vs. Qualitative Tests
 
-This document separates two categories of information.
+Not every useful observation must be numerical.
 
-### Confirmed physical specifications
-
-```text
-Length = 210 mm
-
-Width = 150 mm
-
-Height = 230 mm
-
-Mass = 0.80476 kg
-
-Front wheel diameter = 38.1 mm
-
-Rear wheel diameter ≈ 61.0 mm
-```
-
-These describe the current robot.
-
-### Experimental performance results
-
-Examples include:
+Quantitative evidence can include:
 
 ```text
-Turning radius
+distance
 
-Straight-line deviation
+time
 
-Encoder distance error
+angle
 
-Steering repeatability
+success rate
 
-Corner success rate
-
-Obstacle success rate
+number of trials
 ```
 
-These should only be included after actual current tests have been completed and recorded.
+Qualitative evidence can include:
 
-This prevents historical or estimated values from being presented as final performance data.
+```text
+visible binding
+
+consistent drift direction
+
+late countersteering
+
+camera target leaving FOV
+
+wheel rubbing
+```
+
+Both are useful when clearly documented.
+
+The important requirement is that qualitative observations should not be presented as invented numerical measurements.
 
 ---
 
-# 6.69 Legacy Results Are Not Current Test Results
+# 6.48 Current Testing Status
 
-Old Piolín development documents contain previous measurements from different architectures.
+Piolín's mechanical architecture is current, but several performance values are still being calibrated.
 
-Those values may involve:
-
-```text
-Different sensor arrangements
-
-Different camera systems
-
-Different controller concepts
-
-Different mechanical geometry
-
-Different software
-```
-
-They should not be transferred into the current mechanical testing tables.
-
-Historical data is preserved separately in:
-
-[Legacy Performance Testing and Analysis](../legacy/03_PTesting&Analysis.md)
-
-The rule is:
+The current testing process is actively focused on:
 
 ```text
-Legacy measurement
-      ≠
-Current validation result
+Open corner consistency
+
+initial course acquisition
+
+multi-corner stability
+
+Obstacle pillar selection
+
+red/green passing consistency
+
+countersteering
+
+post-pillar recovery
+
+parking
 ```
 
-unless the measurement has been repeated and confirmed on the final robot.
+The repository should therefore distinguish:
+
+```text
+CURRENT ARCHITECTURE
+```
+
+from:
+
+```text
+FINAL VALIDATED PERFORMANCE
+```
+
+The first can be documented now.
+
+The second should only be claimed after representative testing is complete.
 
 ---
 
-# 6.70 Testing Workflow
+# 6.49 Values That Should Come From Real Tests
 
-The recommended mechanical validation workflow is:
+The following should not be invented:
 
 ```text
-1. VISUAL INSPECTION
-        ↓
-2. CHASSIS CHECK
-        ↓
-3. DRIVETRAIN FREE-MOTION CHECK
-        ↓
-4. STEERING CENTER
-        ↓
-5. STEERING RANGE
-        ↓
-6. STEERING REPEATABILITY
-        ↓
-7. STRAIGHT-LINE TEST
-        ↓
-8. ENCODER / DISTANCE TEST
-        ↓
-9. TURNING TEST
-        ↓
-10. CORNER TEST
-        ↓
-11. REVERSE TEST
-        ↓
-12. OBSTACLE MANEUVER
-        ↓
-13. FULL LAP
-        ↓
-14. MULTI-LAP VALIDATION
+straight-line deviation
+
+steering repeatability
+
+measured wheel angles
+
+turning radius
+
+encoder-distance scale
+
+reverse-distance error
+
+corner success rate
+
+red-pillar success rate
+
+green-pillar success rate
+
+parking success rate
+
+Open full-run success rate
+
+Obstacle full-run success rate
+
+average run time
+
+fastest validated run
 ```
 
-This order moves from simple isolated mechanisms toward increasingly complex integrated behavior.
+These values become strong engineering evidence only when accompanied by a real test method and enough trials.
 
 ---
 
-# 6.71 Mechanical Test Decision Tree
+# 6.50 Suggested Test Record
 
-When a test fails:
+A compact test record can use the following format:
 
 ```text
-                     TEST FAILED
-                          │
-                          ▼
-                 Visible mechanical issue?
-                    /             \
-                  YES              NO
-                   │                │
-                   ▼                ▼
-             Repair mechanics    Check actuation
-                                      │
-                                      ▼
-                              Motor response correct?
-                                 /           \
-                               NO             YES
-                               │               │
-                               ▼               ▼
-                         Fix actuation     Check sensor geometry
-                                               │
-                                               ▼
-                                       Sensor stable/correct?
-                                          /          \
-                                        NO            YES
-                                        │              │
-                                        ▼              ▼
-                                   Fix mounting    Review software
+TEST ID:
+DATE:
+
+CHALLENGE:
+OPEN / OBSTACLES
+
+SOFTWARE VERSION:
+
+HARDWARE CONFIGURATION:
+
+BATTERY CONDITION:
+
+START POSITION:
+
+VARIABLE CHANGED:
+
+EXPECTED RESULT:
+
+ACTUAL RESULT:
+
+FAILURE POINT:
+
+MECHANICAL OBSERVATION:
+
+NEXT CHANGE:
 ```
 
-This prevents immediately modifying software when the failure originates elsewhere.
+Using a consistent record prevents important development information from being lost between sessions.
 
 ---
 
-# 6.72 Final Testing Evidence Package
+# 6.51 Testing Loop
 
-For a strong final repository, the mechanical section should ideally contain evidence for:
-
-```text
-Current chassis
-
-Current steering mechanism
-
-Steering GIF
-
-Straight mobility
-
-Corner behavior
-
-Obstacle maneuver
-
-Reverse / parking movement
-
-Repeated full-run behavior
-```
-
-along with numerical tables where measurements are available.
-
-The goal is to create the traceability chain:
-
-```text
-DESIGN CLAIM
-      ↓
-PHYSICAL ROBOT
-      ↓
-TEST METHOD
-      ↓
-EVIDENCE
-      ↓
-RESULT
-```
-
-This allows another team or judge to understand not only what Piolín was designed to do, but how the team verified that behavior.
-
----
-
-# 6.73 Relationship to Other Testing Documentation
-
-This document focuses specifically on **mechanical and mobility validation**.
-
-Other testing areas are documented separately.
-
-For sensor calibration and sensor-specific procedures:
-
-[Sensor Calibration](../power_sensors/05_Calibration.md)
-
-For the complete reproducibility testing sequence:
-
-[Testing Protocol](../reproducibility/07_TestingProtocol.md)
-
-For parking-specific validation:
-
-[Parking Testing](../software_obstacles_strategy/parking/05_Parkingtesting.md)
-
-For software tuning:
-
-[Software Tuning](../software_obstacles_strategy/07_softwaretuning.md)
-
-This avoids placing every type of testing in a single document.
-
----
-
-# 6.74 Mechanical Testing Summary
-
-Piolín's mechanical testing process verifies whether the physical vehicle provides a sufficiently consistent platform for autonomous control.
-
-The complete process evaluates:
-
-```text
-STRUCTURE
-   ↓
-Is the robot mechanically stable?
-
-
-STEERING
-   ↓
-Does Motor B produce repeatable wheel motion?
-
-
-DRIVETRAIN
-   ↓
-Does Motor A produce repeatable displacement?
-
-
-MOBILITY
-   ↓
-Can propulsion and steering produce
-controlled vehicle trajectories?
-
-
-INTEGRATION
-   ↓
-Do mechanical systems remain stable
-during complete autonomous runs?
-```
-
-The confirmed current physical baseline is:
-
-```text
-Length        = 210 mm
-
-Width         = 150 mm
-
-Height        = 230 mm
-
-Mass          = 0.80476 kg
-
-Front wheels  = 38.1 mm diameter
-
-Rear wheels   ≈ 61.0 mm diameter
-
-Drive         = Motor A
-
-Steering      = Motor B
-
-Steering type = Ackermann-style
-```
-
-The testing process deliberately does not invent final performance values.
-
-Measurements such as:
-
-```text
-Turning radius
-
-Encoder error
-
-Straight-line deviation
-
-Corner success rate
-
-Obstacle success rate
-
-Parking repeatability
-```
-
-should be reported only after they are measured on the current robot.
-
-The central validation principle is:
+The full development process can be summarized as:
 
 ```text
 BUILD
   ↓
-MEASURE
+INSPECT
+  ↓
+CALIBRATE
+  ↓
+TEST
   ↓
 OBSERVE
   ↓
-COMPARE
+CLASSIFY FAILURE
   ↓
-IDENTIFY CAUSE
-  ↓
-MODIFY
+CHANGE ONE VARIABLE
   ↓
 RETEST
+  ↓
+COMPARE
+  ↓
+KEEP / REJECT CHANGE
 ```
 
-This process connects Piolín's mechanical design to real evidence and makes the mobility documentation reproducible rather than purely descriptive.
+This process applies equally to mechanical and software development.
+
+It also explains why failed prototypes remain useful: a failed experiment can still identify a limit or eliminate an incorrect assumption.
 
 ---
 
-## Mechanical Documentation
+# 6.52 Full-System Mechanical Evidence
 
-[Mechanical Architecture](01_mecharchitecture.md)
+<div align="center">
 
-[Chassis Design](02_chassis.md)
+<img
+  src="../../v-photos/v4/piolin_bottom.jpg"
+  alt="Bottom view of Piolín showing drivetrain steering and chassis integration"
+  width="720"
+/>
 
-[Robot Mobility](03_RMobility.md)
+<br>
 
-[Steering System](04_steering.md)
+<sub><b>Figure 6.15.</b> Mobility testing evaluates the complete physical system rather than treating drivetrain, steering, and chassis as unrelated mechanisms.</sub>
 
-[Drivetrain](05_drivetrain.md)
+</div>
+
+A navigation result is produced by the interaction of:
+
+```text
+chassis
+
+drivetrain
+
+rear wheels
+
+steering mechanism
+
+front wheels
+
+motors
+
+sensors
+
+software
+```
+
+A test must therefore consider whether a behavior originated from one subsystem or from the interaction between several.
+
+This systems perspective is especially important during full runs.
 
 ---
 
-## Related Testing and Evidence
+# 6.53 Final Engineering Assessment
 
-[Robot Version Photos](../../v-photos/README.md)
+Piolín's mobility and mechanical testing process is designed to convert observations into engineering decisions.
 
-[Video Evidence](../../videos/links.md)
+The goal is not to produce the largest number of test runs.
 
-[Sensor Calibration](../power_sensors/05_Calibration.md)
+The goal is to produce tests that answer specific questions.
 
-[Testing Protocol](../reproducibility/07_TestingProtocol.md)
+The most important sequence is:
 
-[Software Tuning](../software_obstacles_strategy/07_softwaretuning.md)
+```text
+verify mechanical condition
+      ↓
+isolate the behavior
+      ↓
+control test variables
+      ↓
+repeat the experiment
+      ↓
+measure or observe the result
+      ↓
+identify the failure layer
+      ↓
+change one relevant variable
+      ↓
+test again
+```
 
-[Parking Testing](../software_obstacles_strategy/parking/05_Parkingtesting.md)
+This approach is particularly important for Piolín because its autonomous performance depends on the close interaction between a mechanical Ackermann steering system, a single rear drivetrain, multiple sensors, and two different round-specific perception architectures.
 
-[Legacy Testing and Analysis](../legacy/03_PTesting&Analysis.md)
+A corner failure may originate from steering timing.
+
+A straight-line failure may originate from mechanical center.
+
+A parking error may originate from drivetrain displacement.
+
+An obstacle failure may originate from visual perception even though it appears as incorrect steering.
+
+Testing allows these causes to be separated.
+
+The final engineering principle is therefore:
+
+> **Piolín is not considered mechanically successful because it can perform one correct run; the mechanical system is successful when the same known conditions produce sufficiently repeatable physical behavior for autonomous control.**
+
+For this reason, repeatability, controlled variables, documented failures, and measured evidence form a central part of Piolín's mechanical-development process.
+
+---
+
+<div align="center">
+
+### [← Back to PiolínTech Main README](../../README.md)
+
+</div>
