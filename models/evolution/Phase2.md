@@ -1,547 +1,916 @@
-# Phase 1 — Initial EV3 Prototype
+# Phase 2 — Mechanical and Navigation Development
 
-## 1. Beginning of Piolín
+## 1. From Prototype to Vehicle Architecture
 
-Phase 1 represents the **first physical prototype of Piolín** and the starting point of PiolínTech's development for WRO Future Engineers.
+Phase 2 represents the stage in which Piolín evolved from an initial EV3 mobility prototype into a robot designed more deliberately around the requirements of **WRO Future Engineers**.
 
-Piolín has always been developed around the **LEGO MINDSTORMS EV3 platform**.
+The EV3 Brick remained the main controller.
 
-The goal of this first prototype was not to create the final competition robot immediately. Instead, it provided a simple platform for learning how the vehicle behaved and for testing the first autonomous-driving ideas.
-
-The Phase 1 development cycle can be summarized as:
+The major change was not a replacement of the computing platform, but a redesign of the systems around it:
 
 ```text
-BUILD SIMPLE EV3 VEHICLE
+PHASE 1
+Basic EV3 Prototype
         ↓
-TEST BASIC MOVEMENT
+PHASE 2
+Vehicle-Oriented Mechanical Design
         ↓
-READ DISTANCE SENSOR
+Ackermann Steering
         ↓
-EXPERIMENT WITH STEERING
+Dedicated Propulsion + Steering Roles
         ↓
-OBSERVE PHYSICAL LIMITATIONS
+Improved Distance Sensing
         ↓
-REDESIGN FOR NEXT PHASE
+Floor Mark Detection
+        ↓
+More Structured Navigation
 ```
 
-Phase 1 is now considered a **legacy prototype**, but it established the mechanical and software foundation from which the later versions of Piolín evolved.
+The central objective of Phase 2 was:
+
+> **Make Piolín behave more like a controllable autonomous vehicle rather than a simple mobile EV3 prototype.**
 
 ---
 
-## 2. Phase 1 Prototype
+## 2. Phase 2 Development Direction
 
-<div align="center">
-
-<img
-  src="https://github.com/user-attachments/assets/94f45de2-0536-41ca-9f66-075bb64a17f1"
-  alt="Piolín Phase 1 EV3 prototype"
-  width="500"
-/>
-
-<br>
-
-<sub><b>Figure 1.</b> Piolín's Phase 1 prototype, built as the team's first EV3 autonomous-vehicle platform.</sub>
-
-</div>
-
-This prototype was built primarily from:
+During this phase, PiolínTech concentrated on four major engineering areas:
 
 ```text
-LEGO MINDSTORMS EV3
+MECHANICS
 
-LEGO Technic structure
+STEERING
 
-EV3 motors
+SENSOR GEOMETRY
 
-EV3 sensing hardware
+COURSE NAVIGATION
 ```
 
-At this stage, the emphasis was on obtaining a functional moving prototype as quickly as possible so that the team could begin testing real autonomous behavior.
+The team began to treat these areas as connected systems.
 
----
-
-## 3. Phase 1 Architecture
-
-The early architecture was intentionally simple.
-
-```text
-            ENVIRONMENT
-                 │
-                 ▼
-        EV3 ULTRASONIC SENSOR
-                 │
-                 ▼
-             EV3 BRICK
-                 │
-          BASIC CONTROL LOGIC
-                 │
-          ┌──────┴──────┐
-          ▼             ▼
-       DRIVE          STEERING
-       MOTOR           MOTOR
-          │             │
-          └──────┬──────┘
-                 ▼
-          ROBOT MOVEMENT
-```
-
-The robot relied on the EV3 Brick as its central controller.
-
-Unlike later versions of Piolín, Phase 1 did not yet contain the complete combination of:
-
-```text
-dual lateral ultrasonic sensing
-
-floor-event processing
-
-gyro heading stabilization
-
-Pixy2.1 vision
-
-state-based obstacle avoidance
-
-control arbitration
-
-dedicated parking logic
-```
-
-Those systems were introduced progressively in later development phases.
-
----
-
-## 4. Main Hardware
-
-The Phase 1 prototype used a basic LEGO EV3 hardware architecture.
-
-| Subsystem | Phase 1 Implementation |
-|---|---|
-| Main controller | LEGO MINDSTORMS EV3 Brick |
-| Structure | LEGO Technic |
-| Actuation | LEGO EV3 motors |
-| Distance sensing | EV3 Ultrasonic Sensor |
-| Vision system | None |
-| Floor-color navigation | Not yet part of the mature architecture |
-| Vehicle architecture | Early prototype configuration |
-| Power system | LEGO EV3 battery system |
-
-The purpose of the hardware was to provide a reliable starting platform for experimentation.
-
-The EV3 controller itself was **not abandoned in later phases**.
-
-Instead, PiolínTech progressively developed a more capable mechanical, sensing, and software architecture around the EV3 platform.
-
----
-
-## 5. Early Ultrasonic Sensing
-
-One of the main sensors used during the first prototype was an **EV3 Ultrasonic Sensor**.
-
-The early arrangement was much simpler than Piolín's current lateral sensing architecture.
-
-The basic concept was:
-
-```text
-OBJECT / WALL
-      ↓
-ULTRASONIC READING
-      ↓
-DISTANCE ESTIMATE
-      ↓
-BASIC NAVIGATION RESPONSE
-```
-
-This allowed the team to begin experimenting with the relationship between:
-
-```text
-measured distance
-```
-
-and:
-
-```text
-vehicle movement
-```
-
-However, one distance measurement provided limited information about the vehicle's complete relationship with the surrounding course.
-
-This became an important lesson for later phases.
-
----
-
-## 6. Early Driving and Steering Experiments
-
-Phase 1 was used to understand how a physical EV3 vehicle responds to software commands.
-
-The team experimented with:
-
-```text
-forward movement
-
-steering response
-
-speed
-
-distance sensing
-
-course correction
-
-basic autonomous reactions
-```
-
-These tests demonstrated an important difference between:
-
-```text
-COMMANDING A TURN
-```
-
-and:
-
-```text
-ACHIEVING A REPEATABLE PHYSICAL TRAJECTORY
-```
-
-The final position of a vehicle depends on more than the software command alone.
-
-Factors such as:
+For example:
 
 ```text
 steering geometry
+        ↓
+changes turning radius
+        ↓
+changes ultrasonic readings
+        ↓
+changes navigation behavior
+```
+
+This was an important step away from treating software and mechanics as independent parts of the robot.
+
+---
+
+## 3. Ackermann Steering Development
+
+One of the most important mechanical changes in Phase 2 was the development of **Ackermann-style front steering**.
+
+Instead of relying on a robot-style turning method, Piolín began using a car-like steering architecture.
+
+The basic concept is:
+
+```text
+                FRONT
+
+          \               /
+           \             /
+        INNER WHEEL   OUTER WHEEL
+          larger       smaller
+          steering     steering
+          angle        angle
+
+                │
+                ▼
+
+        COMMON TURNING REGION
+```
+
+During a turn, the inner and outer front wheels should not follow identical arcs.
+
+The inner wheel travels along a tighter radius than the outer wheel.
+
+This made steering geometry an important mechanical design problem rather than simply a software command.
+
+---
+
+## 4. Dedicated Motor Roles
+
+As the vehicle architecture developed, propulsion and steering were assigned separate roles.
+
+The configuration that emerged and continued into the current robot is:
+
+```text
+Motor A
+→ LEGO EV3 Large Motor
+→ rear propulsion
+```
+
+and:
+
+```text
+Motor B
+→ LEGO EV3 Medium Motor
+→ front steering
+```
+
+This creates a clear functional separation:
+
+```text
+MOTOR A
+controls vehicle progression
+```
+
+```text
+MOTOR B
+controls trajectory curvature
+```
+
+Conceptually:
+
+```text
+              EV3 BRICK
+                 │
+        ┌────────┴────────┐
+        │                 │
+        ▼                 ▼
+     MOTOR A           MOTOR B
+   PROPULSION          STEERING
+        │                 │
+        ▼                 ▼
+ REAR DRIVETRAIN    ACKERMANN FRONT
+        │                 │
+        └────────┬────────┘
+                 ▼
+          VEHICLE TRAJECTORY
+```
+
+This architecture became one of the most persistent design decisions in Piolín's evolution.
+
+---
+
+## 5. Why Steering Geometry Became Important
+
+The first prototype showed that a steering command does not uniquely determine where the robot will go.
+
+The resulting path also depends on:
+
+```text
+wheel geometry
+
+steering angle
 
 vehicle speed
 
-wheel behavior
+wheelbase
 
-mechanical structure
+mechanical alignment
 
 starting position
 ```
 
-all influence the resulting path.
+During Phase 2, PiolínTech increasingly focused on obtaining:
 
-This realization became one of the reasons later Piolín prototypes placed much greater emphasis on mechanical steering geometry.
+```text
+more repeatable curves
+
+more controlled corner entry
+
+less unnecessary steering
+
+more predictable return to straight motion
+```
+
+The engineering objective became:
+
+```text
+software command
+        ↓
+repeatable steering geometry
+        ↓
+repeatable physical trajectory
+```
+
+rather than simply:
+
+```text
+software says LEFT
+→ robot turns somehow
+```
 
 ---
 
-## 7. Limitations Discovered in Phase 1
+## 6. Distance-Sensor Development
 
-Phase 1 was successful as a learning platform, but several limitations became visible during testing.
+Phase 2 also expanded the role of ultrasonic sensing.
 
-### Limited environmental information
+The early robot had limited information about its relationship with the course.
 
-A simple ultrasonic configuration could detect distance, but it could not describe the complete lateral geometry of the course.
+As development continued, PiolínTech experimented with different sensor arrangements to obtain more useful spatial information.
 
-The robot needed more information to answer questions such as:
+The key question changed from:
 
 ```text
-How close is the left side?
-
-How close is the right side?
-
-Where is the robot inside the corridor?
-
-Is the robot centered or angled?
-
-Has the surrounding geometry changed because of a corner?
+Is there something ahead?
 ```
 
-This motivated later experiments with additional sensing positions.
+to:
+
+```text
+Where is Piolín relative to the course boundaries?
+```
+
+This required information from both sides of the vehicle.
+
+The architecture gradually moved toward:
+
+```text
+LEFT DISTANCE
++
+RIGHT DISTANCE
+        ↓
+COURSE GEOMETRY
+```
+
+rather than depending on one isolated distance measurement.
 
 ---
 
-### Basic steering behavior
+## 7. Sensor Placement Was Part of the Experiment
 
-The early mechanical configuration was useful for initial movement tests, but more controlled vehicle geometry was required for WRO Future Engineers.
+The ultrasonic configuration did not immediately appear in its final form.
 
-The team needed:
+During development, the team experimented with:
 
 ```text
-more predictable turning
+sensor position
 
-better steering repeatability
+sensor orientation
 
-vehicle-like corner trajectories
+forward sensing
 
-better control over course position
+lateral sensing
+
+different combinations of measurements
 ```
 
-This requirement became one of the major drivers of Piolín's later **Ackermann steering development**.
+This was necessary because an ultrasonic sensor does not measure an abstract mathematical wall.
+
+It measures whatever surface intersects its sound cone.
+
+Therefore:
+
+```text
+same sensor
++
+different mounting angle
+=
+different information
+```
+
+Sensor placement became part of the navigation design.
 
 ---
 
-### No visual obstacle identification
+## 8. Evolution Toward Lateral Geometry
 
-Phase 1 did not yet contain a camera-based obstacle-perception system.
+A major insight from these experiments was that **lateral ultrasonic measurements** were particularly useful for understanding Piolín's relationship with the corridor.
 
-An ultrasonic sensor can answer approximately:
-
-```text
-Something is at this distance.
-```
-
-but it cannot independently answer:
+The concept became:
 
 ```text
-Is the pillar Red?
-
-Is the pillar Green?
-
-Which WRO passing rule applies?
+LEFT WALL / BOUNDARY
+        ↓
+LEFT DISTANCE
+        │
+        │
+      PIOLÍN
+        │
+        │
+RIGHT DISTANCE
+        ↑
+RIGHT WALL / BOUNDARY
 ```
 
-This distinction became important when PiolínTech later began developing the Obstacle Challenge architecture.
+With two side measurements, the software can reason about more than simple proximity.
+
+It can begin to infer:
+
+```text
+lateral position
+
+relative corridor geometry
+
+approach to one side
+
+movement away from one side
+
+geometry changes near corners
+```
+
+This idea became increasingly important in later navigation algorithms.
 
 ---
 
-### Limited navigation context
+## 9. Color Sensor Integration
 
-Early control was more reactive.
+Phase 2 also developed the use of a downward-facing **EV3 Color Sensor** for detecting course markings.
 
-A simple approach can behave conceptually as:
+The sensor eventually occupied:
 
 ```text
-sensor sees condition
+S4
+```
+
+and became responsible for observing the colored floor regions used as navigation landmarks.
+
+The key course colors are:
+
+```text
+BLUE
+
+ORANGE
+```
+
+These markings provided information that ultrasonic sensing alone could not provide.
+
+For example, a wall measurement describes:
+
+```text
+physical geometry
+```
+
+while a floor marking can describe:
+
+```text
+course context
+```
+
+The combination created a stronger navigation system.
+
+---
+
+## 10. Direction from the First Floor Mark
+
+An important navigation concept developed around the first detected course marking.
+
+The intended rule became:
+
+```text
+FIRST BLUE
+→ COUNTERCLOCKWISE
+```
+
+and:
+
+```text
+FIRST ORANGE
+→ CLOCKWISE
+```
+
+This allows the same robot to determine the required direction from the course itself rather than depending entirely on a manually selected direction.
+
+The architecture became:
+
+```text
+START
+   ↓
+MOVE / ACQUIRE COURSE
+   ↓
+DETECT FIRST FLOOR MARK
+   ↓
+   ┌───────────────┐
+   │               │
+ BLUE           ORANGE
+   │               │
+   ▼               ▼
+  CCW              CW
+```
+
+This principle continued into later versions of Piolín.
+
+---
+
+## 11. From Color Samples to Navigation Landmarks
+
+Early color-based navigation can be implemented very simply:
+
+```text
+see color
+→ immediately react
+```
+
+However, PiolínTech discovered that a physical marking can remain under the sensor for multiple software cycles.
+
+For example:
+
+```text
+BLUE
+BLUE
+BLUE
+BLUE
+```
+
+does not represent four different course locations.
+
+It represents:
+
+```text
+ONE PHYSICAL BLUE MARK
+```
+
+This became the beginning of a more important concept:
+
+```text
+RAW SENSOR READING
+        ↓
+COURSE EVENT
+```
+
+The mature confirmation, latch, release, and duplicate-protection logic was developed further in later phases, but Phase 2 established the importance of using floor colors as **navigation landmarks** rather than simply raw sensor values.
+
+---
+
+## 12. Navigation Became Geometric
+
+One of the main software changes during Phase 2 was the transition away from purely threshold-based reactions.
+
+A very simple wall strategy behaves like:
+
+```text
+too close
+→ turn away
+```
+
+```text
+too far
+→ turn toward
+```
+
+This can work in simple conditions, but often creates:
+
+```text
+late corrections
+
+zig-zag
+
+overcorrection
+
+oscillation
+```
+
+PiolínTech began moving toward a more geometric question:
+
+> **Where is the vehicle relative to the corridor, and what steering correction is needed to return toward the desired trajectory?**
+
+Conceptually:
+
+```text
+LEFT DISTANCE
+      +
+RIGHT DISTANCE
       ↓
-motor reacts
+GEOMETRY ESTIMATE
+      ↓
+POSITION ERROR
+      ↓
+STEERING CORRECTION
 ```
 
-However, WRO Future Engineers requires the robot to understand different situations such as:
-
-```text
-straight navigation
-
-corner
-
-pillar approach
-
-pillar avoidance
-
-pillar clearance
-
-recovery
-
-parking
-```
-
-This eventually motivated the transition toward a more structured state-based software architecture.
+This idea later became much more developed in the Open Challenge controller.
 
 ---
 
-## 8. What Phase 1 Taught Us
+## 13. Smaller and Earlier Corrections
 
-The most important result of Phase 1 was not a specific speed or competition score.
+Another lesson from navigation testing was that waiting until Piolín reached a dangerous position before correcting produced unstable behavior.
 
-It was the engineering information obtained from the prototype.
-
-Phase 1 demonstrated that Piolín needed to evolve in several areas.
+The desired behavior changed toward:
 
 ```text
-PHASE 1 OBSERVATION
-        ↓
-NEXT DESIGN NEED
+small error
+→ small early correction
 ```
 
-### Sensing
+instead of:
 
 ```text
-simple distance sensing
-        ↓
-more complete course geometry
+large error
+→ emergency large correction
 ```
 
-### Steering
+The control philosophy became:
 
 ```text
-basic vehicle movement
-        ↓
-more controlled steering geometry
+MEASURE CONTINUOUSLY
+      ↓
+CORRECT EARLY
+      ↓
+KEEP STEERING SMALL WHEN POSSIBLE
+      ↓
+USE STRONG CORRECTION ONLY WHEN NEEDED
 ```
 
-### Navigation
-
-```text
-direct reactions
-        ↓
-structured autonomous behavior
-```
-
-### Perception
-
-```text
-distance only
-        ↓
-eventually add visual obstacle identity
-```
-
-### Testing
-
-```text
-does it move?
-        ↓
-why does it move this way?
-```
-
-This shift in questions represents an important step in PiolínTech's engineering process.
+This principle became important in later wall-following, corner, and recovery development.
 
 ---
 
-## 9. What Was Preserved
+## 14. Steering and Navigation Interaction
 
-Not everything from Phase 1 was replaced.
+Phase 2 showed that navigation tuning could not be separated from steering mechanics.
 
-Several fundamental decisions survived throughout Piolín's development.
+For example:
+
+```text
+software correction too strong
+        ↓
+Motor B requests large steering
+        ↓
+Ackermann geometry creates tight arc
+        ↓
+ultrasonic geometry changes rapidly
+        ↓
+controller reacts again
+        ↓
+oscillation
+```
+
+This is a closed-loop interaction.
+
+The team therefore began considering:
+
+```text
+steering strength
+
+vehicle speed
+
+sensor geometry
+
+correction timing
+```
+
+together.
+
+This systems-level reasoning became increasingly important in later phases.
+
+---
+
+## 15. Early Corner Development
+
+Corners became one of the most difficult navigation situations.
+
+During straight motion:
+
+```text
+side sensors
+→ observe approximately consistent corridor geometry
+```
+
+During a corner:
+
+```text
+vehicle rotates
+        ↓
+sensor beams rotate
+        ↓
+observed surfaces change
+        ↓
+straight-wall assumptions become weaker
+```
+
+This showed that one navigation rule was not necessarily appropriate for every part of the course.
+
+The early corner work eventually contributed to the later separation between:
+
+```text
+NORMAL
+```
+
+and:
+
+```text
+CORNER
+```
+
+behavior.
+
+---
+
+## 16. What Did Not Yet Exist
+
+Phase 2 was still an intermediate development stage.
+
+The robot did not yet have the complete current architecture.
+
+Systems that were not yet mature included:
+
+```text
+Pixy2.1 obstacle perception
+
+target relevance ranking
+
+target confirmation and lock
+
+Red / Green pillar state logic
+
+PASS_CONFIRM
+
+post-pillar RECOVER
+
+full control arbitration
+
+mature color-event lifecycle
+
+dedicated parking state machine
+```
+
+Those capabilities were developed through the later sensor, vision, and software phases.
+
+---
+
+## 17. Main Phase 2 Engineering Lessons
+
+Phase 2 produced several important conclusions.
+
+### Lesson 1 — Mechanics affect software
+
+```text
+steering geometry
+→ changes control response
+```
+
+The vehicle could not be tuned reliably without understanding the physical steering system.
+
+---
+
+### Lesson 2 — Sensor position determines sensor meaning
+
+```text
+ultrasonic value
+```
+
+is only useful when the software understands:
+
+```text
+where the sensor is mounted
+```
+
+and:
+
+```text
+what geometry it is actually measuring
+```
+
+---
+
+### Lesson 3 — Two-sided information is stronger
+
+```text
+one distance
+→ proximity
+```
+
+while:
+
+```text
+left + right
+→ geometric context
+```
+
+This insight strongly influenced the final ultrasonic architecture.
+
+---
+
+### Lesson 4 — Floor colors are events
+
+The Color Sensor became more useful when markings were considered:
+
+```text
+physical course landmarks
+```
+
+instead of isolated readings.
+
+---
+
+### Lesson 5 — Early corrections are preferable
+
+A navigation controller should ideally prevent Piolín from reaching a dangerous condition rather than waiting until a collision is almost unavoidable.
+
+---
+
+## 18. What Was Preserved into Later Phases
+
+Several Phase 2 design decisions became permanent features of Piolín.
 
 Most importantly:
 
 ```text
-LEGO MINDSTORMS EV3
-→ remained the main controller
+LEGO EV3 BRICK
+→ remained main controller
 ```
-
-The project continued using:
 
 ```text
-EV3 motors
-
-EV3-compatible sensor ports
-
-LEGO-based mechanical construction
-
-Python-based autonomous control
+MOTOR A
+→ propulsion
 ```
 
-The later robot is therefore an evolution of the Phase 1 platform rather than a completely unrelated replacement.
+```text
+MOTOR B
+→ steering
+```
 
-The architecture became more sophisticated while preserving the same central EV3 ecosystem.
+```text
+ACKERMANN
+→ remained steering architecture
+```
+
+```text
+S4 COLOR SENSOR
+→ remained floor sensor
+```
+
+and the growing preference for:
+
+```text
+LATERAL COURSE GEOMETRY
+```
+
+continued into the final two-ultrasonic arrangement.
+
+These were not temporary experiments.
+
+They became structural foundations for later versions.
 
 ---
 
-## 10. What Changed After Phase 1
+## 19. What Continued to Change
 
-The next development stages focused on improving the areas exposed by this first prototype.
+Other parts of Phase 2 were still experimental.
 
-The evolution moved toward:
+These included:
 
 ```text
-BETTER MECHANICAL GEOMETRY
-        ↓
-ACKERMANN STEERING DEVELOPMENT
-        ↓
-BETTER ULTRASONIC POSITIONING
-        ↓
-COLOR SENSOR INTEGRATION
-        ↓
-COURSE NAVIGATION DEVELOPMENT
-        ↓
-VISION EXPERIMENTATION
-        ↓
-STATE-BASED CONTROL
-        ↓
-CURRENT COMPETITION ARCHITECTURE
+exact ultrasonic placement
+
+number of useful distance sensors
+
+corner detection
+
+navigation tuning
+
+steering correction strength
+
+course-event handling
+
+orientation sensing
 ```
 
-The important point is that these changes occurred **around the EV3 platform**.
+The next development phase would investigate these problems alongside a much larger new challenge:
 
-Piolín was not converted into a Raspberry Pi robot or into a non-LEGO custom electronics vehicle.
+```text
+VISUAL OBSTACLE PERCEPTION
+```
 
 ---
 
-## 11. Phase 1 vs. Current Piolín
+## 20. Phase 1 to Phase 2 Comparison
 
-The difference between the first prototype and the current robot is primarily the maturity of each subsystem.
-
-| Engineering Area | Phase 1 | Current Direction |
+| Engineering Area | Phase 1 | Phase 2 |
 |---|---|---|
-| Controller | EV3 Brick | EV3 Brick |
-| Mechanical design | Initial prototype | Refined vehicle architecture |
-| Steering | Early configuration | Ackermann steering driven by Motor B |
-| Propulsion | Basic EV3 drive | Rear propulsion driven by Motor A |
-| Ultrasonic sensing | Simple early configuration | Two lateral sensors |
-| Left ultrasonic identity | Not yet current architecture | S2 = LEFT |
-| Right ultrasonic identity | Not yet current architecture | S3 = RIGHT |
-| Floor sensing | Early/not mature | S4 Color Sensor |
-| Open heading | Not yet current architecture | S1 Gyro |
-| Obstacle vision | None | S1 Pixy2.1 |
-| Obstacle strategy | Not developed | Dedicated perception and maneuver logic |
-| Software structure | Basic/reactive | State-oriented architecture |
-| Controller priority | Basic | Control arbitration |
-| Parking | Not developed | Dedicated parking subsystem |
-
-This comparison shows that the largest evolution was not simply an increase in computing power.
-
-It was the progressive improvement of:
-
-```text
-MECHANICS
-+
-SENSING
-+
-PERCEPTION
-+
-CONTROL
-+
-SOFTWARE ARCHITECTURE
-```
+| Controller | EV3 | EV3 |
+| Main objective | Basic autonomous prototype | Vehicle-specific navigation development |
+| Structure | Initial LEGO prototype | More deliberate vehicle architecture |
+| Steering | Early configuration | Ackermann development |
+| Propulsion | Basic EV3 actuation | Dedicated Motor A propulsion |
+| Steering actuator | Early EV3 actuation | Dedicated Motor B steering |
+| Distance sensing | Simple early sensing | Multi-position ultrasonic experimentation |
+| Navigation information | Limited distance information | Increasing use of lateral geometry |
+| Floor sensor | Not mature | Color Sensor integration |
+| Direction logic | Early/manual concepts | Blue/Orange course-direction development |
+| Navigation control | Basic reactive behavior | Increasingly geometric correction |
+| Corners | Basic testing | Dedicated corner problem identified |
+| Vision | None | Not yet mature |
+| Parking | Not developed | Not yet dedicated subsystem |
 
 ---
 
-## 12. Evolution Toward Phase 2
+## 21. Phase 2 Architecture Summary
 
-Phase 1 provided a functional foundation.
-
-Phase 2 would focus more heavily on:
+The Phase 2 architecture can be summarized as:
 
 ```text
-vehicle mechanics
-
-steering development
-
-navigation geometry
-
-sensor placement
-
-repeatable autonomous movement
+                     EV3 BRICK
+                         │
+          ┌──────────────┼──────────────┐
+          │              │              │
+          ▼              ▼              ▼
+    ULTRASONIC       COLOR SENSOR      CONTROL
+      SENSING             │             LOGIC
+          │               │              │
+          ▼               ▼              │
+      DISTANCE       FLOOR MARKS          │
+      GEOMETRY             │              │
+          └───────────┬────┘              │
+                      ▼                   │
+                NAVIGATION STATE          │
+                      │                   │
+                      └─────────┬─────────┘
+                                ▼
+                        STEERING REQUEST
+                                │
+                    ┌───────────┴───────────┐
+                    ▼                       ▼
+                 MOTOR A                  MOTOR B
+                PROPULSION              STEERING
+                    │                       │
+                    ▼                       ▼
+             REAR DRIVETRAIN       ACKERMANN FRONT
+                    │                       │
+                    └───────────┬───────────┘
+                                ▼
+                         PIOLÍN MOVEMENT
 ```
 
-The transition can be summarized as:
+This architecture was still evolving, but it introduced many of the physical ideas that remain visible in the current robot.
+
+---
+
+## 22. Transition to Phase 3
+
+By the end of Phase 2, Piolín had evolved substantially from the initial prototype.
+
+The development progression was:
 
 ```text
 PHASE 1
 INITIAL EV3 PROTOTYPE
         │
-        │
-        ├── Basic mobility established
-        ├── First sensor experiments
-        ├── First autonomous scripts
-        ├── Steering behavior observed
-        └── Navigation limitations identified
+        ├── Basic movement
+        ├── Initial sensing
+        └── Early autonomous control
         │
         ▼
 PHASE 2
 MECHANICAL + NAVIGATION DEVELOPMENT
+        │
+        ├── Ackermann steering
+        ├── Dedicated propulsion / steering
+        ├── Ultrasonic geometry experiments
+        ├── Color Sensor integration
+        ├── Direction detection
+        └── More structured navigation
+        │
+        ▼
+PHASE 3
+SENSOR + VISION EXPERIMENTATION
 ```
 
-Phase 1 therefore served its intended engineering purpose:
+Phase 3 would expand the problem from:
 
-> **Build the simplest useful prototype, observe how the real vehicle behaves, identify the first major limitations, and use those observations to define the next version.**
+```text
+Where am I relative to the track?
+```
+
+to also include:
+
+```text
+What object am I approaching?
+
+Is it Red or Green?
+
+Which side must I pass?
+
+How do I combine vision with navigation?
+```
+
+This transition introduced one of the most experimental periods in Piolín's development.
 
 ---
 
-## Phase 1 Status
+## Phase 2 Status
 
 ```text
-PHASE:       1
-STATUS:      LEGACY
+PHASE:       2
+STATUS:      LEGACY DEVELOPMENT PHASE
 CONTROLLER:  LEGO MINDSTORMS EV3
-ROLE:        INITIAL PROTOTYPE
-SUCCESSOR:   PHASE 2
+FOCUS:       MECHANICS + NAVIGATION
+PREDECESSOR: PHASE 1
+SUCCESSOR:   PHASE 3
 ```
 
-Although this configuration is no longer the current competition architecture, it remains documented because it shows where Piolín's development began and provides evidence of the engineering decisions that shaped the later robot.
+Phase 2 is preserved because it documents the stage in which Piolín's current mechanical identity began to emerge.
+
+The central Phase 2 engineering principle was:
+
+> **Reliable autonomous navigation required PiolínTech to design the mechanics, steering geometry, sensor placement, and software control as one interacting vehicle system rather than as independent components.**
 
 ---
 
 <div align="center">
 
-### [Evolution Overview](README.md) · [PiolínTech Main README](../../README.md)
+### [← Phase 1](Phase1.md) · [Evolution Overview](README.md) · [Phase 3 →](Phase3.md)
 
 </div>
