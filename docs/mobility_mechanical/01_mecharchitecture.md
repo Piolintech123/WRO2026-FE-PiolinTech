@@ -1,1579 +1,1300 @@
 # 1. Mechanical Architecture
 
-Piolín is a compact autonomous vehicle designed for the **WRO Future Engineers 2026** competition.
+<div align="center">
 
-Its mechanical architecture is based on a car-like layout with:
+<img
+  src="../../v-photos/v4/piolin_open_isometric.jpg"
+  alt="Piolín complete mechanical architecture in the Open Challenge configuration"
+  width="720"
+/>
 
-```text
-Rear-wheel propulsion
-        +
-Front-wheel Ackermann steering
-        +
-Rigid LEGO Technic chassis
-        +
-Dedicated sensor mounting
-        +
-Central LEGO EV3 control
-```
+<br>
 
-The objective of the mechanical design is not simply to support the electronics.
+<sub><b>Figure 1.1.</b> Current Piolín mechanical platform. The same core chassis, drivetrain, and steering architecture is used in both WRO Future Engineers competition rounds.</sub>
 
-The chassis must convert software commands into predictable physical motion while keeping the sensors in stable positions relative to the track.
+</div>
 
-For this reason, Piolín was developed as an integrated system in which:
+Piolín is built around a **single rear-driven, front-steered LEGO Mindstorms EV3 vehicle platform** designed for the WRO Future Engineers 2026 competition. Its mechanical architecture separates propulsion from steering: a LEGO EV3 Large Motor drives the rear wheels, while a LEGO EV3 Medium Motor operates the front Ackermann-style steering mechanism.
+
+The core mechanical system can be summarized as:
 
 ```text
-MECHANICS
-    ↓
-Determines physical movement
-
-
-SENSORS
-    ↓
-Describe the environment
-
-
-SOFTWARE
-    ↓
-Calculates the response
-
-
-MOTORS
-    ↓
-Execute that response
-```
-
-The current mechanical configuration described in this document represents the final Piolín architecture rather than earlier experimental versions.
-
-For historical configurations, see:
-
-[Legacy Documentation](../legacy/00_LEGACY_NOTICE.md)
-
----
-
-## 1.1 Mechanical Design Philosophy
-
-Piolín follows a conventional vehicle architecture rather than a differential-drive robot layout.
-
-The vehicle separates propulsion and steering into two independent mechanical functions:
-
-```text
-PROPULSION
-    ↓
-Rear wheels
-    ↓
+REAR
 Motor A
+→ propulsion
+→ rear drivetrain
+→ rear wheels
 
 
-STEERING
-    ↓
-Front wheels
-    ↓
+FRONT
 Motor B
-    ↓
-Ackermann linkage
+→ steering
+→ mechanical linkage
+→ front wheels
 ```
 
-This separation was selected because the Future Engineers track is fundamentally a road-navigation problem.
+This separation gives each actuator a clear responsibility. Motor A controls longitudinal vehicle motion, while Motor B changes the orientation of the front wheels and therefore the direction of the vehicle trajectory.
 
-Instead of independently changing the speed of left and right drive wheels to turn, Piolín changes the orientation of the front wheels while the rear drivetrain continues providing forward motion.
+The same base vehicle is used for both the **Open Challenge** and **Obstacle Challenge**. The chassis, drivetrain, steering system, motors, lateral ultrasonic mounts, Color Sensor position, EV3, and battery remain fundamentally common between the two rounds. The main round-specific change occurs at the sensing level, where S1 carries the Gyro Sensor during Open and Pixy2.1 during Obstacles.
 
-The result is a motion model closer to a small automobile.
+The goal of the mechanical design is therefore not to create two different robots, but to create **one mechanically consistent autonomous vehicle whose sensing architecture can change according to the competition task**.
 
 ---
 
-# 1.2 Current Mechanical Configuration
+## 1.1 Mechanical System Overview
 
-The final Piolín mechanical architecture is organized around the LEGO Mindstorms EV3 and a LEGO Technic structural chassis.
+Piolín can be divided into five major mechanical regions:
 
-The main physical subsystems are:
+| Region | Primary Function |
+| :--- | :--- |
+| Central chassis | Supports and connects all subsystems |
+| Rear drivetrain | Converts Motor A rotation into vehicle propulsion |
+| Front steering assembly | Converts Motor B rotation into front-wheel steering |
+| Sensor-support structure | Maintains sensor position and orientation |
+| EV3 and battery support | Integrates controller mass and electrical hardware into the chassis |
 
-| Subsystem | Current Configuration | Main Mechanical Function |
-| :--- | :--- | :--- |
-| **Chassis** | LEGO Technic structure | Supports and aligns all subsystems |
-| **Drive System** | Rear propulsion | Produces longitudinal motion |
-| **Drive Motor** | Motor A | Powers drivetrain |
-| **Steering System** | Front Ackermann-style linkage | Changes vehicle direction |
-| **Steering Motor** | Motor B | Actuates steering mechanism |
-| **Rear Wheels** | ~61.0 mm diameter | Propulsion interface with track |
-| **Front Wheels** | 38.1 mm diameter | Directional steering wheels |
-| **Sensor Structure** | Front + lateral + downward mounts | Maintains sensor geometry |
-| **Vision Mount** | Forward HuskyLens mounting | Supports obstacle perception |
-| **Main Controller Mount** | LEGO EV3 integrated into chassis | Central control and structural mass |
-
-The mechanical layout can be represented conceptually as:
+The complete physical chain is:
 
 ```text
-                         FRONT
-                           ↑
-
-                     HuskyLens
-                         │
-                         ▼
-
-                  Front Ultrasonic
-                         │
-
-          Front Left Wheel     Front Right Wheel
-                 \                 /
-                  \               /
-                   ACKERMANN LINKAGE
-                          │
-                          ▼
-                       Motor B
-                       Steering
-
-
-                    [ LEGO EV3 ]
-
-
-                        Motor A
-                          │
-                          ▼
-                    Rear Drivetrain
-                     /           \
-                    /             \
-          Rear Left Wheel     Rear Right Wheel
-
-                           ↓
-                          REAR
+              CENTRAL CHASSIS
+                     │
+        ┌────────────┼────────────┐
+        │            │            │
+        ▼            ▼            ▼
+  REAR DRIVE    FRONT STEERING   CONTROLLER
+        │            │            │
+        ▼            ▼            ▼
+     Motor A       Motor B        EV3
+        │            │          + Battery
+        ▼            ▼
+ Rear Wheels    Front Wheels
 ```
 
-This diagram is conceptual and is intended to show subsystem relationships rather than exact scale.
+The chassis acts as the reference structure for every other subsystem.
+
+This is important because software assumes that the physical relationship between:
+
+```text
+wheels
+
+motors
+
+sensors
+
+camera
+
+EV3
+```
+
+remains sufficiently repeatable between tests.
 
 ---
 
-# 1.3 Confirmed Overall Dimensions
+## 1.2 Chassis Architecture
 
-The current Piolín robot has the following confirmed overall dimensions:
+The chassis is built primarily from LEGO Mindstorms EV3 and LEGO Technic structural elements. Beams, frames, pins, axles, connectors, and supports combine to form a rigid platform around which the vehicle's active components are installed.
 
-| Parameter | Final Measured Value |
-| :--- | :---: |
-| **Length** | **210 mm** |
-| **Width** | **150 mm** |
-| **Height** | **230 mm** |
-| **Mass** | **0.80476 kg** |
+<div align="center">
 
-These dimensions describe the assembled robot rather than an isolated chassis frame.
+<img
+  src="../../v-photos/v4/piolin_open_top.jpg"
+  alt="Top view of Piolín mechanical architecture"
+  width="720"
+/>
 
-They include the integrated mechanical structure, controller, sensors, and mounted electronics that form the current Piolín configuration.
+<br>
 
-The approximate bounding volume is therefore:
+<sub><b>Figure 1.2.</b> Top view showing the relationship between the central chassis, rear propulsion system, front steering system, EV3, and sensor locations.</sub>
+
+</div>
+
+The structure must perform more than a simple mounting function. It must preserve the geometry between subsystems during:
 
 ```text
-210 mm
-Length
+acceleration
 
-150 mm
-Width
+braking
 
-230 mm
-Height
+cornering
+
+reverse motion
+
+obstacle avoidance
+
+handling between runs
 ```
 
-The compact footprint is important because the vehicle must maneuver between track boundaries while still carrying the sensing and vision systems required for autonomous operation.
+If the chassis or a subsystem mount changes position, the behavior of the robot can change even when the software is identical.
+
+Examples include:
+
+```text
+ultrasonic mount rotates
+→ measured wall geometry changes
+
+
+camera mount shifts
+→ pillar X coordinate changes
+
+
+steering support flexes
+→ same Motor B position produces different wheel angle
+```
+
+Mechanical repeatability is therefore part of control-system repeatability.
 
 ---
 
-# 1.4 Vehicle Reference Axes
+## 1.3 Structural Rigidity vs. Mass
 
-To describe Piolín's movement consistently, the vehicle can be represented using three primary axes.
+A competition chassis must be rigid enough to preserve alignment, but adding structure without purpose can increase mass and complexity.
 
-```text
-                    Z
-                    ↑
-                    │
-                    │
-                    ●──────→ X
-                   /
-                  /
-                 Y
-```
-
-For the purposes of this documentation:
+Piolín therefore follows a balance:
 
 ```text
-Longitudinal direction
-=
-Forward / backward motion
+TOO FLEXIBLE
+→ geometry changes
+→ inconsistent calibration
 
 
-Lateral direction
-=
-Left / right position
-
-
-Vertical direction
-=
-Height above track
+TOO MUCH STRUCTURE
+→ unnecessary mass
+→ more connections
+→ harder maintenance
 ```
 
-The principal vehicle behaviors therefore correspond to:
+The intended design region is:
 
 ```text
-TRANSLATION
-    ↓
-Movement along the track
-
-
-STEERING
-    ↓
-Rotation of the vehicle heading
-
-
-LATERAL POSITION
-    ↓
-Distance relative to track walls
+ENOUGH REINFORCEMENT
+        +
+LOW UNNECESSARY COMPLEXITY
 ```
 
-This distinction is important because the sensors and mechanical system do not measure or control all three quantities in the same way.
+Structural reinforcement is concentrated around mechanically important areas such as:
+
+```text
+steering supports
+
+motor mounts
+
+wheel supports
+
+EV3 mounting
+
+sensor mounts
+```
+
+rather than treating every region of the chassis identically.
 
 ---
 
-# 1.5 Propulsion Architecture
+# 1.4 Rear-Wheel Propulsion
 
-Piolín uses a dedicated rear propulsion system controlled by **Motor A**.
+Piolín uses **Motor A**, a LEGO Mindstorms EV3 Large Motor, as the single propulsion actuator.
 
-The propulsion chain can be described as:
+<div align="center">
+
+<img
+  src="../../v-photos/v4/motor_a_large_drive.jpg"
+  alt="Piolín LEGO EV3 Large Motor used for rear propulsion"
+  width="650"
+/>
+
+<br>
+
+<sub><b>Figure 1.3.</b> Motor A provides the mechanical input to Piolín's rear-wheel drivetrain.</sub>
+
+</div>
+
+The propulsion path is:
 
 ```text
 Motor A
    ↓
-Mechanical drivetrain
+drivetrain
    ↓
-Rear axle / driven wheels
+rear axle / wheel system
    ↓
-Track surface
+rear wheels
    ↓
-Vehicle translation
+track surface
+   ↓
+vehicle motion
 ```
 
-The drive system has one primary responsibility:
+The Large Motor was assigned to propulsion because this subsystem must move the complete mass of the vehicle rather than only reposition a linkage.
 
-> Convert motor rotation into forward or backward vehicle movement.
+The rear-drive architecture also keeps propulsion mechanically separate from the front steering mechanism.
 
-It does not determine the steering direction.
-
-That responsibility belongs to the front steering system.
-
-This separation allows the software to treat:
+This simplifies the division of vehicle functions:
 
 ```text
-SPEED
+rear
+→ generates longitudinal motion
+
+
+front
+→ defines direction
 ```
-
-and:
-
-```text
-STEERING
-```
-
-as different control variables.
-
-Current propulsion documentation:
-
-[Drive Motor and Motor System](../components/03_Motors.md)
-
-[Drivetrain](05_drivetrain.md)
 
 ---
 
-# 1.6 Rear Wheel Geometry
+## 1.5 Why Rear-Wheel Drive Was Retained
 
-The current rear wheel diameter is approximately:
+Rear propulsion works naturally with Piolín's Ackermann-style configuration because the front assembly can focus on steering instead of simultaneously transmitting the main drive torque.
 
-```text
-D_REAR ≈ 61.0 mm
-```
-
-Therefore:
+This provides a relatively clear mechanical architecture:
 
 ```text
-R_REAR ≈ 30.5 mm
+DRIVEN REAR AXLE
++
+STEERED FRONT AXLE
 ```
 
-The theoretical circumference is:
+A more complex alternative could have included:
 
 ```text
-C_REAR = PI × D_REAR
+front-wheel drive
+
+four-wheel drive
+
+independent wheel motors
 ```
 
-so:
+but those approaches would introduce additional drivetrain elements or actuator requirements.
+
+Piolín does not currently require that additional complexity.
+
+The selected architecture provides the required mobility while preserving only two motors:
 
 ```text
-C_REAR ≈ PI × 61.0
+1 drive motor
+
+1 steering motor
 ```
-
-```text
-C_REAR ≈ 191.5 mm
-```
-
-This means that one ideal full wheel rotation corresponds to approximately:
-
-```text
-191.5 mm
-```
-
-of linear travel if slip and deformation are neglected.
-
-For an encoder rotation of `THETA` degrees, the idealized linear displacement can be written as:
-
-```text
-DISTANCE =
-(THETA / 360) × C_REAR
-```
-
-or:
-
-```text
-DISTANCE ≈
-(THETA / 360) × 191.5 mm
-```
-
-This relationship is useful when relating motor encoder rotation to physical vehicle movement.
-
-Actual vehicle displacement can differ because of tire deformation, steering, surface interaction, and wheel slip.
 
 ---
 
-# 1.7 Front Steering Architecture
+# 1.6 Drivetrain Behavior
 
-Piolín uses front-wheel steering actuated by **Motor B**.
+The drivetrain converts motor rotation into wheel rotation, but wheel rotation is not automatically identical to real vehicle displacement.
+
+The theoretical relationship can be represented as:
+
+```text
+wheel travel
+=
+wheel rotations × wheel circumference
+```
+
+However, the real track motion can also be influenced by:
+
+```text
+tire slip
+
+surface friction
+
+wheel deformation
+
+drivetrain friction
+
+turning motion
+```
+
+Therefore motor encoder information is useful as a relative movement reference but should not be treated as perfect physical odometry without calibration.
+
+The current wheel diameter and drivetrain ratio should be physically verified on the final V4 robot before numerical conversion constants are presented as final specifications.
+
+---
+
+## 1.7 Drivetrain Mechanical Losses
+
+Mechanical resistance can create software symptoms.
+
+For example:
+
+```text
+same Motor A command
++
+greater axle friction
+=
+lower actual vehicle speed
+```
+
+Potential sources include:
+
+```text
+axle misalignment
+
+tight bushings
+
+wheel rubbing
+
+gear friction
+
+structural deformation
+```
+
+This is why propulsion problems should be diagnosed mechanically before compensating by simply increasing motor command.
+
+A software adjustment should not be used to hide a drivetrain that is physically binding.
+
+---
+
+# 1.8 Front Steering Architecture
+
+Piolín uses **Motor B**, a LEGO Mindstorms EV3 Medium Motor, to operate the front steering system.
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/motor_b_medium_steering.jpg"
+  alt="Piolín LEGO EV3 Medium Motor used for front steering"
+  width="650"
+/>
+
+<br>
+
+<sub><b>Figure 1.4.</b> Motor B operates the mechanical linkage responsible for front-wheel steering.</sub>
+
+</div>
 
 The steering chain is:
 
 ```text
 Motor B
    ↓
-Steering linkage
+steering transmission / linkage
    ↓
-Left and right steering arms
+steering arms
    ↓
-Front wheels
+left and right front pivots
    ↓
-Vehicle turning path
+front wheel angles
+   ↓
+vehicle curvature
 ```
 
-The mechanism is based on an **Ackermann-style steering geometry**.
+Motor B therefore does not directly represent vehicle heading.
 
-Instead of keeping both front wheels at exactly the same steering angle, the mechanical linkage allows the inner and outer wheels to follow different trajectories during a turn.
+It controls a mechanism that changes front-wheel geometry.
 
-This is important because:
+Actual vehicle rotation occurs only when:
 
 ```text
-INNER FRONT WHEEL
-      ↓
-Follows smaller radius
-
-
-OUTER FRONT WHEEL
-      ↓
-Follows larger radius
+front wheels are angled
++
+vehicle moves longitudinally
 ```
 
-A car-like steering arrangement therefore reduces the geometric conflict that would occur if both wheels were forced to follow the same circular path.
-
-Current steering documentation:
-
-[Steering Motor](../components/04_SteeringMotor.md)
-
-[Steering Geometry](04_steering.md)
+This is a fundamental characteristic of Ackermann-style steering.
 
 ---
 
-# 1.8 Front Wheel Geometry
+# 1.9 Ackermann-Style Geometry
 
-The current front wheel diameter is:
+Piolín uses an **Ackermann-style front steering mechanism** rather than differential steering.
 
-```text
-D_FRONT = 38.1 mm
-```
+<div align="center">
 
-Therefore:
+<img
+  src="../../v-photos/v4/ackermann_top.jpg"
+  alt="Top view of Piolín Ackermann-style front steering"
+  width="720"
+/>
 
-```text
-R_FRONT = 19.05 mm
-```
+<br>
 
-and the theoretical circumference is:
+<sub><b>Figure 1.5.</b> Top view of the current front steering mechanism showing coordinated left and right wheel movement.</sub>
 
-```text
-C_FRONT = PI × D_FRONT
-```
+</div>
 
-```text
-C_FRONT ≈ 119.7 mm
-```
-
-The front wheels are smaller than the rear propulsion wheels.
-
-Their primary mechanical responsibility is directional control rather than drivetrain propulsion.
-
-The different wheel sizes therefore correspond to different subsystem roles:
-
-| Wheel Set | Diameter | Main Role |
-| :--- | :---: | :--- |
-| **Front** | **38.1 mm** | Steering |
-| **Rear** | **~61.0 mm** | Propulsion |
-
----
-
-# 1.9 Ackermann Steering Principle
-
-When a vehicle turns, the inner and outer front wheels cannot follow the same turning radius.
+During a turn, the inner and outer front wheels follow different-radius paths.
 
 Conceptually:
 
 ```text
-                 TURN CENTER
-                      ●
-
-
-                R_INNER
-           ────────────────
-                  ↗
-
-       INNER WHEEL      OUTER WHEEL
-            \               \
-             \               \
-              \               \
-               [   PIOLÍN   ]
+         TURN CENTER
+              ●
+             / \
+            /   \
+           /     \
+      INNER     OUTER
+      WHEEL     WHEEL
 ```
 
-For an ideal Ackermann vehicle, the wheel angles satisfy:
+The inner wheel follows a smaller radius than the outer wheel.
+
+A steering linkage that allows the two front wheels to respond differently can reduce unnecessary tire scrub compared with forcing both wheels to remain perfectly parallel throughout the turn.
+
+Piolín's mechanism is described as **Ackermann-style** because the design follows this steering principle, while the exact geometric relationship should be measured before claiming ideal theoretical Ackermann geometry.
+
+---
+
+## 1.10 Why Ackermann Was Chosen
+
+Ackermann steering was selected because the Future Engineers challenge is fundamentally a vehicle-navigation task.
+
+Compared with differential steering, it provides behavior closer to a conventional wheeled vehicle:
 
 ```text
-cot(THETA_OUTER) - cot(THETA_INNER)
-=
-W / L
+forward motion
++
+front steering
+→ curved trajectory
 ```
 
-where:
+This creates useful characteristics for:
 
 ```text
-THETA_INNER
-=
-Inner front-wheel steering angle
+wall following
 
+smooth straight sections
 
-THETA_OUTER
-=
-Outer front-wheel steering angle
+controlled corners
 
+obstacle passing
 
-W
-=
-Front track width
-
-
-L
-=
-Wheelbase
+parking
 ```
 
-The corresponding ideal angles for a vehicle following a radius `R` can be represented as:
+It also creates specific engineering challenges.
+
+The robot cannot rotate in place.
+
+A steering change requires forward or reverse motion to create a trajectory.
+
+This means speed and steering cannot be tuned independently.
+
+---
+
+# 1.11 Steering Angle Is Not Motor Angle
+
+One important mechanical distinction is:
 
 ```text
-THETA_INNER =
-atan(L / (R - W/2))
+Motor B encoder angle
+≠
+front wheel angle
+```
+
+Motor B moves the steering linkage through a mechanical geometry.
+
+The resulting wheel angle depends on:
+
+```text
+link lengths
+
+pivot positions
+
+connection points
+
+mechanical play
+
+structural stiffness
+```
+
+Therefore a software command such as:
+
+```text
+Motor B = X degrees
+```
+
+should not automatically be documented as:
+
+```text
+front wheels = X degrees
+```
+
+unless that relationship has been physically measured.
+
+This is important for reproducibility and for any future mathematical turning model.
+
+---
+
+## 1.12 Steering Center
+
+The steering system requires a repeatable neutral position.
+
+Conceptually:
+
+```text
+LEFT
+   \
+    \
+   CENTER
+    /
+   /
+RIGHT
+```
+
+The neutral Motor B reference should correspond as closely as practical to:
+
+```text
+front wheels aligned for straight motion
+```
+
+However, software centering cannot compensate completely for:
+
+```text
+unequal linkage geometry
+
+bent structure
+
+wheel misalignment
+
+mechanical play
+```
+
+For this reason, steering center should be checked both:
+
+```text
+electronically
 ```
 
 and:
 
 ```text
-THETA_OUTER =
-atan(L / (R + W/2))
+physically
 ```
 
-The current documentation does not assign numerical values to `W` or `L` because final confirmed measurements for those dimensions are not being claimed here.
-
-The equations describe the mechanical principle behind the steering architecture.
+before navigation tuning begins.
 
 ---
 
-# 1.10 Motor Angle vs. Physical Wheel Angle
+# 1.13 Mechanical Steering Limits
 
-An important characteristic of Piolín's steering mechanism is that:
+Motor B must also operate inside safe mechanical limits.
 
-```text
-STEERING MOTOR ANGLE
-        ≠
-PHYSICAL FRONT WHEEL ANGLE
-```
+The steering mechanism has physical end positions determined by the LEGO linkage and front-wheel assembly.
 
-Motor B rotates through the LEGO steering linkage before changing the front-wheel orientation.
-
-The relationship is therefore:
+Commanding beyond a useful mechanical range can create:
 
 ```text
-Motor Encoder Position
-        ↓
-Linkage Motion
-        ↓
-Steering Rack / Steering Arms
-        ↓
-Physical Wheel Angle
+binding
+
+high motor load
+
+linkage stress
+
+little additional wheel movement
 ```
 
-This relationship depends on the geometry of the mechanical linkage.
+The preferred software range should therefore remain inside the mechanically useful steering region rather than relying on the absolute point where the linkage physically cannot move farther.
 
-For this reason, a command such as:
-
-```text
-Motor B = 20°
-```
-
-should not automatically be interpreted as:
-
-```text
-Front wheels = 20°
-```
-
-The motor encoder describes actuator position.
-
-The physical wheel angle describes the resulting mechanical steering geometry.
-
-This distinction is essential when interpreting steering software.
+The final usable left and right limits should be documented from the current V4 steering calibration.
 
 ---
 
-# 1.11 Mechanical Steering Center
+# 1.14 Backlash and Mechanical Play
 
-The steering system requires a mechanical center reference.
-
-Conceptually:
+LEGO mechanical assemblies contain small clearances between:
 
 ```text
-LEFT STEERING
-      ←
+pins
 
-      [ CENTER ]
+axles
 
-                →
+connectors
 
-          RIGHT STEERING
+gears
+
+steering joints
 ```
 
-At the neutral steering position, the front wheels are approximately aligned with the longitudinal direction of the chassis.
-
-The software uses this mechanical center as the reference from which left and right steering commands are applied.
-
-If the physical steering center does not correspond to the assumed software center, Piolín can develop a continuous directional bias even when the navigation controller requests straight movement.
-
-Therefore:
+Therefore some difference can exist between:
 
 ```text
-SOFTWARE ZERO
-      ↓
-must correspond closely to
-      ↓
-MECHANICAL CENTER
+Motor B begins moving
 ```
 
-This is one of the most important interfaces between software calibration and mechanical construction.
-
----
-
-# 1.12 Mechanical Steering Limits
-
-The steering mechanism also has finite physical travel.
-
-Conceptually:
+and:
 
 ```text
-MAXIMUM LEFT
-     │
-     │<------ SAFE MECHANICAL RANGE ------>│
-                                           │
-                                      MAXIMUM RIGHT
+front wheels visibly respond
 ```
 
-Software steering commands should remain within a range that the physical mechanism can achieve without forcing the linkage beyond its intended motion.
-
-Excessive steering commands can result in:
-
-```text
-Mechanical binding
-
-High motor load
-
-Linkage stress
-
-Reduced repeatability
-
-Delayed steering recovery
-```
-
-The final software therefore treats steering as a constrained actuator rather than an unlimited angular command.
-
----
-
-# 1.13 Chassis Structure
-
-The chassis is built primarily from LEGO Technic structural elements.
-
-Its responsibilities include:
-
-```text
-Holding the drivetrain
-
-Supporting the steering system
-
-Maintaining wheel alignment
-
-Supporting the EV3
-
-Supporting ultrasonic sensors
-
-Supporting the color sensor
-
-Supporting the vision system
-
-Protecting cable routing
-```
-
-The chassis must keep these elements aligned relative to one another.
-
-This is especially important because sensor data is interpreted using the physical orientation of the sensors.
+especially when changing direction.
 
 For example:
 
 ```text
-Lateral sensor rotates
-        ↓
-Measured surface changes
-        ↓
-Distance interpretation changes
+LEFT steering
+      ↓
+command changes to RIGHT
+      ↓
+mechanical clearance is taken up
+      ↓
+wheel response begins
 ```
 
-Mechanical structure therefore directly affects navigation data.
+This can influence rapid obstacle maneuvers involving:
+
+```text
+avoid
+→ countersteer
+→ recover
+```
+
+The documentation therefore does not claim zero backlash or exact wheel-angle repeatability.
+
+The engineering goal is to **reduce unnecessary play enough that the software receives a mechanically consistent platform**.
 
 ---
 
-# 1.14 Structural Rigidity
+# 1.15 Steering and Vehicle Speed Are Coupled
 
-A steering controller assumes that the commanded mechanical geometry remains reasonably consistent.
+Ackermann steering requires longitudinal movement.
 
-If the chassis or steering structure deforms significantly under load, then:
-
-```text
-Commanded steering position
-        ↓
-Mechanical geometry changes unexpectedly
-        ↓
-Vehicle response changes
-```
-
-For this reason, Piolín's structural architecture aims to limit unnecessary movement between:
+The physical trajectory depends on both:
 
 ```text
-Motor
-
-Steering linkage
-
-Wheel mounts
-
-Sensor mounts
-
-EV3 frame
+steering angle
 ```
 
-The purpose is not to claim that the LEGO structure has zero deformation.
+and:
 
-Instead, the design attempts to maintain sufficient structural consistency for repeatable autonomous control.
+```text
+forward speed
+```
+
+A stronger steering command at one speed may not produce the same trajectory at another speed.
+
+This can be represented conceptually as:
+
+```text
+TRAJECTORY
+=
+f(steering, forward motion, geometry, traction)
+```
+
+This explains why some early tuning attempts that changed steering without considering speed produced inconsistent corner behavior.
+
+A corner is not defined by one steering value alone.
 
 ---
 
-# 1.15 Mechanical and Software Coupling
+# 1.16 Sensor Placement as Mechanical Architecture
 
-The software cannot be separated completely from the physical vehicle.
+Sensors are electronic components, but their **mounting positions are mechanical design decisions**.
 
-For example, suppose the program requests:
+The current common layout contains:
 
 ```text
-Steering = LEFT
+S2
+→ LEFT lateral Ultrasonic Sensor
+
+
+S3
+→ RIGHT lateral Ultrasonic Sensor
+
+
+S4
+→ downward-facing Color Sensor
 ```
 
-The actual vehicle response depends on:
+The ultrasonic sensors are intentionally mounted laterally rather than as the earlier diagonal configurations.
+
+This makes the physical interpretation of the measurement more direct:
 
 ```text
-Motor B movement
-
-Linkage geometry
-
-Wheel angle
-
-Vehicle speed
-
-Tire interaction
-
-Vehicle mass
-
-Track surface
+lateral sensor
+→ side geometry relative to wall
 ```
 
-Therefore:
+The Color Sensor is mounted toward the floor and uses a light-isolation casing to improve the consistency of its optical environment.
+
+These mounting choices affect the navigation mathematics just as directly as the sensor software itself.
+
+---
+
+# 1.17 Round-Specific S1 Integration
+
+The current mechanical platform supports two round-specific sensing configurations.
+
+### Open Challenge
 
 ```text
-SOFTWARE COMMAND
+S1
+→ EV3 Gyro Sensor
+```
+
+The gyro is mounted rigidly relative to the chassis so its measured rotation corresponds meaningfully to vehicle rotation.
+
+### Obstacle Challenge
+
+```text
+S1
+→ Pixy2.1
+```
+
+The Pixy camera is mounted forward so that competition pillars can enter the visual field before Piolín physically reaches them.
+
+The two devices are never part of the same active round configuration.
+
+This modular approach allows the base vehicle to remain unchanged while the specialized perception device changes.
+
+---
+
+# 1.18 Why One Common Mechanical Platform Matters
+
+Using the same chassis for Open and Obstacles reduces the number of variables that change between rounds.
+
+The following remain common:
+
+```text
+wheelbase
+
+drivetrain
+
+steering geometry
+
+Motor A
+
+Motor B
+
+front wheel structure
+
+rear wheel structure
+
+ultrasonic placement
+
+Color Sensor placement
+
+EV3 position
+
+battery position
+```
+
+Therefore the team does not need to recalibrate an entirely different vehicle for each challenge.
+
+The architecture can be represented as:
+
+```text
+             COMMON VEHICLE
+                   │
+        ┌──────────┴──────────┐
+        │                     │
+       OPEN               OBSTACLES
+        │                     │
+      Gyro                  Pixy2.1
+```
+
+The mechanical platform is intentionally common; the perception layer is modular.
+
+---
+
+# 1.19 EV3 and Battery Placement
+
+The EV3 Brick and its rechargeable battery form one of the larger concentrated masses in Piolín.
+
+Their physical location affects:
+
+```text
+front/rear loading
+
+traction
+
+steering load
+
+overall balance
+```
+
+The EV3 mount also needs to provide practical access to:
+
+```text
+buttons
+
+screen
+
+battery
+
+motor ports
+
+sensor ports
+```
+
+while preventing the controller from shifting during vehicle motion.
+
+The final center of mass has not yet been measured on the current V4 robot, so this document does not claim an exact center-of-mass position.
+
+---
+
+# 1.20 Mechanical Load Paths
+
+A useful way to understand Piolín is through its mechanical load paths.
+
+### Propulsion
+
+```text
+Motor A
+→ drivetrain
+→ rear wheels
+→ track
+→ chassis acceleration
+```
+
+### Steering
+
+```text
+Motor B
+→ linkage
+→ steering pivots
+→ front tires
+→ lateral tire force
+→ vehicle rotation
+```
+
+### Structural
+
+```text
+EV3 / battery / sensors / motors
+→ mounting points
+→ Technic chassis
+→ wheels
+→ track
+```
+
+The chassis therefore connects every mechanical reaction in the robot.
+
+A weak mounting region can influence behavior far beyond that local component.
+
+---
+
+# 1.21 Mechanical Symmetry
+
+Piolín benefits from left/right mechanical symmetry where practical, particularly around:
+
+```text
+front steering
+
+wheel supports
+
+ultrasonic placement
+```
+
+However, a LEGO vehicle should not automatically be assumed to be perfectly symmetric.
+
+Small differences can come from:
+
+```text
+linkage geometry
+
+component mounting
+
+cable routing
+
+mechanical play
+```
+
+This means a physically measured left turn may not be exactly identical to a physically measured right turn.
+
+Software should therefore be calibrated against the actual robot rather than assuming perfect theoretical symmetry.
+
+---
+
+# 1.22 Serviceability
+
+A competition robot must be maintainable under limited time.
+
+Important components should remain reasonably accessible for:
+
+```text
+cable inspection
+
+battery charging
+
+sensor replacement
+
+S1 reconfiguration
+
+steering inspection
+
+motor inspection
+```
+
+This creates another mechanical trade-off.
+
+A completely enclosed robot could protect components but make troubleshooting difficult.
+
+An excessively open structure could reduce rigidity or expose cables.
+
+Piolín therefore prioritizes access to critical components while keeping them mechanically secured.
+
+---
+
+# 1.23 Cable Routing as a Mechanical Constraint
+
+Although wiring is documented primarily in the electrical section, cable routing also affects mechanical architecture.
+
+A cable can interfere with:
+
+```text
+front steering
+
+wheel rotation
+
+rear drivetrain
+
+sensor orientation
+```
+
+particularly when Motor B moves through its full steering range.
+
+For this reason, mechanical testing should verify cable clearance at:
+
+```text
+full left
+
+center
+
+full right
+```
+
+rather than inspecting the robot only with the wheels centered.
+
+The complete mechanical envelope includes moving cables as well as rigid LEGO structure.
+
+---
+
+# 1.24 Mechanical Evolution
+
+Piolín's current architecture resulted from several physical iterations.
+
+During development, changes included:
+
+```text
+ultrasonic orientation
+
+front sensing configuration
+
+camera mounting
+
+wheel reinforcement
+
+steering reinforcement
+
+sensor support
+
+cable arrangement
+```
+
+Not every earlier configuration was mechanically incorrect.
+
+Many were prototypes used to determine which geometry produced the most interpretable and repeatable behavior.
+
+The current mechanical philosophy increasingly favors:
+
+```text
+stable geometry
+
+clear subsystem roles
+
+fewer unnecessary components
+
+repeatable mounting
+```
+
+rather than adding structures to solve every individual software symptom.
+
+---
+
+# 1.25 Earlier Ultrasonic Geometry
+
+Earlier Piolín configurations experimented with ultrasonic sensors in different orientations, including diagonal placements and a frontal sensor.
+
+Those layouts provided useful information during development, but they also made sensor interpretation more dependent on geometry.
+
+The current architecture uses:
+
+```text
+S2 = LEFT lateral US
+
+S3 = RIGHT lateral US
+```
+
+with no permanent frontal ultrasonic.
+
+This creates a simpler relationship between:
+
+```text
+measured side distance
+```
+
+and:
+
+```text
+vehicle position relative to walls
+```
+
+while S1 is reserved for the specialized sensor required by each competition round.
+
+---
+
+# 1.26 Mechanical Problems Should Be Solved Mechanically First
+
+One of the strongest lessons from prototype development was that software should not automatically compensate for a mechanical defect.
+
+Examples include:
+
+```text
+robot drifts
+→ first check wheel/steering alignment
+
+
+steering responds slowly
+→ first check linkage friction/play
+
+
+vehicle moves slowly
+→ first check drivetrain resistance
+
+
+sensor values move unexpectedly
+→ first check sensor mount
+```
+
+Only after the physical platform has been verified should control parameters be changed.
+
+This prevents software from becoming a collection of compensations for an unstable mechanical system.
+
+---
+
+# 1.27 Mechanical Inspection Before Testing
+
+A practical mechanical pre-test sequence is:
+
+```text
+Check chassis joints
+      ↓
+Check Motor A mount
+      ↓
+Check rear drivetrain
+      ↓
+Check rear wheels
+      ↓
+Check Motor B mount
+      ↓
+Check steering linkage
+      ↓
+Check front wheels
+      ↓
+Check sensor mounts
+      ↓
+Check S1 device mount
+      ↓
+Check cable clearance
+      ↓
+Move steering through full range
+      ↓
+Begin software test
+```
+
+This inspection can prevent a mechanical change from being mistaken for a control regression.
+
+---
+
+# 1.28 Current Values That Must Be Remeasured
+
+Several earlier mechanical measurements exist from previous Piolín configurations.
+
+Because the vehicle has changed, those values should not automatically appear as current V4 specifications.
+
+The following should be physically measured again:
+
+```text
+overall length
+
+overall width
+
+overall height
+
+wheelbase
+
+front track width
+
+rear track width
+
+wheel diameters
+
+ground clearance
+
+vehicle mass
+
+Pixy mounting height
+
+Pixy lateral offset
+
+Pixy pitch angle
+```
+
+Current rough references exist for some of these quantities, but they are not used here as official final values.
+
+The purpose of the mechanical architecture document is to explain the **design and relationships** without presenting outdated measurements as current engineering evidence.
+
+---
+
+# 1.29 Mechanical Measurements Required for Reproduction
+
+For a fully reproducible final design, the most useful measurements will include:
+
+| Measurement | Why It Matters |
+| :--- | :--- |
+| Wheelbase | Vehicle turning geometry |
+| Front track | Steering geometry |
+| Rear track | Chassis and drivetrain reproduction |
+| Front wheel diameter | Steering/odometry model |
+| Rear wheel diameter | Encoder-to-distance conversion |
+| Steering center | Straight-line calibration |
+| Left/right usable steering limits | Control safety and repeatability |
+| Sensor offsets | Navigation geometry |
+| Camera position | Vision calibration |
+| Vehicle mass | Dynamic and power analysis |
+
+These values should be measured only after the final physical structure is frozen.
+
+---
+
+# 1.30 Mechanical Architecture Trade-Offs
+
+The final architecture represents several deliberate trade-offs.
+
+| Decision | Advantage | Trade-Off |
+| :--- | :--- | :--- |
+| Rear-wheel propulsion | Clear separation of drive and steering | Single primary driven system |
+| Ackermann-style steering | Vehicle-like smooth trajectory | Cannot rotate in place |
+| One steering motor | Low actuator complexity | Steering depends on linkage precision |
+| LEGO Technic chassis | Highly modular and repairable | Mechanical play must be managed |
+| Two lateral ultrasonic mounts | Direct wall geometry | No dedicated current front-ranging sensor |
+| Common chassis for both rounds | Calibration consistency | Requires modular S1 change |
+| EV3-integrated battery/controller | Compact architecture | Mass concentrated around EV3 |
+| Fixed camera mount | Repeatable vision geometry | Camera rotates with chassis during turns |
+
+No architecture removes every limitation.
+
+The engineering objective is to select a combination whose limitations can be understood, calibrated, and managed.
+
+---
+
+# 1.31 Current Mechanical Architecture Summary
+
+Piolín's current mechanical architecture can be summarized as:
+
+```text
+                    LEGO EV3
+                  + BATTERY
+                      │
+                      ▼
+               CENTRAL CHASSIS
+                      │
+           ┌──────────┴──────────┐
+           │                     │
+           ▼                     ▼
+      REAR PROPULSION       FRONT STEERING
+           │                     │
+        Motor A               Motor B
+           │                     │
+           ▼                     ▼
+       Drivetrain             Linkage
+           │                     │
+           ▼                     ▼
+      Rear Wheels           Front Wheels
+           │                     │
+           └──────────┬──────────┘
+                      ▼
+               VEHICLE MOTION
+```
+
+Around this mobility platform, the sensors are mounted according to their physical measurement roles:
+
+```text
+LEFT SIDE
+→ S2 Ultrasonic
+
+
+RIGHT SIDE
+→ S3 Ultrasonic
+
+
+FLOOR
+→ S4 Color Sensor
+
+
+OPEN ORIENTATION
+→ S1 Gyro
+
+
+OBSTACLE VISION
+→ S1 Pixy2.1
+```
+
+The mechanical architecture therefore provides the stable physical reference on which the sensing and software architectures depend.
+
+---
+
+# 1.32 Final Engineering Assessment
+
+Piolín's mechanical architecture is based on a relatively simple idea:
+
+```text
+one chassis
+
+one propulsion motor
+
+one steering motor
+
+rear drive
+
+front Ackermann-style steering
+
+stable sensor mounting
+
+round-specific perception
+```
+
+The engineering complexity comes from making those elements interact repeatably.
+
+A motor command must become a predictable mechanical response.
+
+A sensor must remain in the geometry assumed by the software.
+
+A camera must remain aligned to the chassis.
+
+The drivetrain must move freely.
+
+The steering linkage must provide sufficient rigidity without binding.
+
+The same platform must remain usable in both competition rounds.
+
+Piolín therefore treats mechanical design as part of the autonomous control system rather than as a structure built before programming begins.
+
+The complete relationship is:
+
+```text
+MECHANICAL GEOMETRY
+        ↓
+SENSOR GEOMETRY
+        ↓
+CONTROL ASSUMPTIONS
+        ↓
+MOTOR COMMANDS
         ↓
 MECHANICAL RESPONSE
         ↓
-ACTUAL VEHICLE TRAJECTORY
+NEW SENSOR STATE
 ```
 
-The mechanical architecture defines the physical system that the control algorithm is attempting to regulate.
+The current architecture was selected because it provides a clear division between propulsion and steering, preserves one common vehicle platform across both rounds, and allows the software to operate on a physical system whose geometry can be measured and progressively calibrated.
+
+The central mechanical design principle is:
+
+> **Build a vehicle whose physical behavior is simple enough to understand, rigid enough to repeat, and modular enough to evolve without rebuilding the entire robot.**
 
 ---
 
-# 1.16 Sensor Mounting as Part of Mechanical Design
+<div align="center">
 
-The sensors are not simply electronic accessories attached anywhere on the robot.
+### [← Back to PiolínTech Main README](../../README.md)
 
-Their positions and orientations are part of the mechanical architecture.
-
-Current Piolín uses:
-
-```text
-S1 → Front Ultrasonic
-
-S2 → Right Ultrasonic
-
-S3 → Left Ultrasonic
-
-S4 → Downward Color Sensor
-```
-
-The HuskyLens is mounted forward for obstacle perception.
-
-Each sensor is positioned according to its function.
-
----
-
-# 1.17 Lateral Ultrasonic Mounting
-
-The two lateral ultrasonic sensors are mounted to observe the walls on either side of Piolín.
-
-Their approximate mounting height above the track surface is:
-
-```text
-43.2 mm
-```
-
-The arrangement is:
-
-```text
-                   FRONT
-                     ↑
-
-              ┌─────────────┐
-              │             │
-LEFT US  ←    │   PIOLÍN    │    →  RIGHT US
-   S3         │             │         S2
-              └─────────────┘
-```
-
-These sensors provide the physical wall geometry used by the navigation software.
-
-Because their readings depend on their orientation, rigid mounting is important.
-
-Current documentation:
-
-[Ultrasonic Sensors](../components/05_UltrasonicSensors.md)
-
----
-
-# 1.18 Front Ultrasonic Mounting
-
-The front ultrasonic sensor is mounted facing forward.
-
-Its mechanical role differs from the lateral pair.
-
-```text
-                   FRONT WALL
-                       │
-                       │
-                       ▼
-
-               [ FRONT US S1 ]
-                       │
-                       │
-                  [ PIOLÍN ]
-```
-
-The front sensor provides an independent frontal-distance reference used for safety.
-
-It does not participate in the normal inner-wall and outer-wall navigation geometry.
-
-This is an important mechanical and software separation.
-
----
-
-# 1.19 Color Sensor Mounting
-
-The color sensor is mounted underneath Piolín and faces the track surface.
-
-Conceptually:
-
-```text
-             [ PIOLÍN ]
-                 │
-                 ▼
-           COLOR SENSOR
-                 │
-                 ▼
-        TRACK FLOOR MARKING
-```
-
-Its orientation is fundamentally different from the ultrasonic sensors.
-
-The ultrasonic sensors observe surrounding geometry.
-
-The color sensor observes the surface directly below the robot.
-
-A casing around the color sensor helps isolate its observation area from surrounding light and supports more consistent floor-color detection.
-
-Current documentation:
-
-[Color Sensor](../components/06_ColorSensor.md)
-
----
-
-# 1.20 Vision-System Mounting
-
-The HuskyLens is installed toward the front of Piolín.
-
-Its mechanical placement determines:
-
-```text
-Field of view
-
-Visible obstacle region
-
-Detection timing
-
-Occlusion from robot structure
-```
-
-Therefore, the camera mount is part of the navigation architecture rather than merely a support bracket.
-
-Conceptually:
-
-```text
-              CAMERA FIELD OF VIEW
-                   \           /
-                    \         /
-                     \       /
-                      \     /
-                     HuskyLens
-                         │
-                     [ PIOLÍN ]
-```
-
-The vision system is used during the Obstacle Challenge.
-
-It does not replace the ultrasonic wall-navigation geometry.
-
-Current vision documentation:
-
-[HuskyLens](../components/07_HuskyLens.md)
-
----
-
-# 1.21 Controller Placement
-
-The LEGO EV3 is physically integrated into the central robot structure.
-
-This provides:
-
-```text
-Short connection paths to sensors
-
-Direct motor connection
-
-Centralized controller placement
-
-Structural integration
-
-Accessible control interface
-```
-
-Because the EV3 also contributes a significant part of the robot's mass, its location affects the overall mass distribution.
-
-The mechanical design therefore treats the controller as both:
-
-```text
-An electronic component
-```
-
-and:
-
-```text
-A physical chassis component
-```
-
-The final robot mass of:
-
-```text
-0.80476 kg
-```
-
-includes the integrated controller and associated hardware.
-
----
-
-# 1.22 Mass and Normal Force
-
-The current measured robot mass is:
-
-```text
-m = 0.80476 kg
-```
-
-Using:
-
-```text
-g = 9.81 m/s²
-```
-
-the approximate gravitational force is:
-
-```text
-P = m × g
-```
-
-```text
-P = 0.80476 × 9.81
-```
-
-```text
-P ≈ 7.89 N
-```
-
-Therefore, on a level surface and neglecting dynamic vertical effects, the total normal force from the track is approximately equal in magnitude to:
-
-```text
-7.89 N
-```
-
-This does not mean that the force is distributed equally across all four wheels.
-
-The actual load distribution depends on the position of the robot's center of mass.
-
----
-
-# 1.23 Traction and Propulsion
-
-The drive motor produces torque that eventually acts at the rear wheel radius.
-
-The ideal relationship between wheel torque and tangential force is:
-
-```text
-F =
-TAU / R
-```
-
-where:
-
-```text
-F
-=
-Tangential wheel force
-
-
-TAU
-=
-Wheel torque
-
-
-R
-=
-Wheel radius
-```
-
-For Piolín's rear wheels:
-
-```text
-R_REAR ≈ 0.0305 m
-```
-
-so:
-
-```text
-F ≈
-TAU / 0.0305
-```
-
-This is an ideal mechanical relationship.
-
-The actual force available to accelerate the vehicle is also limited by tire-track interaction and drivetrain losses.
-
----
-
-# 1.24 Longitudinal Acceleration
-
-The relationship between net longitudinal force and acceleration is:
-
-```text
-F_NET =
-m × a
-```
-
-Therefore:
-
-```text
-a =
-F_NET / m
-```
-
-Using Piolín's measured mass:
-
-```text
-a =
-F_NET / 0.80476
-```
-
-This demonstrates why robot mass affects dynamic response.
-
-For the same available net drive force:
-
-```text
-Higher mass
-    ↓
-Lower acceleration
-
-
-Lower mass
-    ↓
-Higher acceleration
-```
-
-However, mechanical design must balance low mass with sufficient rigidity and component support.
-
----
-
-# 1.25 Turning Dynamics
-
-When Piolín follows a curved trajectory, the vehicle experiences lateral acceleration.
-
-The ideal relationship is:
-
-```text
-A_LATERAL =
-V² / R
-```
-
-where:
-
-```text
-V
-=
-Vehicle speed
-
-
-R
-=
-Turn radius
-```
-
-This means that lateral demand grows with the **square of speed**.
-
-For example, doubling speed at the same turning radius produces approximately four times the lateral acceleration requirement.
-
-This is one reason steering behavior and vehicle speed cannot be tuned independently.
-
-```text
-HIGHER SPEED
-      ↓
-Greater lateral demand
-      ↓
-Greater sensitivity to steering geometry
-```
-
----
-
-# 1.26 Why Speed Affects Steering
-
-A steering command that works correctly at one velocity may produce a different trajectory at another.
-
-The mechanical relationship is:
-
-```text
-STEERING ANGLE
-      +
-VEHICLE SPEED
-      ↓
-ACTUAL TURNING PATH
-```
-
-At greater speed:
-
-```text
-Momentum increases
-
-Lateral acceleration increases
-
-Available reaction time decreases
-```
-
-Therefore, Piolín's software can use different propulsion behavior depending on whether the robot is:
-
-```text
-Following a straight
-
-Entering a corner
-
-Avoiding an obstacle
-
-Recovering its position
-```
-
-The drivetrain and steering system must therefore be considered together.
-
----
-
-# 1.27 Inner and Outer Wheel Paths
-
-During a turn, all four wheels follow different trajectories.
-
-Conceptually:
-
-```text
-                 CENTER OF TURN
-                       ●
-
-      FRONT INNER         FRONT OUTER
-           \                   \
-            \                   \
-             \                   \
-
-       REAR INNER           REAR OUTER
-```
-
-The inner wheels travel along smaller-radius paths than the outer wheels.
-
-The Ackermann steering mechanism helps align the front wheels with these different paths.
-
-This reduces the need for the tires to slide laterally simply to satisfy the steering geometry.
-
----
-
-# 1.28 Sensor Geometry During Turns
-
-Turning also changes what the ultrasonic sensors observe.
-
-During a straight:
-
-```text
-SIDE SENSOR
-     ↓
-Approximately perpendicular wall observation
-```
-
-During a turn:
-
-```text
-Robot heading changes
-        ↓
-Sensor orientation changes relative to wall
-        ↓
-Measured distance changes
-```
-
-Therefore, a distance change does not always mean that the robot translated directly toward or away from the wall.
-
-It may also be caused by chassis rotation.
-
-This is one reason the mechanical steering model is important to the navigation software.
-
----
-
-# 1.29 Mechanical Architecture During Cornering
-
-The current Open Challenge strategy is closely linked to the vehicle mechanics.
-
-The navigation sequence is approximately:
-
-```text
-Follow Inner Wall
-        ↓
-Approach Corner
-        ↓
-Inner Wall Ends
-        ↓
-Steering Changes
-        ↓
-Vehicle Rotates
-        ↓
-Outer Wall Becomes Useful Reference
-        ↓
-Inner Wall Reappears
-        ↓
-Steering Reduced
-        ↓
-Straight Navigation Restored
-```
-
-The software can only interpret these sensor transitions correctly if the mechanical response to steering is sufficiently repeatable.
-
-Therefore:
-
-```text
-CORNER LOGIC
-      depends on
-STEERING MECHANICS
-```
-
-and:
-
-```text
-SENSOR INTERPRETATION
-      depends on
-CHASSIS ORIENTATION
-```
-
----
-
-# 1.30 Mechanical Architecture During Obstacle Avoidance
-
-During the Obstacle Challenge, Piolín must temporarily leave its normal wall-following trajectory to pass a colored pillar.
-
-The mechanical sequence becomes:
-
-```text
-Normal path
-    ↓
-Obstacle identified
-    ↓
-Steering changes
-    ↓
-Vehicle moves around obstacle
-    ↓
-Wall geometry changes
-    ↓
-Obstacle cleared
-    ↓
-Steering recovery
-    ↓
-Normal navigation restored
-```
-
-The ability to recover depends strongly on the steering mechanism.
-
-A camera may identify the correct obstacle, but the physical vehicle must still execute the requested trajectory.
-
-Therefore:
-
-```text
-VISION
-   ↓
-Identifies obstacle
-
-
-SOFTWARE
-   ↓
-Chooses response
-
-
-MECHANICS
-   ↓
-Determines whether the trajectory
-can physically be executed
-```
-
----
-
-# 1.31 Separation of Mechanical Responsibilities
-
-Piolín's mechanical design intentionally separates major responsibilities.
-
-| Mechanical Element | Primary Responsibility |
-| :--- | :--- |
-| **Rear drivetrain** | Vehicle propulsion |
-| **Motor A** | Drive actuation |
-| **Front steering mechanism** | Directional geometry |
-| **Motor B** | Steering actuation |
-| **Chassis** | Structural alignment |
-| **Front wheels** | Direction control |
-| **Rear wheels** | Traction and propulsion |
-| **Sensor mounts** | Stable sensing geometry |
-| **Vision mount** | Stable forward camera orientation |
-| **EV3 mount** | Controller integration |
-
-This separation makes mechanical behavior easier to understand and software behavior easier to trace.
-
----
-
-# 1.32 Mechanical Failure Propagation
-
-A mechanical problem can appear initially as a software or sensor problem.
-
-For example:
-
-```text
-Loose steering linkage
-        ↓
-Wheel angle differs from expected
-        ↓
-Robot moves closer to wall
-        ↓
-Ultrasonic error increases
-        ↓
-Software commands stronger correction
-```
-
-The software may appear unstable even though the original cause was mechanical.
-
-Similarly:
-
-```text
-Sensor mount moves
-        ↓
-Distance reading changes
-        ↓
-Navigation error changes
-        ↓
-Steering response changes
-```
-
-For this reason, mechanical consistency is fundamental to autonomous navigation.
-
----
-
-# 1.33 Why a Car-Like Architecture Was Retained
-
-The final vehicle continues to use Ackermann-style steering because it provides a clear mechanical relationship between:
-
-```text
-Steering actuator
-        ↓
-Front wheel direction
-        ↓
-Vehicle heading
-```
-
-This architecture also matches the general geometry of the WRO Future Engineers driving task.
-
-The robot must repeatedly perform:
-
-```text
-Straight navigation
-
-Corners
-
-Obstacle bypasses
-
-Position recovery
-
-Parking-related movement
-```
-
-A front-steered chassis provides one consistent vehicle model for all of these behaviors.
-
----
-
-# 1.34 Current Mechanical Architecture vs. Legacy Designs
-
-Earlier Piolín documentation contains different sensor configurations, navigation assumptions, and prototype architectures.
-
-These should not be mixed with the current mechanical configuration.
-
-The final system is:
-
-```text
-CURRENT PIOLÍN
-
-Rear propulsion
-        +
-Motor A
-        +
-Front Ackermann steering
-        +
-Motor B
-        +
-Three ultrasonic sensors
-        +
-Downward color sensor
-        +
-HuskyLens / Arduino Nano
-        +
-LEGO EV3
-```
-
-Historical configurations involving:
-
-```text
-Gyroscope
-
-PixyCam
-
-Raspberry Pi
-
-Arduino Mega as main controller
-
-Alternative ultrasonic arrangements
-```
-
-belong to:
-
-[Legacy Documentation](../legacy/00_LEGACY_NOTICE.md)
-
----
-
-# 1.35 Mechanical System Hierarchy
-
-The complete current mechanical hierarchy can be summarized as:
-
-```text
-                         PIOLÍN
-                            │
-          ┌─────────────────┼─────────────────┐
-          ▼                 ▼                 ▼
-       STRUCTURE         MOBILITY          SENSING
-          │                 │                 │
-          │          ┌──────┴──────┐          │
-          │          ▼             ▼          │
-          │       DRIVE         STEERING      │
-          │          │             │          │
-          │       Motor A       Motor B       │
-          │          │             │          │
-          │       Rear Wheels   Ackermann     │
-          │                        │           │
-          │                   Front Wheels    │
-          │                                    │
-          └────────────────┬───────────────────┘
-                           ▼
-                    PHYSICAL VEHICLE
-                           │
-                           ▼
-                      TRACK MOTION
-```
-
-Sensor information and software decisions operate on top of this physical architecture.
-
----
-
-# 1.36 Relationship With the Rest of the Repository
-
-This document provides the high-level mechanical architecture.
-
-More detailed mechanical documentation is separated into dedicated files:
-
-[Chassis Design](02_chassis.md)
-
-[Robot Mobility](03_RMobility.md)
-
-[Steering System](04_steering.md)
-
-[Drivetrain](05_drivetrain.md)
-
-[Mechanical Testing](06_testing.md)
-
-Hardware-specific documentation is available in:
-
-[Motors](../components/03_Motors.md)
-
-[Steering Motor](../components/04_SteeringMotor.md)
-
-[Ultrasonic Sensors](../components/05_UltrasonicSensors.md)
-
-[Other Components](../components/10_OtherComponents.md)
-
-This separation avoids repeating the same information in every section while still connecting the complete mechanical system.
-
----
-
-# 1.37 Mechanical Architecture Summary
-
-Piolín's final mechanical architecture is based on a clear separation between **propulsion, steering, sensing, and structure**.
-
-The vehicle uses:
-
-```text
-Motor A
-   ↓
-Rear Propulsion
-
-
-Motor B
-   ↓
-Ackermann Steering
-
-
-Front Wheels
-   ↓
-Directional Control
-
-
-Rear Wheels
-   ↓
-Traction and Motion
-
-
-LEGO Technic Chassis
-   ↓
-Structural Integration
-
-
-Sensor Mounts
-   ↓
-Stable Environmental Measurements
-```
-
-The confirmed current physical specifications are:
-
-```text
-Length           = 210 mm
-
-Width            = 150 mm
-
-Height           = 230 mm
-
-Mass             = 0.80476 kg
-
-Rear wheel       ≈ 61.0 mm diameter
-
-Front wheel      = 38.1 mm diameter
-
-Lateral US height ≈ 43.2 mm
-```
-
-The architecture is designed so that each subsystem has a clearly defined physical responsibility.
-
-The software determines what Piolín should do.
-
-The sensors describe the environment.
-
-The EV3 processes that information.
-
-The motors generate actuation.
-
-The mechanical architecture transforms those commands into real vehicle motion.
-
-```text
-ENVIRONMENT
-     ↓
-SENSORS
-     ↓
-LEGO EV3
-     ↓
-CONTROL DECISION
-     ↓
-MOTOR A + MOTOR B
-     ↓
-MECHANICAL SYSTEM
-     ↓
-VEHICLE MOTION
-     ↓
-NEW ENVIRONMENTAL STATE
-```
-
-This closed interaction between sensing, computation, actuation, and mechanics forms the physical foundation of Piolín's autonomous navigation system.
-
-Continue with:
-
-[Chassis Design](02_chassis.md)
-
-Return to:
-
-[Hardware Overview](../components/01_Hardwareoverview.md)
+</div>
