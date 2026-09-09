@@ -1,75 +1,804 @@
-# Flowcharts and Resources
+# PiolínTech Embedded Engineering Diagrams
 
-## 1. [Navigation State Flowchart](./01_NVStateFC.md)
+The `embed/` directory contains the main **engineering diagrams, flowcharts, and visual architecture references** used throughout the PiolínTech WRO Future Engineers 2026 repository.
 
-The Navigation State Flowchart visualizes our core control loop. Upon system boot and sensor calibration, the robot enters a high speed PID state to track the lane. We utilize an interrupt driven architecture where the main execution pauses only when proximity sensors detect an obstacle. This triggers the RGB parsing routine to identify color coded markers. The logic then executes a pre defined evasion maneuver based on the color identification, either turning left for red or right for green. The robot constantly scans to reacquire the primary lane, defaulting to emergency braking if visual confirmation fails. This state machine approach ensures that our robot maintains stability during complex maneuvers without losing its orientation on the track.
+These files complement the detailed documentation under `docs/` by providing fast visual explanations of Piolín's:
 
-```mermaid
-graph TD
-    %% Define States
-    A[Power On / Boot] --> B[Sensor Calibration]
-    B --> C{Initialization Success?}
-    C -- No --> D[Error Diagnostic Halt]
-    C -- Yes --> E[PID Lane Tracking State]
-    
-    %% Main Loop & Interrupts
-    E --> F{Proximity Sensor Interrupt?}
-    F -- No / Clear Path --> E
-    F -- Yes / Obstacle Detected --> G[RGB Color Signature Parse]
-    
-    %% Obstacle Routing Matrix
-    G --> H{Color ID Identified?}
-    H -- Red Marker --> I[Execute Left Evasion Routing]
-    H -- Green Marker --> J[Execute Right Evasion Routing]
-    H -- Unknown/Shadow --> K[Emergency Static Braking]
-    
-    %% Re-alignment
-    I --> L[Scan for Primary Color Lane]
-    J --> L
-    K --> L
-    L --> M{Lane Re-acquired?}
-    M -- Yes --> E
-    M -- No --> K
-    
-    %% Styles with explicitly forced black text (color:#000)
-    classDef default fill:#f9f9f9,stroke:#333,stroke-width:1px,color:#000;
-    classDef state fill:#d5e8d4,stroke:#82b366,stroke-width:2px,font-weight:bold,color:#000;
-    classDef dec fill:#fff2cc,stroke:#d6b656,stroke-width:2px,color:#000;
-    classDef err fill:#f8cecc,stroke:#b85450,stroke-width:2px,color:#000;
-    
-    class A,B,E,G,I,J,L state;
-    class C,F,H,M dec;
-    class D,K err;
+```text
+navigation architecture
 
+Pixy2.1 vision processing
+
+controller arbitration
+
+obstacle strategy
+
+floor-event processing
+
+parking
+
+calibration process
+
+engineering workflow
+
+complete system architecture
+```
+
+Most current diagrams are stored as Markdown files containing **Mermaid flowcharts** so they can be rendered directly by GitHub while remaining easy to edit and version-control.
+
+The directory also contains a small number of PNG diagrams used as static engineering evidence or legacy documentation.
+
+---
+
+# 1. Directory Structure
+
+```text
+embed/
+│
+├── 01_NVStateFC.md
+├── 02_VProcessing.md
+├── 03_TorqueCalc.png
+├── 04_ControlArbitration.md
+├── 05_ObstacleStrategyFC.md
+├── 06_ColorEventFC.md
+├── 07_ParkingStateFC.md
+├── 08_ParkingCalibrationFC.md
+├── 09_EngineeringProcessFC.md
+├── 10_SystemArchitectureFC.md
+│
+├── legacy_layered_testing.png
+├── legacy_testing_cycle.png
+│
+└── README.md
+```
+
+The numbered files represent the current visual documentation set.
+
+Files beginning with:
+
+```text
+legacy_
+```
+
+represent earlier development material and should not be interpreted as the current system architecture.
+
+---
+
+# 2. Visual Documentation Map
+
+The diagrams can be understood as different levels of Piolín's system.
+
+```text
+                     10 SYSTEM ARCHITECTURE
+                              │
+                 ┌────────────┼────────────┐
+                 │            │            │
+                 ▼            ▼            ▼
+           01 NAVIGATION   02 VISION   06 COLOR EVENTS
+              STATES       PROCESSING
+                 │            │
+                 ├────────────┘
+                 │
+                 ▼
+          04 CONTROL ARBITRATION
+                 │
+        ┌────────┼───────────┐
+        │        │           │
+        ▼        ▼           ▼
+    05 PILLAR  07 PARKING  OTHER STATES
+    STRATEGY      │
+                  ▼
+           08 PARKING CALIBRATION
+
+
+         09 ENGINEERING PROCESS
+                  │
+                  ▼
+          HOW THE SYSTEM EVOLVES
+```
+
+The files therefore do not duplicate each other.
+
+Each one represents a different engineering layer.
+
+---
+
+# 3. Current Flowcharts
+
+## 01 — Navigation State Flowchart
+
+### [01_NVStateFC.md](01_NVStateFC.md)
+
+This is the high-level **Obstacle Challenge navigation state machine**.
+
+It shows how Piolín moves between:
+
+```text
+START
+
+ACQUIRE
+
+NORMAL
+
+TARGET_ACQUIRE
+
+AVOID
+
+PASS_CONFIRM
+
+RECOVER
+
+CORNER
+
+PARKING
+
+STOP
+```
+
+Its main purpose is to answer:
+
+> **What is Piolín currently trying to accomplish?**
+
+This diagram should be used as the primary visual reference for the navigation-state architecture.
+
+---
+
+## 02 — Pixy2.1 Vision Processing
+
+### [02_VProcessing.md](02_VProcessing.md)
+
+This diagram shows how raw Pixy2.1 blocks become useful perception information.
+
+The pipeline is:
+
+```text
+PIXY BLOCKS
+      ↓
+VALIDATE
+      ↓
+CLASSIFY
+      ↓
+BUILD CANDIDATES
+      ↓
+RANK RELEVANCE
+      ↓
+CONFIRM
+      ↓
+LOCK
+      ↓
+OUTPUT TARGET
+```
+
+It reinforces the architectural separation:
+
+```text
+Pixy2.1
+→ perception
+```
+
+rather than:
+
+```text
+Pixy2.1
+→ direct Motor B command
+```
+
+The current signature mapping is:
+
+```text
+sig1
+→ Pink
+→ Parking
+```
+
+```text
+sig2
+→ Red
+→ PASS RIGHT
+```
+
+```text
+sig3
+→ Green
+→ PASS LEFT
 ```
 
 ---
 
-## 2. [Vision Processing Logic](./02_VProcessing.md)
+# 4. Torque Calculation Graphic
 
-This diagram outlines the computer vision pipeline that powers our autonomous obstacle detection system. We employ the K210 dual core RISC V processor, which acts as a dedicated AI accelerator. It ingests raw visual frames from the OV2640 sensor. The onboard KPU model then executes real time feature extraction to identify red and green color signatures. Once detected, it generates precise bounding boxes for these objects. This coordinate data is formatted into clean serial packages containing X and Y offsets, ID tags, and dimensions. These packages are transmitted to the host Raspberry Pi 5 via hardware I2C protocols. This offloading strategy is critical for performance, allowing the main processor to focus on steering.
+## 03 — Torque Calculation
 
-```mermaid
-graph TD
-    %% Define Nodes
-    A[Raw Visual Frame Ingestion <br> Sensor: OV2640] --> B[K210 Dual-Core RISC-V Processor <br> Executes Onboard KPU Models]
-    B --> C[Internal Color & Coordinate <br> Bounding Box Generation]
-    C --> D[Clean Serial Packages <br> X/Y, ID, Width, Height]
-    D --> E[Host Controller <br> Raspberry Pi 5 via Hardware I2C]
+`03_TorqueCalc.png`
 
-    %% Styles forcing black text (color:#000)
-    classDef default fill:#ecf0f1,stroke:#2c3e50,stroke-width:1.5px,color:#000000,font-family:sans-serif;
-    classDef highlight fill:#d5e8d4,stroke:#82b366,stroke-width:2px,color:#000000,font-weight:bold;
-    
-    class B,E highlight;
+This is a static engineering graphic related to torque calculations.
 
+Unlike the Mermaid flowcharts, this file is a normal image and can be embedded directly in Markdown using:
+
+```html
+<img
+  src="../embed/03_TorqueCalc.png"
+  alt="Torque calculation diagram"
+/>
+```
+
+The exact relative path depends on the location of the Markdown document using the image.
+
+This file is separate from Piolín's navigation architecture and belongs to the repository's supporting engineering-analysis material.
+
+---
+
+# 5. Control Architecture
+
+## 04 — Control Arbitration
+
+### [04_ControlArbitration.md](04_ControlArbitration.md)
+
+This flowchart explains how Piolín selects **one final steering command** when several subsystems could request different actions.
+
+The central priority is:
+
+```text
+CRITICAL SAFETY
+      ↓
+ACTIVE MANEUVER
+      ↓
+NORMAL NAVIGATION
+```
+
+This prevents uncontrolled combinations such as:
+
+```text
+wall correction
++
+pillar correction
++
+corner correction
++
+recovery correction
+```
+
+from fighting each other.
+
+It explains why:
+
+```text
+NORMAL
+→ wall geometry authority
+```
+
+```text
+AVOID
+→ pillar trajectory authority
+```
+
+```text
+CORNER
+→ corner authority
+```
+
+```text
+RECOVER
+→ recovery authority
+```
+
+```text
+PARKING
+→ parking authority
+```
+
+while critical physical wall protection remains independent.
+
+---
+
+# 6. Obstacle Maneuver
+
+## 05 — Obstacle Strategy Flowchart
+
+### [05_ObstacleStrategyFC.md](05_ObstacleStrategyFC.md)
+
+This diagram is a detailed view of **one complete pillar maneuver**.
+
+The sequence is:
+
+```text
+NORMAL
+   ↓
+DETECT
+   ↓
+VALIDATE
+   ↓
+SELECT
+   ↓
+CONFIRM
+   ↓
+LOCK
+   ↓
+APPROACH
+   ↓
+AVOID
+   ↓
+PASS_CONFIRM
+   ↓
+RELEASE
+   ↓
+RECOVER
+   ↓
+NORMAL
+```
+
+It also shows the fixed WRO passing rules:
+
+```text
+RED
+→ PASS RIGHT
+```
+
+```text
+GREEN
+→ PASS LEFT
+```
+
+This diagram is more detailed than `01_NVStateFC.md`.
+
+`01_NVStateFC.md` explains:
+
+```text
+the complete navigation state system
+```
+
+while `05_ObstacleStrategyFC.md` explains:
+
+```text
+what happens inside one pillar-handling sequence
 ```
 
 ---
 
-## 3. [Torque Calculation](./03_TorqueCalc.png)
+# 7. Floor Event Processing
 
-This document details the mechanical analysis used to select the optimal drive motor for our chassis. We calculated the total tractive force required by summing the force of acceleration and the rolling resistance. With a vehicle mass of 0.72 kg and an acceleration of 0.50 m/s squared, our calculations resulted in a required force of 0.50 N. We then derived the required torque by multiplying this force by the radius of the rear wheels. The resulting value confirmed that our assembly maintains a torque capacity approximately 18 times greater than the threshold required to overcome static inertia. This significant safety margin ensures our robot can handle rapid accelerations and track surface changes without motor stalling.
+## 06 — Color Event Flowchart
 
-![Torque Calculation Analysis](/embed/03_TorqueCalc.png)
+### [06_ColorEventFC.md](06_ColorEventFC.md)
 
+This diagram explains how the downward S4 Color Sensor converts continuous floor observations into discrete navigation events.
+
+The processing sequence is:
+
+```text
+READ FLOOR
+      ↓
+CLASSIFY
+      ↓
+CANDIDATE
+      ↓
+CONFIRM
+      ↓
+CHECK SEPARATION
+      ↓
+ACCEPT EVENT
+      ↓
+COUNT
+      ↓
+LATCH
+      ↓
+WAIT FOR NEUTRAL
+      ↓
+RELEASE
+      ↓
+RE-ARM
+```
+
+The primary objective is:
+
+```text
+one physical marking
+→ one software event
+```
+
+rather than:
+
+```text
+one physical marking
+→ many control-loop counts
+```
+
+The first confirmed event also supports course-direction initialization:
+
+```text
+BLUE first
+→ COUNTERCLOCKWISE
+```
+
+```text
+ORANGE first
+→ CLOCKWISE
+```
+
+Later accepted events provide course-progress information.
+
+---
+
+# 8. Parking
+
+## 07 — Parking State Flowchart
+
+### [07_ParkingStateFC.md](07_ParkingStateFC.md)
+
+This diagram represents the complete terminal parking-state sequence.
+
+```text
+COURSE COMPLETE
+      ↓
+PARKING ELIGIBLE
+      ↓
+PINK CONFIRMED
+      ↓
+TARGET LOCK
+      ↓
+APPROACH
+      ↓
+ENTRY
+      ↓
+ALIGN
+      ↓
+FINAL
+      ↓
+STOP
+```
+
+Parking is therefore not modeled as:
+
+```text
+Pink visible
+→ turn
+→ stop
+```
+
+Instead, course state, Pixy perception, physical geometry, encoder progression, and steering state contribute to the final maneuver.
+
+`STOP` is terminal.
+
+Once Piolín reaches it, normal autonomous navigation does not resume.
+
+---
+
+## 08 — Parking Calibration Flowchart
+
+### [08_ParkingCalibrationFC.md](08_ParkingCalibrationFC.md)
+
+This diagram explains **how the parking parameters are calibrated**, rather than how parking itself operates.
+
+The engineering process is:
+
+```text
+FREEZE HARDWARE
+      ↓
+VERIFY SENSORS
+      ↓
+VERIFY STEERING
+      ↓
+CALIBRATE PIXY
+      ↓
+CALIBRATE APPROACH
+      ↓
+FREEZE APPROACH
+      ↓
+CALIBRATE ENTRY
+      ↓
+FREEZE ENTRY
+      ↓
+CALIBRATE ALIGNMENT
+      ↓
+FREEZE ALIGNMENT
+      ↓
+CALIBRATE FINAL POSITION
+      ↓
+CALIBRATE STOP
+      ↓
+REPEAT
+      ↓
+SAVE BASELINE
+```
+
+The key principle is:
+
+> **A later parking phase should not be used to compensate for an earlier phase that is already incorrect.**
+
+For example:
+
+```text
+FINAL
+```
+
+should not compensate for poor:
+
+```text
+ALIGNMENT
+```
+
+and alignment should not compensate for a poor:
+
+```text
+ENTRY
+```
+
+---
+
+# 9. Engineering Development
+
+## 09 — Engineering Process Flowchart
+
+### [09_EngineeringProcessFC.md](09_EngineeringProcessFC.md)
+
+This diagram represents the development methodology used by PiolínTech.
+
+The cycle is:
+
+```text
+REQUIREMENT
+      ↓
+OBSERVE
+      ↓
+FIND FIRST INCORRECT LAYER
+      ↓
+FORM HYPOTHESIS
+      ↓
+PRESERVE BASELINE
+      ↓
+CHANGE ONE PRIMARY VARIABLE
+      ↓
+CONTROLLED TEST
+      ↓
+COLLECT EVIDENCE
+      ↓
+REPEAT
+      ↓
+KEEP OR REVERT
+      ↓
+REGRESSION TEST
+      ↓
+DOCUMENT
+      ↓
+INTEGRATE
+```
+
+The diagnostic layers include:
+
+```text
+MECHANICS
+
+SENSORS
+
+PERCEPTION
+
+STATE / DECISION
+
+CONTROL
+
+ARBITRATION
+
+ACTUATION
+```
+
+The main engineering rule is to correct the **first layer that becomes incorrect**, rather than immediately changing the subsystem associated with the final visible symptom.
+
+---
+
+# 10. Complete System Architecture
+
+## 10 — System Architecture Flowchart
+
+### [10_SystemArchitectureFC.md](10_SystemArchitectureFC.md)
+
+This is the highest-level technical diagram in the `embed/` directory.
+
+It connects:
+
+```text
+PHYSICAL COURSE
+      ↓
+SENSORS
+      ↓
+ACQUISITION
+      ↓
+VALIDATION
+      ↓
+PERCEPTION
+      ↓
+STATE MACHINE
+      ↓
+CONTROLLERS
+      ↓
+CONTROL ARBITRATION
+      ↓
+MOTORS
+      ↓
+PHYSICAL MOTION
+      ↓
+SENSOR FEEDBACK
+```
+
+It also documents the two round-specific S1 configurations.
+
+### Open
+
+```text
+S1 → Gyro
+S2 → LEFT Ultrasonic
+S3 → RIGHT Ultrasonic
+S4 → Color Sensor
+```
+
+### Obstacles
+
+```text
+S1 → Pixy2.1
+S2 → LEFT Ultrasonic
+S3 → RIGHT Ultrasonic
+S4 → Color Sensor
+```
+
+The system architecture diagram should be used when a reader needs to understand **how all Piolín subsystems connect together**.
+
+---
+
+# 11. Relationship Between the Current Diagrams
+
+The current visual set can be read from highest level to lowest level.
+
+### Complete system
+
+```text
+10_SystemArchitectureFC.md
+```
+
+answers:
+
+> How does the entire robot work as one closed-loop system?
+
+### Navigation behavior
+
+```text
+01_NVStateFC.md
+```
+
+answers:
+
+> Which autonomous state is active?
+
+### Perception
+
+```text
+02_VProcessing.md
+```
+
+answers:
+
+> How does Pixy information become a target?
+
+```text
+06_ColorEventFC.md
+```
+
+answers:
+
+> How does a floor reading become a course event?
+
+### Controller selection
+
+```text
+04_ControlArbitration.md
+```
+
+answers:
+
+> Which controller is allowed to command steering?
+
+### Specific maneuver
+
+```text
+05_ObstacleStrategyFC.md
+```
+
+answers:
+
+> How does Piolín completely handle one pillar?
+
+### Terminal maneuver
+
+```text
+07_ParkingStateFC.md
+```
+
+answers:
+
+> How does Piolín execute parking?
+
+```text
+08_ParkingCalibrationFC.md
+```
+
+answers:
+
+> How is that parking behavior calibrated?
+
+### Development method
+
+```text
+09_EngineeringProcessFC.md
+```
+
+answers:
+
+> How does PiolínTech improve the robot when something fails?
+
+---
+
+# 12. Current vs. Legacy Diagrams
+
+The repository also contains:
+
+```text
+legacy_layered_testing.png
+
+legacy_testing_cycle.png
+```
+
+These files represent earlier engineering-development material.
+
+They are intentionally preserved because they provide evidence of:
+
+```text
+earlier testing methodology
+
+architecture evolution
+
+engineering iteration
+```
+
+However, they should not override the current architecture documented by the numbered flowcharts.
+
+The distinction is:
+
+```text
+01–10
+→ CURRENT VISUAL DOCUMENTATION
+```
+
+```text
+legacy_*
+→ HISTORICAL / DEVELOPMENT EVIDENCE
+```
+
+This follows the same current-vs-legacy philosophy used throughout the PiolínTech repository.
+
+---
+
+# 13. How to Use the Mermaid Files
+
+Files such as:
+
+```text
+01_NVStateFC.md
+
+02_VProcessing.md
+
+04_ControlArbitration.md
+```
+
+contain Mermaid blocks.
+
+For example:
+
+````text
+```mermaid
+flowchart TD
+
+    A[Sensor]
+    B[Processing]
+    C[Decision]
+
+    A --> B
+    B --> C
+```
