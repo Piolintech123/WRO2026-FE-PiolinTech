@@ -1,2673 +1,1823 @@
-# 4. HuskyLens Vision System
-
-Piolín uses a **HuskyLens vision sensor** as the primary obstacle-identification system for the WRO Future Engineers Obstacle Challenge.
-
-The vision subsystem has one main responsibility:
-
-```text
-Identify the relevant pillar
-        ↓
-Determine its learned ID
-        ↓
-Provide obstacle information
-to the LEGO EV3
-```
-
-The HuskyLens does **not** directly drive Motor A or Motor B.
-
-Instead, the current architecture separates:
-
-```text
-VISION
-   ↓
-What obstacle is present?
-
-
-ULTRASONICS
-   ↓
-What surrounding space is available?
-
-
-LEGO EV3
-   ↓
-What should Piolín do?
-```
-
-The confirmed vision communication chain is:
-
-```text
-PILLAR
-   ↓
-HuskyLens
-   ↓
-Arduino Nano
-   ↓
-USB
-   ↓
-LEGO EV3
-   ↓
-Navigation Decision
-   ↓
-Motor A + Motor B
-```
-
-This preserves the EV3 as the main vehicle controller.
-
-For the complete sensor configuration, see:
-
-[Power and Sensor Configuration](01_PowerSensorconfig.md)
-
-For component-level information, see:
-
-[HuskyLens Hardware](../components/07_HuskyLens.md)
-
----
-
-## 4.1 Current Vision Configuration
-
-The current Piolín vision architecture is:
-
-| Element | Current Role |
-| :--- | :--- |
-| **Vision Sensor** | HuskyLens |
-| **Physical Position** | Forward-facing |
-| **Supporting Controller** | Arduino Nano |
-| **Nano → EV3 Connection** | USB |
-| **Main Vehicle Controller** | LEGO EV3 |
-| **Green Pillar** | ID 1 |
-| **Red Pillar** | ID 2 |
-| **Green Passing Side** | Left |
-| **Red Passing Side** | Right |
-| **Open Challenge Requirement** | Not required for normal wall navigation |
-| **Obstacle Challenge Requirement** | Obstacle identification |
-
-The system therefore converts:
-
-```text
-VISUAL OBJECT
-      ↓
-IDENTITY
-      ↓
-NAVIGATION REQUIREMENT
-```
-
-rather than attempting to control the complete vehicle from camera information alone.
-
----
-
-# 4.2 Current Obstacle Mapping
-
-The current trained mapping used by Piolín is:
-
-```text
-ID 1
-=
-GREEN PILLAR
-```
-
-which corresponds to:
-
-```text
-PASS ON LEFT
-```
-
-and:
-
-```text
-ID 2
-=
-RED PILLAR
-```
-
-which corresponds to:
-
-```text
-PASS ON RIGHT
-```
-
-The logical mapping is therefore:
-
-```text
-ID 1
-  ↓
-GREEN
-  ↓
-LEFT PASS
-```
-
-and:
-
-```text
-ID 2
-  ↓
-RED
-  ↓
-RIGHT PASS
-```
-
-This mapping should remain consistent between:
-
-```text
-HuskyLens training
-
-Arduino Nano communication
-
-EV3 interpretation
-
-Obstacle strategy
-```
-
-A mismatch at any of these stages can produce the wrong avoidance direction even if the vision sensor itself detects the pillar correctly.
-
----
-
-# 4.3 Vision Does Not Directly Control Steering
-
-An important architectural distinction is:
-
-```text
-HUSKYLENS OUTPUT
-       ≠
-MOTOR COMMAND
-```
-
-The HuskyLens supplies perception information.
-
-The EV3 makes the final motion decision.
-
-The complete chain is:
-
-```text
-Pillar appears
-     ↓
-HuskyLens detects object
-     ↓
-Object ID obtained
-     ↓
-Nano communicates information
-     ↓
-EV3 receives obstacle state
-     ↓
-EV3 evaluates navigation conditions
-     ↓
-Final steering / drive command
-```
-
-Therefore, the camera does not directly command:
-
-```text
-LEFT STEERING
-```
-
-or:
-
-```text
-RIGHT STEERING
-```
-
-without the EV3 interpreting the complete navigation state.
-
----
-
-# 4.4 Why the Arduino Nano Is Used
-
-The Arduino Nano acts as a supporting interface in the vision architecture.
-
-The current responsibility separation is:
-
-```text
-HUSKYLENS
-   ↓
-Visual perception
-
-
-ARDUINO NANO
-   ↓
-Vision communication support
-
-
-LEGO EV3
-   ↓
-Vehicle decision making
-```
-
-The Nano is not the primary Piolín controller.
-
-It does not replace:
-
-```text
-EV3 motor control
-
-EV3 wall navigation
-
-EV3 course-state logic
-```
-
-The main controller remains the LEGO EV3.
-
----
-
-# 4.5 Confirmed Communication Path
-
-The confirmed communication path is:
-
-```text
-HuskyLens
-    ↓
-Arduino Nano
-    ↓
-USB
-    ↓
-LEGO EV3
-```
-
-The Nano-to-EV3 USB connection is part of the current architecture.
-
-This document deliberately does **not** claim a specific electrical protocol between:
-
-```text
-HuskyLens
-```
-
-and:
-
-```text
-Arduino Nano
-```
-
-because that connection should only be documented once verified from the current physical wiring or current Nano code.
-
-This distinction prevents an assumed protocol from becoming a false reproducibility instruction.
-
----
-
-# 4.6 Perception vs. Control
-
-Piolín separates perception from control.
-
-### Perception
-
-```text
-"What object do I see?"
-```
-
-is handled by:
-
-```text
-HuskyLens
-```
-
-### Navigation decision
-
-```text
-"What should the vehicle do?"
-```
-
-is handled by:
-
-```text
-LEGO EV3
-```
-
-### Physical execution
-
-```text
-"How does the robot move?"
-```
-
-is handled by:
-
-```text
-Motor A + Motor B
-```
-
-The resulting hierarchy is:
-
-```text
-PERCEPTION
-     ↓
-DECISION
-     ↓
-ACTUATION
-```
-
-This makes the vision system easier to integrate with ultrasonic safety constraints.
-
----
-
-# 4.7 What the HuskyLens Provides
-
-The useful output from the vision subsystem is obstacle information associated with a learned identifier.
-
-Conceptually:
-
-```text
-Visible object
-      ↓
-HuskyLens processing
-      ↓
-Recognized target
-      ↓
-ID
-```
-
-Piolín can then interpret the ID.
-
-For example:
-
-```text
-ID = 1
-```
-
-means:
-
-```text
-GREEN pillar
-```
-
-while:
-
-```text
-ID = 2
-```
-
-means:
-
-```text
-RED pillar
-```
-
-The exact low-level data packet format should be documented from the current Nano/EV3 implementation rather than assumed here.
-
----
-
-# 4.8 Object Identity vs. Vehicle Position
-
-The HuskyLens answers primarily:
-
-```text
-WHAT target is visible?
-```
-
-It does not by itself provide the complete geometric state of Piolín relative to the course.
-
-For example:
-
-```text
-GREEN detected
-```
-
-does not automatically tell the EV3:
-
-```text
-Exact distance to left wall
-
-Exact vehicle heading
-
-Exact steering angle required
-
-Exact safe recovery path
-```
-
-Those decisions require additional vehicle and sensor context.
-
----
-
-# 4.9 Vision and Ultrasonics Are Complementary
-
-The vision and ultrasonic subsystems provide different information.
-
-| System | Main Question |
-| :--- | :--- |
-| **HuskyLens** | What obstacle is present? |
-| **S2 / S3 Ultrasonics** | Where are the lateral walls? |
-| **S1 Ultrasonic** | Is forward clearance becoming unsafe? |
-| **S4 Color Sensor** | What course event is occurring? |
-
-The complete perception architecture therefore becomes:
-
-```text
-VISION
-   ↓
-Obstacle identity
-
-
-ULTRASONICS
-   ↓
-Spatial constraints
-
-
-COLOR
-   ↓
-Course state
-```
-
-These inputs are combined by the EV3.
-
----
-
-# 4.10 Why Vision Alone Is Not Enough
-
-Suppose the HuskyLens correctly identifies:
-
-```text
-GREEN
-```
-
-and therefore the desired requirement is:
-
-```text
-Pass on LEFT
-```
-
-The camera alone does not know whether the vehicle is already very close to the left track boundary.
-
-Therefore:
-
-```text
-GREEN
-   ↓
-LEFT requested
-```
-
-must still be considered together with:
-
-```text
-LEFT WALL DISTANCE
-```
-
-The complete problem is:
-
-```text
-Desired passing side
-        +
-Available physical space
-        ↓
-Safe vehicle trajectory
-```
-
-This is why obstacle avoidance is a sensor-fusion problem rather than only a camera-classification problem.
-
----
-
-# 4.11 Forward Camera Mounting
-
-The HuskyLens is mounted toward the front of Piolín.
-
-Conceptually:
-
-```text
-              CAMERA FIELD
-               \         /
-                \       /
-                 \     /
-                  \   /
-               HuskyLens
-                   │
-              [ PIOLÍN ]
-```
-
-The forward location allows the robot to observe upcoming pillars before reaching them.
-
-The camera mount is therefore part of the perception system.
-
----
-
-# 4.12 HuskyLens Physical Evidence
+# 4. Pixy2.1 Vision Sensor
 
 <div align="center">
-  <img
-    src="https://github.com/user-attachments/assets/082c8e25-74b9-4d74-9c0c-cd44624037f8"
-    alt="HuskyLens installed on Piolín"
-    style="max-width: 80%; height: auto;"
-  />
-  <br>
-  <sub><b>Figure 4.1.</b> HuskyLens integrated into the current Piolín vision system.</sub>
+
+<img
+  src="../../v-photos/v4/pixy21_front.jpg"
+  alt="Pixy2.1 installed on Piolín for the Obstacle Challenge"
+  width="700"
+/>
+
+<br>
+
+<sub><b>Figure 4.1.</b> Pixy2.1 is Piolín's forward-facing vision sensor for the WRO Future Engineers Obstacle Challenge.</sub>
+
 </div>
 
-The physical installation determines:
+Piolín uses a **Pixy2.1 camera as its specialized vision sensor during the Obstacle Challenge**. The camera is connected directly to the LEGO Mindstorms EV3 through **Sensor Port S1** and provides information about the colored objects located ahead of the robot.
+
+The Pixy2.1 is not installed during the Open Challenge.
+
+Piolín's S1 architecture is intentionally round-specific:
 
 ```text
-Camera height
-
-Camera orientation
-
-Visible forward region
-
-Possible chassis occlusion
-
-When pillars enter the image
+OPEN CHALLENGE
+S1 → EV3 Gyro Sensor
 ```
 
-The camera mount should therefore remain mechanically stable during operation.
-
----
-
-# 4.13 Field of View
-
-A camera only observes objects that fall within its field of view.
-
-Conceptually:
-
 ```text
-                 visible region
-                \             /
-                 \           /
-                  \         /
-                   \       /
-                    CAMERA
-                      │
-                   PIOLÍN
-```
-
-A pillar outside this region can exist physically without being available to the vision algorithm.
-
-Therefore:
-
-```text
-PILLAR EXISTS
-```
-
-does not automatically imply:
-
-```text
-PILLAR IS VISIBLE
-```
-
-This is one of the most important limitations of camera-based obstacle sensing.
-
----
-
-# 4.14 Horizontal Field-of-View Limitation
-
-During a curve, Piolín's chassis rotates.
-
-Because the camera is rigidly attached to the chassis:
-
-```text
-Vehicle rotates
-      ↓
-Camera rotates
-      ↓
-Field of view rotates
-```
-
-A pillar that was previously ahead may move rapidly toward the edge of the image.
-
-Similarly, a new pillar may remain outside the camera's field of view until Piolín has rotated far enough.
-
-This creates a direct relationship between:
-
-```text
-Steering
-
-Vehicle heading
-
-Camera visibility
-```
-
----
-
-# 4.15 Camera Visibility Is Dynamic
-
-The visible region changes continuously while Piolín moves.
-
-Conceptually:
-
-```text
-TIME 1
-
-       PILLAR
-
-       \     /
-        \   /
-        CAMERA
-
-
-TIME 2
-
-PILLAR
-
-              \     /
-               \   /
-               CAMERA
-```
-
-Even if the pillar itself does not move, its image position changes because the vehicle changes position and heading.
-
-This makes camera perception inherently linked to mobility.
-
----
-
-# 4.16 Detection Timing
-
-The moment a pillar becomes visible is important because the robot still requires time and distance to react.
-
-The full sequence is:
-
-```text
-Pillar enters field of view
-        ↓
-HuskyLens detects target
-        ↓
-Vision information communicated
-        ↓
-EV3 interprets target
-        ↓
-Motor B changes
-        ↓
-Vehicle trajectory changes
+OBSTACLE CHALLENGE
+S1 → Pixy2.1
 ```
 
 Therefore:
 
 ```text
-DETECTION POINT
-      ≠
-PHYSICAL AVOIDANCE POINT
+Gyro + Pixy simultaneously
+→ NOT part of the current architecture
 ```
 
-Piolín travels some distance during this process.
+During Obstacles, the complete sensor arrangement is:
+
+```text
+S1 → Pixy2.1
+
+S2 → Left Ultrasonic Sensor
+
+S3 → Right Ultrasonic Sensor
+
+S4 → Color Sensor
+```
+
+Pixy2.1 provides the information that Piolín cannot obtain from its ultrasonic or floor Color Sensor systems: **the visual identity and image location of the colored pillars ahead of the vehicle**.
 
 ---
 
-# 4.17 Vehicle Speed and Vision Reaction
+## 4.1 Role in the Obstacle Challenge
 
-At higher speed:
+The WRO Future Engineers Obstacle Challenge requires Piolín to distinguish between red and green pillars because each color defines a different required passing side.
 
-```text
-Distance closes faster
-```
-
-which means:
+The current rule implemented in Piolín's navigation strategy is:
 
 ```text
-Less time between detection
-and reaching the pillar
+RED
+→ pass RIGHT
 ```
-
-At lower speed:
-
-```text
-More reaction time
-```
-
-is available for:
-
-```text
-Detection
-
-Communication
-
-Steering response
-
-Physical lateral displacement
-```
-
-Therefore, vision performance cannot be evaluated independently from drive speed.
-
----
-
-# 4.18 Detection Distance Is Not Constant
-
-The distance at which a pillar becomes reliably detectable can vary because of:
-
-```text
-Camera orientation
-
-Pillar position
-
-Lighting
-
-Object size in image
-
-Partial occlusion
-
-Vehicle heading
-```
-
-Therefore, the architecture should not assume that every pillar will first be identified at one identical physical distance.
-
-A robust avoidance strategy should tolerate some variation in the moment of initial detection.
-
----
-
-# 4.19 Object Size in the Image
-
-As Piolín approaches a pillar:
-
-```text
-Physical distance decreases
-        ↓
-Apparent image size generally increases
-```
-
-Conceptually:
-
-```text
-FAR
-
-   [■]
-
-
-NEAR
-
- [██████]
-```
-
-This means image information may change significantly during the approach.
-
-However, apparent image size is influenced by camera geometry and should not automatically be interpreted as exact metric distance unless a dedicated calibrated model is used.
-
----
-
-# 4.20 Image Position
-
-A detected object can also have a horizontal image position.
-
-Conceptually:
-
-```text
-LEFT SIDE          CENTER          RIGHT SIDE
-
-0 ---------------------------------------- X_MAX
-```
-
-A pillar moving across this coordinate does not necessarily mean the pillar itself moved.
-
-It may be caused by:
-
-```text
-Vehicle translation
-
-Vehicle rotation
-
-Steering
-
-Approach geometry
-```
-
-Therefore:
-
-```text
-IMAGE X POSITION
-       ≠
-DIRECT PHYSICAL LATERAL POSITION
-```
-
-without additional calibration and geometry.
-
----
-
-# 4.21 Why Image Coordinates Are Not Steering Angles
-
-Suppose a pillar appears far to one side of the image.
-
-This does not mean:
-
-```text
-Steering angle =
-same numerical image offset
-```
-
-The actual chain is:
-
-```text
-Image position
-      ↓
-Navigation interpretation
-      ↓
-Desired vehicle behavior
-      ↓
-Motor B command
-      ↓
-Mechanical steering linkage
-      ↓
-Physical wheel angles
-```
-
-There are several transformations between image coordinates and actual wheel geometry.
-
----
-
-# 4.22 Learned IDs
-
-The HuskyLens system allows detected targets to be associated with learned identifiers.
-
-Piolín uses these identifiers as a compact interface between vision and navigation.
-
-```text
-VISUAL APPEARANCE
-       ↓
-LEARNED TARGET
-       ↓
-ID
-       ↓
-EV3 MEANING
-```
-
-Current mapping:
-
-```text
-1 → GREEN
-
-2 → RED
-```
-
-The EV3 therefore does not need to reproduce the complete image-classification process itself.
-
----
-
-# 4.23 ID Mapping Must Be Deterministic
-
-The navigation code must know exactly what each ID means.
-
-For example:
-
-```python
-if pillar_id == 1:
-    obstacle = GREEN
-
-elif pillar_id == 2:
-    obstacle = RED
-```
-
-Then:
-
-```python
-if obstacle == GREEN:
-    required_side = LEFT
-
-elif obstacle == RED:
-    required_side = RIGHT
-```
-
-The exact variable names may differ in the current source code.
-
-The important architecture is that:
-
-```text
-ID
-  ↓
-Known obstacle class
-  ↓
-Known passing requirement
-```
-
----
-
-# 4.24 Unknown ID Handling
-
-The vision system may theoretically receive information that does not correspond to one of the expected obstacle IDs.
-
-The safe architectural concept is:
-
-```text
-Known ID?
-   │
- ┌─┴─┐
-YES  NO
- │    │
- ▼    ▼
-Use   Do not invent
-known behavior
-```
-
-The software should not arbitrarily interpret an unknown identifier as green or red.
-
-Exact fallback behavior belongs to the final obstacle software.
-
----
-
-# 4.25 No Detection State
-
-Another important state is:
-
-```text
-NO VALID PILLAR DETECTED
-```
-
-This should be distinct from:
 
 ```text
 GREEN
+→ pass LEFT
+```
+
+Pixy2.1 therefore provides two fundamental pieces of information:
+
+```text
+WHAT object is visible?
 ```
 
 and:
 
 ```text
-RED
+WHERE is that object in the image?
 ```
+
+These two questions correspond to different parts of the camera output.
+
+The detected color signature determines the obstacle type, while image coordinates and block dimensions provide geometric information that can help determine how relevant the object currently is.
+
+The camera does **not** directly command Motor B.
+
+Instead:
+
+```text
+Pixy2.1
+     ↓
+visual measurement
+     ↓
+EV3
+     ↓
+target selection
+     ↓
+obstacle-state logic
+     ↓
+steering decision
+     ↓
+Motor B
+```
+
+This separation is important because vision is only one part of the final navigation decision.
+
+---
+
+# 4.2 Physical Installation
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/pixy21_top.jpg"
+  alt="Top view of Pixy2.1 installed on Piolín"
+  width="700"
+/>
+
+<br>
+
+<sub><b>Figure 4.2.</b> Top view of the Pixy2.1 installation showing its relationship with Piolín's forward vehicle axis.</sub>
+
+</div>
+
+Pixy2.1 is positioned toward the front of Piolín so that it can observe pillars before the vehicle reaches them.
+
+Unlike the downward Color Sensor or the lateral ultrasonic sensors, Pixy observes the environment in front of the robot.
+
+Its physical orientation therefore establishes the visual reference frame used by the software.
 
 Conceptually:
 
 ```text
-VISION STATE
-   │
-   ├── NONE
-   ├── GREEN
-   └── RED
+          FORWARD
+
+             ↑
+             │
+          [ PIXY ]
+             │
+       ┌─────────────┐
+       │   PIOLÍN    │
+       │             │
+       └─────────────┘
 ```
 
-This allows the EV3 to distinguish ordinary navigation from an active obstacle response.
+The camera should remain sufficiently stable that the same physical pillar appears in a similar region of the image under comparable vehicle geometry.
+
+This makes the camera mount part of the vision calibration.
 
 ---
 
-# 4.26 Detection Persistence
+## 4.3 Why Camera Alignment Matters
 
-One camera frame or reading should not necessarily determine the complete obstacle maneuver if the environment is uncertain.
+<div align="center">
 
-A conceptual confirmation process can be:
+<img
+  src="../../v-photos/v4/pixy21_side.jpg"
+  alt="Side view of Pixy2.1 mounted on Piolín"
+  width="680"
+/>
+
+<br>
+
+<sub><b>Figure 4.3.</b> Side view used to document the physical orientation of the camera relative to the chassis.</sub>
+
+</div>
+
+A visual coordinate such as:
 
 ```text
-Possible ID
-    ↓
-Read again
-    ↓
-Same valid ID?
-    ↓
-Confirmed obstacle
+x = some image position
 ```
 
-However, excessive confirmation can also delay the response.
+only has consistent physical meaning if the camera remains in approximately the same orientation.
 
-The current number of readings or confirmations should come from the active competition implementation rather than being invented here.
+Changes in:
+
+```text
+camera yaw
+
+camera pitch
+
+camera height
+
+camera lateral position
+```
+
+can change where a pillar appears even if the course itself has not changed.
+
+For example:
+
+```text
+camera rotates slightly left
+       ↓
+same physical pillar
+       ↓
+appears farther right in the image
+```
+
+A software problem should therefore not be assumed immediately when visual steering behavior changes after mechanical work.
+
+The camera mount should first be inspected.
 
 ---
 
-# 4.27 Confirmation Trade-Off
+# 4.4 Direct EV3 Connection
 
-The vision system must balance:
+<div align="center">
 
-```text
-FAST REACTION
-```
+<img
+  src="../../v-photos/v4/pixy21_s1_connection.jpg"
+  alt="Pixy2.1 connected directly to EV3 Sensor Port S1"
+  width="680"
+/>
 
-against:
+<br>
 
-```text
-ROBUST CLASSIFICATION
-```
+<sub><b>Figure 4.4.</b> Current Obstacle Challenge architecture connects Pixy2.1 directly to Sensor Port S1.</sub>
 
-More confirmation can provide:
+</div>
 
-```text
-Reduced sensitivity to one abnormal reading
-```
+The current Piolín architecture uses a direct connection between Pixy2.1 and the EV3.
 
-but can also produce:
+The high-level communication path is:
 
 ```text
-Later avoidance initiation
+Pixy2.1
+   ↓
+S1
+   ↓
+EV3
 ```
 
-This relationship becomes especially important when the robot moves quickly toward a pillar.
+The current Obstacle Challenge software accesses Pixy2.1 through an **I2C/SMBus-style communication path** in the EV3 environment.
+
+This architecture replaces an earlier vision system that used additional intermediate electronics.
+
+The current competition configuration does not require:
+
+```text
+Arduino Nano
+
+HuskyLens
+
+USB-to-Arduino vision bridge
+```
+
+for Pixy operation.
 
 ---
 
-# 4.28 Obstacle State
+# 4.5 Connection Hardware
 
-Once a valid obstacle is accepted, the EV3 can create a logical state such as:
+<div align="center">
+
+<img
+  src="../../v-photos/v4/pixy21_connection_cable.jpg"
+  alt="Cable used to connect Pixy2.1 to Piolín EV3"
+  width="680"
+/>
+
+<br>
+
+<sub><b>Figure 4.5.</b> Physical cable used in Piolín's current Pixy2.1-to-EV3 integration.</sub>
+
+</div>
+
+The physical connection is important for reproducibility because Pixy2.1 is the primary non-LEGO sensing device in the current competition robot.
+
+The repository should therefore show the real connection rather than relying only on a textual statement such as:
 
 ```text
-PILLAR_GREEN
+connect camera to S1
 ```
 
-or:
+The current architecture uses S1 as the physical interface for both communication and the installed camera connection during Obstacles.
 
-```text
-PILLAR_RED
-```
-
-The navigation architecture then converts this state into an intended passing direction.
-
-```text
-PILLAR_GREEN
-      ↓
-LEFT PASS
-
-
-PILLAR_RED
-      ↓
-RIGHT PASS
-```
-
-This keeps classification separate from physical steering behavior.
+The exact physical cable shown in the repository is therefore part of the current hardware definition.
 
 ---
 
-# 4.29 Passing Side vs. Steering Direction
+# 4.6 S1 Modularity
 
-The phrase:
+<div align="center">
+
+<img
+  src="../../v-photos/v4/s1_obstacle_pixy.jpg"
+  alt="Piolín S1 configured with Pixy2.1 for the Obstacle Challenge"
+  width="680"
+/>
+
+<br>
+
+<sub><b>Figure 4.6.</b> S1 becomes the vision interface when Piolín is configured for the Obstacle Challenge.</sub>
+
+</div>
+
+The S1 port is Piolín's specialized sensing port.
+
+The robot does not attempt to permanently install every sensor used across both challenges.
+
+Instead:
 
 ```text
-PASS ON LEFT
+OPEN
+→ install Gyro on S1
 ```
 
-should not be interpreted as:
+and:
 
 ```text
-Hold maximum left steering
-until pillar disappears
+OBSTACLES
+→ install Pixy2.1 on S1
 ```
 
-Passing a pillar is a complete trajectory.
-
-Conceptually:
+The remaining ports stay unchanged:
 
 ```text
-Normal path
-      ↓
-Move toward required passing side
-      ↓
-Create clearance
-      ↓
-Pass pillar
-      ↓
-Recover
-      ↓
-Return to normal navigation
+S2 = LEFT Ultrasonic
+
+S3 = RIGHT Ultrasonic
+
+S4 = Color Sensor
 ```
+
+This reduces the number of hardware changes required between rounds while allowing each challenge to use the specialized sensor that provides the most valuable information.
+
+---
+
+# 4.7 Color Connected Components
+
+Piolín uses Pixy2.1 primarily for **color-based object detection**, rather than using the camera as a conventional video stream.
+
+The important output is a set of detected visual blocks.
+
+A block can provide information such as:
+
+```text
+signature
+
+x
+
+y
+
+width
+
+height
+```
+
+These values can be interpreted as:
+
+| Value | Meaning in Piolín |
+| :--- | :--- |
+| `signature` | Which trained color category was recognized |
+| `x` | Horizontal image position |
+| `y` | Vertical image position |
+| `width` | Apparent block width |
+| `height` | Apparent block height |
+
+The EV3 can use these values without processing a complete camera image itself.
+
+This is useful because the camera performs the low-level visual segmentation and sends compact object information to the controller.
+
+---
+
+# 4.8 Current Signature Mapping
+
+Piolín currently uses three important Pixy signatures:
+
+| Signature | Physical Target | Navigation Meaning |
+| :---: | :--- | :--- |
+| `sig1` | Pink parking reference | Parking-related visual state |
+| `sig2` | Red pillar | Pass on the right |
+| `sig3` | Green pillar | Pass on the left |
 
 Therefore:
 
 ```text
-PASSING SIDE
-      ≠
-ONE FIXED STEERING ANGLE
+sig2
+→ RED
+→ RIGHT
 ```
+
+and:
+
+```text
+sig3
+→ GREEN
+→ LEFT
+```
+
+The mapping must remain consistent between:
+
+```text
+Pixy training
+
+EV3 software
+
+documentation
+
+testing
+```
+
+If the camera signatures are retrained or reassigned but the EV3 code is not updated, the robot can execute the correct software logic for the wrong physical color.
 
 ---
 
-# 4.30 Green Pillar Trajectory
+# 4.9 Red Pillar Detection
 
-For the current mapping:
+<div align="center">
 
-```text
-GREEN
-ID 1
-   ↓
-PASS LEFT
-```
+<img
+  src="../../v-photos/v4/pixy21_red_detection.jpg"
+  alt="Pixy2.1 detecting a red WRO pillar"
+  width="700"
+/>
 
-The vision system supplies the requirement.
+<br>
 
-The EV3 must then consider:
+<sub><b>Figure 4.7.</b> Red pillar detection provides the visual identity required for a pass-right maneuver.</sub>
 
-```text
-Current left-wall distance
+</div>
 
-Current right-wall distance
-
-Current vehicle trajectory
-
-Current forward clearance
-```
-
-before producing the final steering behavior.
-
-The full green obstacle process is therefore:
+When Pixy identifies the red signature, the high-level navigation objective becomes:
 
 ```text
-GREEN ID
-     ↓
-LEFT passing requirement
-     ↓
-Wall constraints
-     ↓
-EV3 control
-     ↓
-Physical left-side bypass
-```
-
----
-
-# 4.31 Red Pillar Trajectory
-
-For:
-
-```text
-RED
-ID 2
-  ↓
 PASS RIGHT
 ```
 
-the same architecture applies in the opposite required passing direction.
+However, this does not mean:
 
 ```text
-RED ID
-    ↓
-RIGHT passing requirement
-    ↓
-Wall constraints
-    ↓
-EV3 control
-    ↓
-Physical right-side bypass
+red detected
+→ maximum right steering
 ```
 
-The two maneuvers should use the same basic control architecture while respecting the different side requirement.
+The final steering behavior depends on additional information.
+
+The EV3 can consider:
+
+```text
+block position
+
+apparent block size
+
+current maneuver state
+
+left/right ultrasonic geometry
+
+vehicle motion
+
+previous target state
+```
+
+before deciding how strongly Motor B should react.
+
+The red signature therefore establishes the **passing-side objective**, not the complete steering trajectory.
 
 ---
 
-# 4.32 Vision Priority
+# 4.10 Green Pillar Detection
 
-Vision is important during obstacle avoidance, but it should not blindly override all other sensing.
+<div align="center">
 
-A system-level priority concept is:
+<img
+  src="../../v-photos/v4/pixy21_green_detection.jpg"
+  alt="Pixy2.1 detecting a green WRO pillar"
+  width="700"
+/>
+
+<br>
+
+<sub><b>Figure 4.8.</b> Green pillar detection establishes a pass-left navigation objective.</sub>
+
+</div>
+
+For Green:
 
 ```text
-FRONTAL COLLISION SAFETY
-          ↓
-LATERAL WALL SAFETY
-          ↓
-OBSTACLE / CORNER RESPONSE
-          ↓
-NORMAL WALL FOLLOWING
+GREEN
+→ PASS LEFT
 ```
 
-This means the camera can strongly influence the intended trajectory while the EV3 still protects the robot from surrounding boundaries.
+The same principle applies.
+
+A complete maneuver can involve:
+
+```text
+approach
+
+initial avoidance
+
+side pass
+
+pillar clearance
+
+countersteering
+
+recovery
+```
+
+rather than one continuous steering direction.
+
+The current obstacle controller is still being developed, so final steering magnitudes and transition thresholds should not be presented as fully validated values yet.
 
 ---
 
-# 4.33 Why Obstacle Steering Needs Wall Constraints
+# 4.11 Horizontal Position — `x`
 
-Consider:
+The `x` coordinate describes where the visual block appears horizontally in Pixy's image.
+
+Conceptually:
 
 ```text
-GREEN detected
-      ↓
-Pass left
+LEFT SIDE        IMAGE CENTER        RIGHT SIDE
+
+    |----------------|----------------|
 ```
 
-but:
+A pillar's image position can help determine how much steering correction is useful.
+
+However, one critical distinction must be maintained:
 
 ```text
-Left wall already close
-```
-
-An unconstrained camera steering command could move Piolín into the wall.
-
-Therefore:
-
-```text
-Vision request
-      +
-Left clearance
-      +
-Right clearance
-      ↓
-Constrained maneuver
-```
-
-This is a key principle of Piolín's obstacle strategy.
-
----
-
-# 4.34 Vision and Front Safety
-
-The S1 front ultrasonic remains available even when the HuskyLens sees a pillar.
-
-These sensors answer different questions.
-
-```text
-HuskyLens
-      ↓
-Which obstacle is it?
+signature
+→ determines required passing side
 ```
 
 while:
 
 ```text
-S1
- ↓
-How limited is forward clearance?
+x
+→ contributes to steering magnitude / target geometry
 ```
 
-The front sensor can therefore provide a separate safety condition while vision controls the obstacle classification.
+The obstacle rule must not accidentally change just because a pillar moves from one side of the image to the other.
+
+For example:
+
+```text
+RED
+```
+
+must still represent:
+
+```text
+PASS RIGHT
+```
+
+regardless of whether the red pillar initially appears somewhat left or right of image center.
+
+This prevents image perspective from redefining the competition rule.
 
 ---
 
-# 4.35 Camera Detection Loss
+# 4.12 Why Image Left/Right Is Not the Passing Rule
 
-Eventually, a pillar can leave the HuskyLens field of view.
+One of the important lessons from Piolín's obstacle development is that several different concepts of "left" and "right" exist.
 
-This may happen because:
+These include:
 
 ```text
-Piolín passes beside it
+left side of camera image
 
-Piolín rotates
+right side of camera image
 
-Pillar moves outside image boundary
+left side of robot
 
-Vehicle geometry occludes it
+right side of robot
+
+required side of pillar
 ```
 
-The loss of visual detection is an important state transition.
+These concepts must not be confused.
+
+The rule is defined relative to the **required passing side of the pillar**:
+
+```text
+GREEN
+→ Piolín passes LEFT of pillar
+
+RED
+→ Piolín passes RIGHT of pillar
+```
+
+The current `x` coordinate describes only the target's visual location.
+
+It should influence the geometry of the maneuver without changing the required side.
+
+---
+
+# 4.13 Block Width and Height
+
+Pixy also reports apparent block dimensions.
+
+These values can help estimate whether an object is becoming more visually significant.
+
+Conceptually:
+
+```text
+small apparent block
+→ possibly farther / less relevant
+```
+
+```text
+larger apparent block
+→ possibly closer / more relevant
+```
 
 However:
 
 ```text
-Pillar not visible
+width × height
 ```
 
-does not necessarily mean:
+is an **apparent image area**, not a direct physical distance measurement.
+
+The relationship can also be affected by:
 
 ```text
-Piolín is already safely recovered
+viewing angle
+
+partial visibility
+
+lighting
+
+pillar position
+
+camera orientation
 ```
 
-The robot may still be laterally displaced.
+Therefore block size can contribute to relevance selection but should not be described as an exact centimeter measurement unless an appropriate calibration is performed.
 
 ---
 
-# 4.36 Detection Loss vs. Maneuver Completion
+# 4.14 Why Very Distant Pillars Should Not Dominate Steering
 
-These two events should be distinguished.
+Pixy can sometimes see a pillar before it becomes the obstacle Piolín should actively maneuver around.
 
-### Vision event
-
-```text
-Target no longer visible
-```
-
-### Vehicle event
+If every visible block immediately receives full steering authority:
 
 ```text
-Robot has recovered a useful trajectory
+distant pillar detected
+        ↓
+strong steering begins too early
+        ↓
+vehicle leaves stable course geometry
 ```
 
-They are not equivalent.
+A stronger strategy considers whether the target is sufficiently relevant.
 
-The sequence can be:
+Possible relevance evidence includes:
 
 ```text
-Pillar disappears from camera
-        ↓
-Avoidance dominance reduced
-        ↓
-Ultrasonic geometry evaluated
-        ↓
-Recovery steering
-        ↓
-Normal wall following restored
+valid signature
+
+image position
+
+apparent size
+
+current course state
+
+previous target
 ```
 
-This prevents the robot from remaining on the obstacle-avoidance trajectory after the pillar has been passed.
+The goal is to react early enough to avoid the pillar without allowing very distant detections to continuously disturb straight driving.
 
 ---
 
-# 4.37 Post-Pillar Recovery
+# 4.15 Multiple Visible Blocks
 
-After an obstacle, the lateral ultrasonic sensors become the main recovery reference.
+The camera may detect more than one valid object at the same time.
 
-The robot may be:
-
-```text
-Closer to one wall
-
-Angled relative to corridor
-
-Still carrying lateral trajectory
-```
-
-The recovery architecture is:
+A weak implementation could simply choose:
 
 ```text
-Vision target cleared
-      ↓
-S2 / S3 geometry evaluated
-      ↓
-Recovery steering
-      ↓
-Vehicle trajectory stabilizes
-      ↓
-Normal navigation
+first block returned by Pixy
 ```
 
-This demonstrates the handoff between:
+but the first returned block is not guaranteed to be the obstacle that matters most for the current trajectory.
+
+Piolín's intended target-selection logic therefore considers **relevance**, not only list order.
+
+A candidate can be evaluated using information such as:
 
 ```text
-VISION-DRIVEN AVOIDANCE
+signature validity
+
+apparent size
+
+horizontal position
+
+current vehicle state
+
+previous target
 ```
 
-and:
+The selected object should represent the pillar that currently requires navigation attention.
 
-```text
-ULTRASONIC-DRIVEN RECOVERY
-```
+The exact final scoring method remains under development.
 
 ---
 
-# 4.38 Vision Handoff
+# 4.16 Target Lock
 
-A useful system model is:
-
-```text
-NORMAL NAVIGATION
-        ↓
-PILLAR DETECTED
-        ↓
-VISION BECOMES IMPORTANT
-        ↓
-AVOIDANCE
-        ↓
-PILLAR CLEARED
-        ↓
-VISION IMPORTANCE DECREASES
-        ↓
-WALL GEOMETRY RECOVERY
-        ↓
-NORMAL NAVIGATION
-```
-
-This prevents one control mode from dominating after its purpose has ended.
-
----
-
-# 4.39 Vision and Cornering
-
-Pillars may become visible near regions where the robot is also changing orientation for a corner.
-
-This creates overlapping demands:
-
-```text
-CORNER LOGIC
-      +
-PILLAR LOGIC
-```
-
-The EV3 must avoid treating these as two completely independent steering controllers.
-
-The vehicle has only one physical steering actuator:
-
-```text
-Motor B
-```
-
-Therefore:
-
-```text
-Multiple inputs
-      ↓
-One final steering objective
-```
-
-must be produced.
-
----
-
-# 4.40 Why Camera Commands Can Conflict With Wall Following
-
-Normal wall following may request:
-
-```text
-Small correction RIGHT
-```
-
-while the pillar requires:
-
-```text
-Strong movement LEFT
-```
-
-If both are independently applied:
-
-```text
-Control conflict
-     ↓
-Oscillation
-or
-weak obstacle reaction
-```
-
-A better architecture is:
-
-```text
-Obstacle requirement
-       +
-Wall correction
-       ↓
-Single combined / prioritized command
-```
-
-The exact blending method belongs to the current obstacle software.
-
----
-
-# 4.41 Vision Authority Should Be Temporary
-
-The obstacle system should strongly influence steering only while the obstacle maneuver is relevant.
-
-Conceptually:
-
-```text
-No pillar
-   ↓
-Normal navigation authority
-
-
-Pillar detected
-   ↓
-Obstacle authority increases
-
-
-Pillar cleared
-   ↓
-Obstacle authority decreases
-
-
-Recovered
-   ↓
-Normal navigation restored
-```
-
-This reduces the risk of steering remaining locked in the previous obstacle direction.
-
----
-
-# 4.42 Why Fixed Steering Lock Is Risky
-
-If the program simply does:
-
-```text
-GREEN detected
-      ↓
-STEER LEFT
-```
-
-and keeps that steering unchanged too long:
-
-```text
-Pillar may already be passed
-        ↓
-Robot continues curving
-        ↓
-Wall collision risk increases
-```
-
-Therefore obstacle control should respond to the changing physical situation rather than storing one permanent steering direction after detection.
-
----
-
-# 4.43 Camera State Should Be Updated Continuously
-
-During the active vision period:
-
-```text
-Pillar position changes
-
-Object size changes
-
-Visibility changes
-
-Wall distances change
-```
-
-The EV3 should therefore interpret the current obstacle state as dynamic information.
-
-The complete feedback process is:
-
-```text
-Vision observation
-      ↓
-EV3 response
-      ↓
-Vehicle moves
-      ↓
-New camera geometry
-      ↓
-New observation
-```
-
-This is another closed perception-control loop.
-
----
-
-# 4.44 Camera Mount Stability
-
-The camera's orientation is part of the calibration.
-
-If the mount shifts:
-
-```text
-Camera points differently
-       ↓
-Field of view changes
-       ↓
-Pillar appears at different image location
-       ↓
-Detection timing changes
-```
-
-Therefore, vision debugging should not begin only with code.
-
-The physical HuskyLens mounting should also be inspected.
-
----
-
-# 4.45 Camera Height
-
-Camera height influences the scene observed by the HuskyLens.
-
-Different heights can change:
-
-```text
-Visible floor area
-
-Apparent pillar position
-
-Possible chassis obstruction
-
-Relationship between pillar and background
-```
-
-No final numerical HuskyLens mounting height is claimed here because a confirmed current value has not been established in the project documentation.
-
----
-
-# 4.46 Camera Angle
-
-Similarly, camera pitch and horizontal orientation affect:
-
-```text
-How soon the pillar appears
-
-Where it appears in the image
-
-How long it remains visible
-```
-
-Therefore, the physical camera orientation should remain stable between calibration and competition runs.
-
-No unconfirmed numerical camera angle is assigned here.
-
----
-
-# 4.47 Camera Placement Trade-Off
-
-Moving the camera forward or changing its orientation can improve one aspect of visibility while reducing another.
+Once Piolín commits to passing one pillar, immediately switching to another detected block can destabilize steering.
 
 For example:
 
 ```text
-Wider useful forward visibility
+red selected
+      ↓
+right-side maneuver begins
+      ↓
+another green becomes visible
+      ↓
+controller instantly changes target
+      ↓
+steering reverses
 ```
 
-may improve early detection.
+This can destroy the current avoidance trajectory.
 
-However, placement must also respect:
-
-```text
-Chassis clearance
-
-Structural stability
-
-Competition dimensions
-
-Cable routing
-
-Mechanical protection
-```
-
-The selected camera mounting is therefore part of the complete robot architecture.
-
----
-
-# 4.48 Field-of-View Blind Regions
-
-Any forward-facing camera can have regions that are temporarily difficult to observe.
+A temporary target lock can therefore be useful.
 
 Conceptually:
 
 ```text
-       VISIBLE
-      \       /
-       \     /
-        \   /
-       CAMERA
-
- [possible side blind regions]
+select relevant pillar
+      ↓
+lock current target
+      ↓
+execute avoidance
+      ↓
+confirm pillar has been passed
+      ↓
+release target
 ```
 
-These regions are particularly relevant immediately after:
+The lock is temporary.
 
-```text
-Sharp corners
-
-Large avoidance turns
-
-Strong recovery corrections
-```
-
-when the robot's heading may temporarily point away from the next pillar.
-
-This is one reason wall navigation should remain functional even when vision temporarily has no valid target.
+It should not permanently ignore the next obstacle.
 
 ---
 
-# 4.49 Vision Failure Should Not Destroy Base Navigation
+# 4.17 Target Loss
 
-If no valid pillar is detected:
+The camera can temporarily lose a pillar while Piolín is already avoiding it.
 
-```text
-NO VISION TARGET
-```
-
-the robot should still retain its base environmental sensing:
+This can happen because:
 
 ```text
-S1
-S2
-S3
-S4
+vehicle steering changes camera angle
+
+pillar moves outside field of view
+
+partial occlusion occurs
+
+lighting changes
 ```
+
+A weak controller could interpret:
+
+```text
+target disappeared
+```
+
+as:
+
+```text
+immediately cancel maneuver
+```
+
+That is unsafe because the physical pillar may still be beside the vehicle.
+
+A more robust approach uses the recent maneuver state and ultrasonic geometry to continue the maneuver long enough to determine whether the obstacle was actually cleared.
+
+---
+
+# 4.18 Pixy Field of View and Vehicle Motion
+
+Piolín's camera is physically attached to the chassis.
+
+Therefore steering the vehicle also steers the camera.
+
+The sequence is:
+
+```text
+Motor B changes wheel angle
+        ↓
+Piolín changes yaw
+        ↓
+camera orientation changes
+        ↓
+pillar x/y position changes
+```
+
+A target can therefore leave the camera view because Piolín itself turned, not because the obstacle suddenly stopped being relevant.
+
+Vision must be interpreted in the context of the current vehicle motion.
+
+---
+
+# 4.19 Pixy + Ultrasonic Fusion
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/ultrasonic_pair_top.jpg"
+  alt="Piolín lateral ultrasonic sensors used alongside Pixy2.1"
+  width="700"
+/>
+
+<br>
+
+<sub><b>Figure 4.9.</b> Pixy2.1 supplies visual obstacle information while the two lateral ultrasonic sensors preserve physical track-boundary context.</sub>
+
+</div>
+
+Pixy and the ultrasonic sensors measure different things.
+
+```text
+PIXY
+→ object identity
+→ image location
+→ apparent object size
+```
+
+```text
+S2 / S3
+→ physical left/right geometry
+→ wall proximity
+→ post-maneuver recovery context
+```
+
+Neither subsystem completely replaces the other.
+
+This creates a sensor-fusion architecture in which:
+
+```text
+Pixy
+→ defines obstacle objective
+```
+
+while:
+
+```text
+Ultrasonics
+→ constrain the maneuver using physical geometry
+```
+
+The EV3 combines both sources before producing the final steering behavior.
+
+---
+
+# 4.20 Why Wall Control Must Not Fight Obstacle Avoidance
+
+During normal driving, ultrasonic information can influence steering toward a stable corridor position.
+
+During a pillar maneuver, however, Piolín intentionally moves away from its normal path.
+
+If normal wall-centering logic is allowed to dominate:
+
+```text
+Pixy requests pillar avoidance
+```
+
+while:
+
+```text
+wall controller requests recentering
+```
+
+and the commands can oppose each other.
+
+The intended control hierarchy should therefore recognize that different states require different priorities.
 
 Conceptually:
 
 ```text
-No pillar information
-        ↓
-No obstacle classification
-        ↓
-Normal wall / course logic
-remains available
+NORMAL DRIVING
+→ wall geometry has strong influence
 ```
 
-This modularity prevents the entire vehicle architecture from depending on continuous camera detection.
+```text
+ACTIVE PILLAR AVOIDANCE
+→ pillar objective receives greater steering authority
+→ wall sensing remains safety/context
+```
+
+```text
+PILLAR CLEARED
+→ ultrasonic recovery becomes stronger again
+```
+
+This avoids having two controllers continuously fight for Motor B.
 
 ---
 
-# 4.50 Open Challenge Architecture
+# 4.21 Pillar-Pass Confirmation
 
-The HuskyLens is not required for ordinary wall-following navigation in the Open Challenge.
+A pillar should not be considered cleared only because Pixy stops reporting it.
 
-The base Open configuration is:
+Instead, Piolín can use additional geometric evidence from the lateral ultrasonic sensors.
+
+A conceptual process is:
 
 ```text
-S1
-↓
-Front safety
-
-
-S2 + S3
-↓
-Wall geometry
-
-
-S4
-↓
-Course state
-
-
-EV3
-↓
-Vehicle control
+Pixy detects target
+      ↓
+avoidance begins
+      ↓
+vehicle moves alongside pillar
+      ↓
+lateral geometry changes
+      ↓
+vehicle continues
+      ↓
+space opens again
+      ↓
+pillar considered passed
 ```
 
-The robot therefore maintains a complete non-vision navigation architecture for the Open round.
-
----
-
-# 4.51 Obstacle Challenge Architecture
-
-The Obstacle Challenge adds the vision path:
+This allows the robot to distinguish:
 
 ```text
-                         ENVIRONMENT
-                              │
-       ┌──────────────┬───────┼────────┬─────────────┐
-       ▼              ▼                ▼             ▼
-    SIDE WALLS      FRONT            FLOOR         PILLAR
-       │              │                │             │
-       ▼              ▼                ▼             ▼
-     S2/S3            S1               S4        HuskyLens
-       │              │                │             │
-       │              │                │       Arduino Nano
-       │              │                │             │
-       └──────────────┴───────┬────────┴─────────────┘
-                              ▼
-                           LEGO EV3
-                              │
-                              ▼
-                      NAVIGATION DECISION
-                              │
-                      ┌───────┴───────┐
-                      ▼               ▼
-                   Motor A         Motor B
-```
-
-Vision therefore extends the base architecture rather than replacing it.
-
----
-
-# 4.52 Vision Data Validation
-
-Before an obstacle ID affects navigation, the software should distinguish:
-
-```text
-Valid known target
+target lost from camera
 ```
 
 from:
 
 ```text
-No detection
-
-Unknown ID
-
-Unusable / incomplete information
+target physically passed
 ```
+
+The final numerical pass-confirmation conditions are still under development.
+
+---
+
+# 4.22 Recovery After a Pillar
+
+After clearing the pillar, Piolín must return to a usable state.
+
+The desired transition is:
+
+```text
+PIXY TARGETING
+      ↓
+AVOIDANCE
+      ↓
+PASS CONFIRMATION
+      ↓
+COUNTERSTEERING
+      ↓
+ULTRASONIC RECOVERY
+      ↓
+NORMAL COURSE CONTROL
+```
+
+This is important because successful obstacle navigation is not only:
+
+```text
+do not hit current pillar
+```
+
+It is:
+
+```text
+pass correct side
++
+avoid walls
++
+recover
++
+prepare for next obstacle
+```
+
+The camera is therefore most dominant during target identification and avoidance, while the ultrasonic system becomes increasingly important as Piolín returns to normal track geometry.
+
+---
+
+# 4.23 Parking Signature
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/pixy21_parking_detection.jpg"
+  alt="Pixy2.1 detecting the pink parking reference"
+  width="700"
+/>
+
+<br>
+
+<sub><b>Figure 4.10.</b> Signature 1 is currently assigned to Piolín's pink parking reference.</sub>
+
+</div>
+
+The current mapping reserves:
+
+```text
+sig1
+→ PINK
+→ PARKING
+```
+
+However, the detection of the parking reference should not automatically stop the robot during any point of the run.
+
+A stronger final parking condition can require:
+
+```text
+correct course progression
+
+parking state enabled
+
+valid pink detection
+
+vehicle position / motion context
+```
+
+before the final maneuver begins.
+
+This prevents an isolated or premature visual detection from triggering parking at the wrong time.
+
+The final parking sequence remains a work in progress.
+
+---
+
+# 4.24 Camera Detection vs. Floor Color Detection
+
+Piolín contains two systems involving color, but they should not be confused.
+
+### Pixy2.1
+
+```text
+forward-facing
+
+detects objects ahead
+
+Red pillar
+
+Green pillar
+
+Pink parking reference
+```
+
+### EV3 Color Sensor
+
+```text
+downward-facing
+
+detects floor directly beneath vehicle
+
+Blue floor reference
+
+Orange floor reference
+```
+
+The two sensors therefore operate on different physical regions and serve different state variables.
+
+Pixy answers:
+
+```text
+What visual object is ahead?
+```
+
+S4 answers:
+
+```text
+What floor landmark did Piolín cross?
+```
+
+---
+
+# 4.25 Lighting Conditions
+
+Color-based vision depends strongly on lighting.
+
+Possible effects include:
+
+```text
+shadows
+
+different room illumination
+
+reflections
+
+brightness changes
+
+background objects
+
+color saturation changes
+```
+
+A trained signature that works under one lighting condition may become weaker under another.
+
+Therefore Pixy testing should be performed under representative competition conditions.
+
+The final signature configuration should provide enough distinction between:
+
+```text
+red
+
+green
+
+pink
+
+background
+```
+
+without becoming so broad that unrelated objects are accepted.
+
+---
+
+# 4.26 Why Detection Confidence Must Be Built from More Than One Factor
+
+A visual detection can technically match a signature while still being a poor navigation target.
+
+For example:
+
+```text
+very small red object far away
+
+partial reflection
+
+background color region
+
+edge of another pillar
+```
+
+can produce a candidate that should not necessarily dominate steering.
+
+A stronger interpretation can consider:
+
+```text
+correct signature
++
+reasonable block size
++
+useful image position
++
+consistency over time
++
+current navigation context
+```
+
+rather than:
+
+```text
+one matching sample
+→ full maneuver
+```
+
+This reduces the effect of weak or irrelevant detections.
+
+---
+
+# 4.27 Temporal Confirmation
+
+One way to improve visual stability is to require a detection to remain plausible across more than one observation.
 
 Conceptually:
 
 ```text
-Vision data received
+possible target
       ↓
-Known ID?
- ┌────┴────┐
-YES        NO
- │          │
- ▼          ▼
-Interpret   Do not invent
-obstacle    obstacle class
-```
-
-The exact validation conditions should correspond to the active Nano/EV3 software.
-
----
-
-# 4.53 Data Logging
-
-Useful obstacle diagnostics can include:
-
-```text
-PILLAR_ID
-
-VISION_STATE
-
-D_FRONT
-
-D_LEFT
-
-D_RIGHT
-
-CURRENT_STEERING
-
-CURRENT_DRIVE_COMMAND
-
-NAVIGATION_STATE
-```
-
-A conceptual diagnostic line could be:
-
-```text
-ID=1
-VISION=GREEN
-L=...
-R=...
-F=...
-STATE=AVOID
-STEER=...
-```
-
-Actual measurements should come from current robot testing.
-
-Logging sensor and control values together makes it easier to determine whether a failed maneuver originated from:
-
-```text
-Detection
-
-Communication
-
-Interpretation
-
-Wall constraint
-
-Steering response
-```
-
----
-
-# 4.54 Vision Failure Diagnosis
-
-If Piolín reacts incorrectly to a pillar, the debugging process should follow the entire information chain.
-
-```text
-1. Is the pillar visible to HuskyLens?
-        ↓
-2. Is the correct ID detected?
-        ↓
-3. Is the Nano receiving vision information?
-        ↓
-4. Is the EV3 receiving the expected data?
-        ↓
-5. Is the ID mapped correctly?
-        ↓
-6. Is the required passing side correct?
-        ↓
-7. Are wall constraints modifying the command?
-        ↓
-8. Is Motor B physically responding?
-```
-
-This prevents immediately changing steering values when the original problem may be vision communication or ID mapping.
-
----
-
-# 4.55 Incorrect Color Direction Failure
-
-A particularly important failure mode is:
-
-```text
-Object correctly detected
+seen again
       ↓
-Wrong ID interpretation
+consistent signature / geometry
       ↓
-Wrong passing side
+accept target
 ```
 
-For example:
+However, temporal confirmation creates the same trade-off present in other real-time sensors:
 
 ```text
-GREEN physically present
+more confirmation
+→ more stability
+→ more delay
+```
+
+At vehicle speed, delay means:
+
+```text
+Piolín travels farther
+before steering begins
+```
+
+The confirmation strategy must therefore remain short enough for obstacle reaction.
+
+---
+
+# 4.28 Vision Reaction Distance
+
+The obstacle controller should react early enough that Motor B has time to alter the physical trajectory.
+
+The complete delay chain is:
+
+```text
+pillar enters useful camera region
       ↓
-Software interprets as RED
+Pixy detects block
       ↓
-Robot attempts wrong side
+EV3 reads block
+      ↓
+target is selected
+      ↓
+steering command calculated
+      ↓
+Motor B moves
+      ↓
+front wheels change angle
+      ↓
+vehicle path begins changing
 ```
 
-Therefore, testing should separately verify:
-
-```text
-Green identification
-
-Red identification
-
-Green action
-
-Red action
-```
-
-rather than treating obstacle avoidance as one indivisible test.
-
----
-
-# 4.56 Detection vs. Avoidance
-
-These are two separate engineering questions.
-
-### Detection test
-
-```text
-Does HuskyLens correctly identify the pillar?
-```
-
-### Avoidance test
-
-```text
-Can Piolín physically pass the pillar correctly?
-```
-
-A failed avoidance does not automatically prove the camera failed.
-
-For example:
-
-```text
-Correct GREEN detection
-        ↓
-Correct LEFT requirement
-        ↓
-Steering too weak
-        ↓
-Collision
-```
-
-In that case:
-
-```text
-Vision succeeded
-
-Mobility failed
-```
-
-This distinction is essential for meaningful testing.
-
----
-
-# 4.57 Vision Test Matrix
-
-A useful current test table is:
-
-| Trial | Physical Pillar | Reported ID | Classification Correct? | Required Side | Vehicle Result |
-| :---: | :--- | :---: | :---: | :--- | :--- |
-| 1 | Green |  |  | Left |  |
-| 2 | Green |  |  | Left |  |
-| 3 | Red |  |  | Right |  |
-| 4 | Red |  |  | Right |  |
-
-Only actual current results should be inserted.
-
-This separates perception performance from vehicle-control performance.
-
----
-
-# 4.58 Lighting Conditions
-
-Vision performance can depend on the visual environment.
-
-Possible influences include:
-
-```text
-Overhead lighting
-
-Shadows
-
-Reflections
-
-Background contrast
-
-Pillar orientation
-```
-
-Therefore, HuskyLens validation should include conditions representative of the competition environment.
-
-No current numerical error rate or lux benchmark is claimed here unless supported by real current measurements.
-
-Historical vision benchmarks belong only in:
-
-[Legacy Performance Testing and Analysis](../legacy/03_PTesting&Analysis.md)
-
----
-
-# 4.59 Why Legacy PixyCam Results Do Not Apply
-
-Piolín previously experimented with PixyCam.
-
-That architecture is not the current vision system.
+Motor A can continue moving Piolín throughout this sequence.
 
 Therefore:
 
 ```text
-PixyCam detection result
-      ≠
-Current HuskyLens performance
+higher vehicle speed
+→ greater distance traveled before avoidance develops
 ```
 
-and:
-
-```text
-PixyCam calibration
-      ≠
-Current HuskyLens calibration
-```
-
-Historical Pixy documentation is preserved in:
-
-[Legacy PixyCam Vision System](../legacy/02_CameraPixy.md)
-
-The current system should be evaluated independently.
+This is why camera tuning, steering tuning, and propulsion speed must be tested together.
 
 ---
 
-# 4.60 Current vs. Legacy Vision
+# 4.29 Why Maximum Steering Is Not Always the Best Reaction
 
-| Feature | Legacy | Current |
-| :--- | :--- | :--- |
-| **Primary camera** | PixyCam | HuskyLens |
-| **Vehicle controller** | Multiple historical concepts | LEGO EV3 |
-| **Vision support controller** | Historical arrangements | Arduino Nano |
-| **Nano → EV3** | Not applicable to all legacy stages | USB |
-| **Current green ID** | Not applicable | ID 1 |
-| **Current red ID** | Not applicable | ID 2 |
-| **Gyroscope requirement** | Present in some legacy architectures | None |
-| **Main wall navigation** | Historical variations | S2 + S3 Ultrasonics |
+A stronger steering command can reduce collision risk when reaction occurs late.
 
-This separation prevents legacy architecture from appearing to be part of the current robot.
-
----
-
-# 4.61 Vision Calibration Philosophy
-
-The HuskyLens should be calibrated and validated as part of the **installed robot**, not only as an isolated camera.
-
-The useful perception system includes:
+However, excessive steering can create:
 
 ```text
-HuskyLens
+wall collision
 
-Physical mount
+loss of camera target
 
-Camera orientation
+large recovery requirement
 
-Vehicle height
+zig-zag
 
-Lighting environment
-
-Target appearance
-
-Nano communication
-
-EV3 interpretation
+poor approach to next pillar
 ```
 
-Changing one of these variables can affect the complete vision behavior.
-
-This is why final calibration should be performed on the current Piolín configuration.
-
----
-
-# 4.62 Mechanical and Vision Calibration Are Connected
-
-For example:
+The desired behavior is therefore not:
 
 ```text
-Camera mount moves
-       ↓
-Visual geometry changes
-       ↓
-Detection timing changes
-       ↓
-Avoidance starts at different position
-```
-
-The software thresholds may remain identical while the physical result changes.
-
-Therefore:
-
-```text
-VISION CALIBRATION
-      depends partly on
-MECHANICAL CALIBRATION
-```
-
-This interaction is documented further in:
-
-[Sensor Calibration](05_Calibration.md)
-
----
-
-# 4.63 Vision and Vehicle Speed Calibration
-
-The selected drive speed affects the usable vision reaction margin.
-
-Therefore obstacle calibration should consider:
-
-```text
-Detection timing
-
-Vehicle speed
-
-Steering response
-
-Available bypass distance
-```
-
-A configuration that works at one propulsion speed may become too late at a significantly higher speed.
-
-This does not necessarily indicate worse vision classification.
-
-It may indicate that the complete control system no longer has enough physical response distance.
-
----
-
-# 4.64 Vision and Steering Strength
-
-Similarly:
-
-```text
-Correct detection
-```
-
-does not guarantee:
-
-```text
-Sufficient lateral movement
-```
-
-If steering is too weak:
-
-```text
-Pillar detected early
-      ↓
-Correct passing direction chosen
-      ↓
-Vehicle does not move laterally enough
-      ↓
-Collision
-```
-
-The perception and mobility systems must therefore be tuned together while remaining diagnostically separate.
-
----
-
-# 4.65 Vision and Over-Steering
-
-The opposite failure is also possible.
-
-```text
-Pillar detected
-      ↓
-Correct direction
-      ↓
-Steering too aggressive
-      ↓
-Pillar cleared
-      ↓
-Robot approaches side wall
-```
-
-This produces:
-
-```text
-Successful obstacle classification
+pillar visible
+→ maximum steering
 ```
 
 but:
 
 ```text
-Poor vehicle trajectory
+pillar relevance increases
+→ appropriate avoidance steering increases
 ```
 
-The lateral ultrasonic safety layer helps constrain this behavior.
+with safety limits and current geometry still considered.
 
 ---
 
-# 4.66 Post-Pillar Centering
+# 4.30 Full Obstacle Sensor Configuration
 
-After avoidance, Piolín should recover toward a useful track-relative trajectory.
+<div align="center">
 
-This is not primarily a HuskyLens task.
+<img
+  src="../../v-photos/v4/wiring_obstacle.jpg"
+  alt="Piolín complete Obstacle Challenge wiring configuration"
+  width="720"
+/>
 
-Once the pillar has been passed:
+<br>
+
+<sub><b>Figure 4.11.</b> Current Obstacle Challenge wiring with Pixy2.1 on S1, lateral ultrasonics on S2/S3, and Color Sensor on S4.</sub>
+
+</div>
+
+The current obstacle hardware mapping is:
 
 ```text
-Camera role decreases
+MOTORS
+
+A
+→ Large Motor
+→ propulsion
+
+B
+→ Medium Motor
+→ steering
 ```
 
-and:
-
 ```text
-Lateral wall geometry
-```
+SENSORS
 
-becomes more important.
-
-The handoff is:
-
-```text
-HuskyLens
-      ↓
-Select obstacle response
-
-
-Ultrasonics
-      ↓
-Recover track position
-```
-
-This division prevents the camera from attempting to solve a problem better measured by the lateral distance sensors.
-
----
-
-# 4.67 Sensor-Fusion Example
-
-A conceptual obstacle state can contain:
-
-```text
-PILLAR_ID = 1
-
-D_LEFT = ...
-
-D_RIGHT = ...
-
-D_FRONT = ...
-```
-
-The EV3 interprets:
-
-```text
-ID 1
-   ↓
-Need left-side pass
-```
-
-then asks:
-
-```text
-How much left clearance exists?
-
-Is frontal clearance safe?
-
-What is current wall geometry?
-```
-
-Only after considering these questions does the robot produce a final motion command.
-
-This is the practical meaning of sensor fusion in Piolín.
-
----
-
-# 4.68 Vision Responsibility Matrix
-
-| Information / Action | Responsible System |
-| :--- | :--- |
-| **Observe forward scene** | HuskyLens |
-| **Identify trained pillar** | HuskyLens |
-| **Represent green pillar** | ID 1 |
-| **Represent red pillar** | ID 2 |
-| **Support communication** | Arduino Nano |
-| **Nano → EV3 communication** | USB |
-| **Interpret pillar ID** | EV3 |
-| **Choose navigation response** | EV3 |
-| **Check lateral clearance** | S2 / S3 |
-| **Check frontal safety** | S1 |
-| **Execute steering** | Motor B |
-| **Provide propulsion** | Motor A |
-| **Recover after obstacle** | EV3 + lateral ultrasonics |
-
-This table shows that obstacle avoidance is distributed across several subsystems.
-
----
-
-# 4.69 Confirmed Current Vision Information
-
-The following information is confirmed for the current Piolín architecture:
-
-| Parameter | Current Value |
-| :--- | :--- |
-| **Primary vision sensor** | HuskyLens |
-| **Supporting controller** | Arduino Nano |
-| **Nano → EV3** | USB |
-| **Main vehicle controller** | LEGO EV3 |
-| **Camera orientation** | Forward-facing |
-| **Green pillar ID** | 1 |
-| **Red pillar ID** | 2 |
-| **Green required side** | Left |
-| **Red required side** | Right |
-| **PixyCam** | Legacy / not installed |
-| **Gyroscope** | Not installed |
-| **Raspberry Pi** | Not part of final system |
-
-The following are intentionally not claimed here as final numerical or electrical specifications:
-
-```text
-HuskyLens-to-Nano protocol
-
-Camera mounting height
-
-Camera mounting angle
-
-Exact field-of-view angle
-
-Exact detection distance
-
-Exact confirmation count
-
-Exact frame rate
-
-Exact image dimensions used by code
-
-Exact vision latency
-
-Current detection error percentage
-
-Exact obstacle steering angle
-```
-
-These should only be added when verified from the final hardware, source code, or current testing.
-
----
-
-# 4.70 Complete Vision Pipeline
-
-The current Piolín vision pipeline can be summarized as:
-
-```text
-                      PILLAR
-                        │
-                        ▼
-                    HuskyLens
-                        │
-                        ▼
-                 TARGET / ID DATA
-                        │
-                        ▼
-                  Arduino Nano
-                        │
-                       USB
-                        │
-                        ▼
-                    LEGO EV3
-                        │
-              ┌─────────┴─────────┐
-              ▼                   ▼
-         ID VALIDATION       SENSOR CONTEXT
-              │                   │
-              │             ┌─────┼─────┐
-              │             ▼     ▼     ▼
-              │            S1    S2    S3
-              │             │     │     │
-              └─────────────┴──┬──┴─────┘
-                               ▼
-                       NAVIGATION DECISION
-                               │
-                    ┌──────────┴──────────┐
-                    ▼                     ▼
-                 Motor A               Motor B
-                    │                     │
-                    └──────────┬──────────┘
-                               ▼
-                      VEHICLE TRAJECTORY
-                               │
-                               ▼
-                       NEW CAMERA VIEW
-```
-
-This forms a closed perception-control loop.
-
----
-
-# 4.71 Obstacle State Pipeline
-
-At the logical level:
-
-```text
-NO TARGET
-   ↓
-Normal navigation
-```
-
-then:
-
-```text
-VALID ID 1
-   ↓
-GREEN
-   ↓
-LEFT passing requirement
-```
-
-or:
-
-```text
-VALID ID 2
-   ↓
-RED
-   ↓
-RIGHT passing requirement
-```
-
-then:
-
-```text
-Pillar cleared
-   ↓
-Vision influence reduced
-   ↓
-Ultrasonic recovery
-   ↓
-Normal navigation
-```
-
-This state transition is more useful than treating the camera as a permanent steering controller.
-
----
-
-# 4.72 Engineering Significance
-
-The HuskyLens system gives Piolín information that the ultrasonic sensors cannot provide.
-
-An ultrasonic sensor can report:
-
-```text
-There is an object / surface at a distance
-```
-
-but cannot inherently determine:
-
-```text
-This is the GREEN pillar
-```
-
-or:
-
-```text
-This is the RED pillar
-```
-
-The HuskyLens adds the missing semantic information:
-
-```text
-GEOMETRY
-      +
-IDENTITY
-      ↓
-CORRECT OBSTACLE STRATEGY
-```
-
-This is the primary reason the camera is valuable in the Obstacle Challenge.
-
----
-
-# 4.73 Why the Final Architecture Uses Multiple Sensor Types
-
-No single Piolín sensor provides every piece of information required for autonomous navigation.
-
-```text
 S1
-↓
-Forward safety
+→ Pixy2.1
 
+S2
+→ LEFT Ultrasonic
 
-S2 + S3
-↓
-Lateral geometry
-
+S3
+→ RIGHT Ultrasonic
 
 S4
-↓
-Course state
-
-
-HuskyLens
-↓
-Pillar identity
+→ Color Sensor
 ```
 
-The EV3 combines these independent observations.
+No gyro is installed during this configuration.
 
-The architecture therefore follows:
+No Arduino Nano is required.
 
-```text
-SPECIALIZED SENSORS
-        ↓
-CENTRALIZED DECISION
-        ↓
-COORDINATED ACTUATION
-```
-
-rather than asking one camera to solve every navigation problem.
+No HuskyLens is part of the current system.
 
 ---
 
-# 4.74 Final HuskyLens Architecture
+# 4.31 Current Obstacle Software Environment
 
-Piolín's current obstacle vision system can be summarized as:
-
-```text
-                    VISUAL ENVIRONMENT
-                           │
-                           ▼
-                       HuskyLens
-                           │
-               ┌───────────┴───────────┐
-               ▼                       ▼
-            ID = 1                  ID = 2
-               │                       │
-               ▼                       ▼
-             GREEN                    RED
-               │                       │
-               ▼                       ▼
-          PASS LEFT               PASS RIGHT
-               │                       │
-               └───────────┬───────────┘
-                           ▼
-                     Arduino Nano
-                           │
-                          USB
-                           │
-                           ▼
-                       LEGO EV3
-                           │
-                ┌──────────┼──────────┐
-                ▼          ▼          ▼
-               S1        S2/S3       STATE
-                │          │          │
-                ▼          ▼          ▼
-             FRONT       WALLS     NAVIGATION
-             SAFETY     GEOMETRY      LOGIC
-                └──────────┼──────────┘
-                           ▼
-                    FINAL VEHICLE
-                       RESPONSE
-                           │
-                ┌──────────┴──────────┐
-                ▼                     ▼
-             Motor A               Motor B
-              Drive                Steering
-```
-
-The key architectural principle is:
+The current direct Pixy development path uses:
 
 ```text
-CAMERA
-does not drive the robot
+ev3dev2
++
+SMBus / I2C
 ```
+
+on the EV3.
+
+The intended software architecture should keep Pixy communication separate from the Open Challenge Pybricks implementation.
+
+Conceptually:
+
+```text
+src/
+├── open_challenge.py
+│   └── Pybricks + Gyro
+│
+└── obstacle_challenge.py
+    └── ev3dev2 + Pixy2.1
+```
+
+This separation reflects the physical architecture:
+
+```text
+Open S1 device
+≠
+Obstacle S1 device
+```
+
+and prevents one large program from containing unnecessary drivers for hardware that is not installed during the active round.
+
+---
+
+# 4.32 Vision Diagnostic Process
+
+When Piolín reacts incorrectly to a pillar, the problem should be traced through the full sensing chain.
+
+A useful diagnostic sequence is:
+
+```text
+1. Is Pixy powered / communicating?
+
+2. Is the correct signature detected?
+
+3. Is the reported block actually the pillar?
+
+4. Are x, y, width, and height plausible?
+
+5. Was the correct target selected?
+
+6. Was the correct passing rule applied?
+
+7. Did Motor B receive the intended steering command?
+
+8. Did the physical steering respond correctly?
+
+9. Did ultrasonic safety interfere?
+
+10. Was the target released at the correct time?
+```
+
+This prevents a steering problem from being blamed on the camera automatically—or a vision-selection error from being corrected by reversing Motor B polarity.
+
+---
+
+# 4.33 Common Failure Modes
+
+| Observed Behavior | Possible Cause |
+| :--- | :--- |
+| Pixy detects nothing | S1 connection, signature training, lighting, target visibility |
+| Red not recognized | Signature calibration or lighting |
+| Green not recognized | Signature calibration or lighting |
+| Pink not recognized | Parking-signature calibration |
+| Red causes pass-left behavior | Software passing-side mapping |
+| Green causes pass-right behavior | Software passing-side mapping |
+| Pillar is detected but robot reacts too late | Relevance threshold, confirmation delay, vehicle speed |
+| Robot reacts to very distant pillars | Target relevance too permissive |
+| Robot changes target mid-maneuver | Target lock too weak |
+| Robot stays locked after passing pillar | Target-release logic too weak |
+| Target disappears during steering | Field of view changed with vehicle yaw |
+| Robot avoids pillar but hits wall | Wall safety/recovery arbitration |
+| Robot passes pillar but does not recenter | Countersteering or ultrasonic recovery |
+| Different behavior after camera remount | Camera orientation changed |
+| Correct signature but wrong block selected | Multiple-target selection logic |
+
+A failure should be classified before parameters are changed.
+
+---
+
+# 4.34 Camera Testing
+
+A complete camera test should progress through several levels.
+
+### Signature test
+
+Present one target at a time:
+
+```text
+Red
+
+Green
+
+Pink
+```
+
+and verify the reported signature.
+
+### Position test
+
+Move the same pillar across the camera view and verify that `x` changes in the expected direction.
+
+### Apparent-size test
+
+Move the target through different useful distances and observe how:
+
+```text
+width
+
+height
+```
+
+change.
+
+### Multiple-block test
+
+Place more than one valid target in view and verify which one the EV3 selects.
+
+### Dynamic driving test
+
+Allow Piolín to approach a pillar under realistic motion.
+
+This introduces:
+
+```text
+vehicle speed
+
+camera yaw
+
+steering response
+
+changing apparent size
+```
+
+which cannot be tested with the robot stationary.
+
+---
+
+# 4.35 Red and Green Must Be Tested Independently
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/piolin_obstacle_isometric.jpg"
+  alt="Piolín complete Obstacle Challenge configuration"
+  width="720"
+/>
+
+<br>
+
+<sub><b>Figure 4.12.</b> Complete vehicle configuration used for dynamic vision and obstacle-navigation testing.</sub>
+
+</div>
+
+A successful Green test does not prove Red is calibrated correctly.
+
+Likewise, successful Red behavior does not prove Green.
+
+The two cases differ in:
+
+```text
+signature
+
+required side
+
+image geometry
+
+steering direction
+
+wall relationship
+```
+
+Each should therefore be tested separately before evaluating alternating pillar sequences.
+
+---
+
+# 4.36 Multiple-Pillar Testing
+
+Once isolated Red and Green maneuvers are stable, Piolín should be tested with sequences such as:
+
+```text
+RED → RED
+
+GREEN → GREEN
+
+RED → GREEN
+
+GREEN → RED
+```
+
+These tests are valuable because they expose state-management problems that single-pillar tests cannot.
+
+For example:
+
+```text
+first Red correctly avoided
+      ↓
+target not released
+      ↓
+next Green ignored
+```
+
+or:
+
+```text
+first target released too early
+      ↓
+second target becomes active
+before current pass is complete
+```
+
+Vision testing must therefore evaluate both object recognition and temporal target management.
+
+---
+
+# 4.37 Current vs. Legacy Vision Architecture
+
+Piolín's current vision architecture is:
+
+```text
+Pixy2.1
+   ↓
+S1
+   ↓
+EV3
+```
+
+Previous development included a different architecture involving:
+
+```text
+HuskyLens
+
+Arduino Nano
+
+USB communication
+```
+
+Those components played an important role in development, but they are not part of the current competition hardware.
+
+The change reduced the number of active layers between visual detection and the EV3 controller.
+
+Legacy material should remain documented separately as engineering history rather than mixed with current wiring and reproduction instructions.
+
+---
+
+# 4.38 Why the Previous Vision Architecture Was Replaced
+
+The previous vision system demonstrated several useful concepts but introduced additional interfaces.
+
+The chain required:
+
+```text
+vision sensor
+      ↓
+intermediate controller
+      ↓
+communication bridge
+      ↓
+EV3
+```
+
+The current architecture is shorter:
+
+```text
+Pixy2.1
+      ↓
+EV3
+```
+
+This reduces:
+
+```text
+hardware count
+
+additional firmware
+
+communication dependencies
+
+wiring complexity
+```
+
+while retaining the visual information needed for color-based obstacle navigation.
+
+The engineering decision was therefore not simply:
+
+```text
+new camera is better
+```
+
+but:
+
+> **The direct Pixy2.1 architecture better matches the current Piolín system by simplifying the communication chain while still supplying the obstacle information required by the controller.**
+
+---
+
+# 4.39 Values Intentionally Not Claimed as Final
+
+The following parameters should only be published after current V4 testing and calibration:
+
+```text
+final Pixy mounting height
+
+final camera pitch
+
+final camera yaw
+
+final camera lateral offset
+
+final image-center target
+
+final Red threshold configuration
+
+final Green threshold configuration
+
+final Pink threshold configuration
+
+minimum accepted block width
+
+minimum accepted block height
+
+minimum accepted block area
+
+maximum useful detection distance
+
+final target relevance formula
+
+final target-lock duration
+
+final target-loss tolerance
+
+final detection confirmation count
+
+final pillar-pass confirmation threshold
+
+final steering mapping from x
+
+final reaction distance
+
+measured detection success rate
+
+measured Red-pass success rate
+
+measured Green-pass success rate
+
+parking-signature success rate
+```
+
+Working code may contain temporary values, but they should be documented as tuning values rather than validated final specifications until supported by representative testing.
+
+---
+
+# 4.40 Final Vision Architecture
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/piolin_obstacle_top.jpg"
+  alt="Top view of Piolín complete Obstacle Challenge architecture"
+  width="720"
+/>
+
+<br>
+
+<sub><b>Figure 4.13.</b> Piolín's current Obstacle Challenge configuration integrates forward vision with permanent lateral and floor sensing.</sub>
+
+</div>
+
+The complete visual-control chain is:
+
+```text
+                  PHYSICAL PILLAR
+                        │
+                        ▼
+                    PIXY2.1
+                        │
+          ┌─────────────┼─────────────┐
+          │             │             │
+          ▼             ▼             ▼
+      signature         x/y       width/height
+          │             │             │
+          └─────────────┼─────────────┘
+                        ▼
+                       EV3
+                        │
+                 TARGET SELECTION
+                        │
+                        ▼
+                 MANEUVER STATE
+                        │
+          ┌─────────────┴─────────────┐
+          ▼                           ▼
+     PIXY OBJECTIVE              S2/S3 CONTEXT
+          │                           │
+          └─────────────┬─────────────┘
+                        ▼
+                 STEERING DECISION
+                        │
+                        ▼
+                    MOTOR B
+                        │
+                        ▼
+                 VEHICLE MOTION
+                        │
+                        ▼
+                NEW CAMERA VIEW
+```
+
+This is a feedback loop.
+
+Piolín's movement changes what Pixy sees, and the new visual information changes the next steering decision.
+
+---
+
+# 4.41 Final Engineering Assessment
+
+Pixy2.1 provides Piolín with the specialized forward visual perception required by the WRO Future Engineers Obstacle Challenge.
+
+Its current architecture is intentionally simple:
+
+```text
+Pixy2.1
+→ S1
+→ EV3
+```
+
+and is active only during Obstacles.
+
+The camera currently distinguishes:
+
+```text
+sig1 → Pink → parking reference
+
+sig2 → Red → pass right
+
+sig3 → Green → pass left
+```
+
+while also providing block position and apparent size information that can help the EV3 determine which obstacle is currently most relevant.
+
+The camera is not treated as an independent steering controller.
 
 Instead:
 
 ```text
-CAMERA
-   ↓
-IDENTITY
+Pixy
+→ defines obstacle identity and visual geometry
 
+Ultrasonics
+→ provide physical boundary context
 
-ULTRASONICS
-   ↓
-SPACE
-
+Color Sensor
+→ provides course-state information
 
 EV3
-   ↓
-DECISION
+→ combines the information
 
-
-MOTORS
-   ↓
-MOTION
+Motor B
+→ produces the physical steering response
 ```
 
-The HuskyLens therefore acts as Piolín's **semantic obstacle sensor**.
+This architecture also avoids one of the most important possible interpretation errors: **the side on which a pillar appears in the camera does not redefine the side on which Piolín must pass it**.
 
-It identifies whether the relevant obstacle is green or red, while the EV3 combines that information with wall geometry and vehicle state to create a physically achievable avoidance trajectory.
-
-The resulting obstacle strategy is not:
+The passing rule remains fixed:
 
 ```text
-SEE COLOR
-   ↓
-TURN FIXED ANGLE
+RED
+→ RIGHT
+
+GREEN
+→ LEFT
 ```
 
-but rather:
+while `x`, `y`, `width`, and `height` describe the current visual geometry.
 
-```text
-IDENTIFY PILLAR
-      ↓
-SELECT REQUIRED SIDE
-      ↓
-CHECK AVAILABLE GEOMETRY
-      ↓
-EXECUTE AVOIDANCE
-      ↓
-CLEAR PILLAR
-      ↓
-RECOVER WITH WALL SENSORS
-      ↓
-RETURN TO NORMAL NAVIGATION
-```
+Target selection, temporary locking, pass confirmation, ultrasonic recovery, and obstacle-state management are therefore required to transform a camera detection into a complete vehicle maneuver.
 
-This division of responsibilities is the foundation of Piolín's current vision-assisted obstacle architecture.
+The main engineering principle behind the subsystem is:
+
+> **Use vision to identify the obstacle and describe its visual relevance, but let the complete vehicle controller determine the trajectory using both camera information and physical track geometry.**
+
+This makes Pixy2.1 not merely a color detector, but the visual perception layer of Piolín's Obstacle Challenge navigation system.
 
 ---
 
-## Continue Reading
+<div align="center">
 
-[Sensor Calibration](05_Calibration.md)
+### [← Back to PiolínTech Main README](../../README.md)
 
----
-
-## Related Sensor Documentation
-
-[Power and Sensor Configuration](01_PowerSensorconfig.md)
-
-[Ultrasonic Sensor Data](02_USSensorD.md)
-
-[Color Sensor](03_color_sensor.md)
-
-[HuskyLens Hardware](../components/07_HuskyLens.md)
-
----
-
-## Related Software Documentation
-
-[Software Architecture](../software_obstacles_strategy/01_SWArchitecture.md)
-
-[State Machine](../software_obstacles_strategy/02_statemachine.md)
-
-[Obstacle Detection](../software_obstacles_strategy/05_obstacledetec.md)
-
-[Obstacle Strategy](../software_obstacles_strategy/06_obstaclestrateg.md)
-
-[Software Tuning](../software_obstacles_strategy/07_softwaretuning.md)
-
-[HuskyLens Vision](../software_obstacles_strategy/08_CameraHLVision.md)
-
----
-
-## Related Mechanical Documentation
-
-[Chassis Design](../mobility_mechanical/02_chassis.md)
-
-[Robot Mobility](../mobility_mechanical/03_RMobility.md)
-
-[Steering](../mobility_mechanical/04_steering.md)
-
-[Mechanical Testing](../mobility_mechanical/06_testing.md)
-
----
-
-## Reproducibility
-
-[Wiring](../reproducibility/03_wiring.md)
-
-[Electrical Schematic](../reproducibility/04_elecschem.md)
-
-[How to Calibrate](../reproducibility/06_HowToCalibrate.md)
-
-[Testing Protocol](../reproducibility/07_TestingProtocol.md)
-
-[Troubleshooting](../reproducibility/08_Troubleshooting.md)
-
----
-
-## Historical Reference
-
-[Legacy Documentation Notice](../legacy/00_LEGACY_NOTICE.md)
-
-[Legacy PixyCam](../legacy/02_CameraPixy.md)
-
-[Legacy Performance Testing](../legacy/03_PTesting&Analysis.md)
+</div>
