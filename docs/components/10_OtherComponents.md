@@ -1,707 +1,1183 @@
 # 10. Other Components and Supporting Hardware
 
-Piolín's final hardware architecture includes several supporting components that do not require an independent component document but are still essential to the operation, mechanical structure, integration, and reproducibility of the robot.
+<div align="center">
 
-The EV3, motors, ultrasonic sensors, color sensor, HuskyLens, battery, and power architecture form the main active systems. However, those components cannot operate as a complete autonomous vehicle without the mechanical structures, interfaces, wheels, cables, connectors, and custom parts that connect them together.
+<img
+  src="../../v-photos/v4/piolin_open_isometric.jpg"
+  alt="Piolín complete Open Challenge hardware configuration"
+  width="720"
+/>
 
-These supporting components can be grouped into several categories:
+<br>
 
-```text
-                    PIOLÍN
-                      │
-        ┌─────────────┼─────────────┐
-        │             │             │
-        ▼             ▼             ▼
-    ELECTRONICS     MECHANICS     INTEGRATION
-        │             │             │
-        ▼             ▼             ▼
- Arduino Nano      LEGO Technic    Wiring
- USB Interface     Structure       Connectors
-                  Wheels / Axles   Mounts
-                  Custom Casing    Fasteners
-```
+<sub><b>Figure 10.1.</b> Complete Piolín Open Challenge configuration. In addition to the major electronic components, the robot depends on a large number of structural, mechanical, mounting, and connection elements.</sub>
 
-The purpose of this section is to document these secondary but necessary elements and explain how they support Piolín's main systems.
+</div>
+
+Piolín's main active components are documented individually throughout this section: the EV3 controller, propulsion and steering motors, ultrasonic sensors, Color Sensor, Pixy2.1 vision system, battery, and electrical architecture. However, these components cannot operate as an autonomous vehicle without the supporting mechanical and electrical hardware that connects them into one complete system.
+
+These supporting components include the LEGO Technic chassis structure, wheels and tires, axles, gears, steering links, structural pins, cable routing elements, camera mounting hardware, the Color Sensor light-isolation casing, and the physical connection hardware used by the round-specific S1 architecture.
+
+Although these parts are individually less complex than the main controller or sensors, their engineering importance is significant. A loose sensor mount can corrupt a measurement. A flexible steering support can change wheel geometry. A cable routed through the steering mechanism can stop an otherwise correct program. A poorly supported camera can change the visual coordinate system between runs.
+
+Piolín therefore treats these components as part of the complete engineering system rather than as miscellaneous accessories.
 
 ---
 
-## 10.1 Supporting Component Summary
+## 10.1 Supporting-Hardware Architecture
 
-The main supporting components used in Piolín are:
+The supporting components can be divided into several functional groups:
 
-| Component | Main Function |
+| Group | Main Function |
 | :--- | :--- |
-| **Arduino Nano** | Communication bridge between the HuskyLens subsystem and EV3 |
-| **USB connection** | Transfers vision information from Nano to EV3 |
-| **LEGO Technic structure** | Forms chassis and component-support framework |
-| **Technic axles and connectors** | Transfer motion and connect mechanical assemblies |
-| **Front wheels** | Steering wheels |
-| **Rear wheels** | Driven propulsion wheels |
-| **Tires** | Provide floor contact and traction |
-| **Color Sensor Casing** | Reduces uncontrolled ambient light around the floor sensor |
-| **Sensor mounts** | Maintain sensor orientation relative to chassis |
-| **Camera mounting structure** | Holds the HuskyLens in its forward-facing position |
-| **Cable routing elements** | Keep electrical connections organized and clear of moving mechanisms |
+| LEGO Technic structure | Creates and reinforces the chassis |
+| Wheels and tires | Transfer propulsion and steering forces to the track |
+| Axles, gears, and drivetrain elements | Transfer Motor A rotation to the rear wheels |
+| Steering links and pivots | Transfer Motor B rotation to the front wheels |
+| Sensor mounts | Preserve sensor position and orientation |
+| Pixy2.1 mounting hardware | Maintains the camera reference frame |
+| Color Sensor casing | Reduces uncontrolled ambient light |
+| EV3 cables | Connect motors and LEGO sensors |
+| Pixy connection hardware | Connects the current vision system to S1 |
+| Cable-management elements | Keep electrical connections away from moving mechanisms |
+| Structural pins/connectors | Maintain chassis rigidity and modular assembly |
 
-Although these components perform different roles, all of them contribute to the reliability of the final robot.
+The overall relationship is:
+
+```text
+ACTIVE COMPONENT
+      +
+SUPPORTING HARDWARE
+      ↓
+REPEATABLE PHYSICAL INSTALLATION
+      ↓
+RELIABLE SENSOR / MOTOR BEHAVIOR
+```
+
+This relationship is important because software calibration assumes that the hardware remains physically repeatable.
 
 ---
 
-# 10.2 Arduino Nano
+## 10.2 LEGO Technic Structural System
 
-Piolín uses an **Arduino Nano** as part of the vision subsystem.
+Piolín is constructed primarily from LEGO Mindstorms EV3 and LEGO Technic structural elements.
 
-Its role is deliberately limited.
-
-The Nano does not replace the LEGO EV3 as Piolín's main controller and does not directly control the propulsion or steering motors.
-
-Instead, it acts as an interface between the HuskyLens vision system and the EV3.
-
-The final information architecture is:
+These include combinations of:
 
 ```text
-HUSKYLENS
-     │
-     ▼
-ARDUINO NANO
-     │
-     │ USB
-     ▼
-LEGO EV3
-     │
-     ▼
-Navigation Decision
+beams
+
+frames
+
+axles
+
+pins
+
+connectors
+
+bushings
+
+gears
+
+wheel hubs
+
+steering elements
 ```
 
-The Arduino Nano therefore belongs to Piolín's **communication architecture**, rather than its primary motion-control architecture.
+that form the mechanical chassis.
 
-This separation allows the EV3 to remain responsible for:
+<div align="center">
+
+<img
+  src="../../v-photos/v4/chassis_top.jpg"
+  alt="Top view of Piolín LEGO Technic chassis"
+  width="720"
+/>
+
+<br>
+
+<sub><b>Figure 10.2.</b> Piolín's chassis viewed from above, showing the LEGO Technic structural network supporting its actuators, sensors, and controller.</sub>
+
+</div>
+
+The purpose of the chassis is not simply to hold the parts together. It must preserve the relative positions of the major subsystems.
+
+In particular, it must keep stable relationships between:
 
 ```text
-Motor control
-Ultrasonic navigation
-Color detection
-Navigation state
-Safety logic
-Obstacle response
+Motor A and rear drivetrain
+
+Motor B and steering linkage
+
+left and right ultrasonic sensors
+
+Color Sensor and floor
+
+Gyro and chassis orientation
+
+Pixy2.1 and vehicle centerline
 ```
 
-while the Nano concentrates on transferring useful vision information.
+If the structure flexes enough to change one of these relationships, sensor calibration or steering behavior can change even when the software remains identical.
 
 ---
 
-# 10.3 Why the Nano Is a Supporting Controller
+## 10.3 Chassis Rigidity
 
-Using more than one processor does not mean that Piolín uses several equal main controllers.
-
-The final architecture follows a hierarchy:
-
-```text
-               MAIN CONTROLLER
-                  LEGO EV3
-                      ▲
-                      │
-                Vision Data
-                      │
-                ARDUINO NANO
-                      ▲
-                      │
-                   HUSKYLENS
-```
-
-The EV3 remains at the center of the robot because it determines the final movement commands.
-
-The Nano provides a specialized interface function.
-
-This distinction is important for understanding Piolín's architecture:
-
-> **The Nano communicates vision information. The EV3 controls the vehicle.**
-
----
-
-# 10.4 USB Communication Connection
-
-The Arduino Nano communicates with the LEGO EV3 through **USB**.
-
-This allows the vision subsystem to reach the main controller without occupying one of the four EV3 sensor ports.
-
-All four EV3 sensor ports are already assigned:
-
-```text
-S1 → Front Ultrasonic Sensor
-
-S2 → Right Ultrasonic Sensor
-
-S3 → Left Ultrasonic Sensor
-
-S4 → Color Sensor
-```
-
-The vision system therefore follows another path:
-
-```text
-HuskyLens
-    ↓
-Arduino Nano
-    ↓
-USB
-    ↓
-EV3
-```
-
-This allows Piolín to retain all three ultrasonic sensors and the color sensor simultaneously while also integrating visual obstacle recognition.
-
-The USB link shown here represents the confirmed Nano-to-EV3 communication connection. Detailed wiring is documented separately in the reproducibility section.
-
----
-
-# 10.5 LEGO Technic Chassis Structure
-
-Piolín's mechanical architecture is built primarily from **LEGO Technic structural elements**.
-
-These components form the rigid framework that supports:
-
-```text
-EV3
-Motors
-Sensors
-Vision Hardware
-Battery
-Wheels
-Steering Mechanism
-Drivetrain
-```
-
-The chassis is more than a platform for mounting electronics.
-
-It establishes the relative position between all of the sensors and mechanical systems.
+Structural rigidity is especially important in an autonomous vehicle because mechanical deformation appears to software as inconsistent behavior.
 
 For example:
 
 ```text
-Sensor Position
+sensor mount moves
       ↓
-Measured Geometry
-
-
-Motor Position
+sensor measurement changes
       ↓
-Mechanical Transmission
-
-
-Wheel Position
-      ↓
-Vehicle Geometry
+EV3 interprets environment differently
 ```
 
-A change in the chassis can therefore affect sensing, steering, drivetrain behavior, and overall vehicle dimensions at the same time.
+or:
 
-The LEGO Technic frame therefore acts as the common mechanical reference for the complete system.
+```text
+steering structure flexes
+      ↓
+same Motor B position
+      ↓
+different wheel angle
+```
+
+The purpose of reinforcement is therefore not to create the heaviest possible chassis.
+
+The design goal is:
+
+> **Use enough structure to maintain geometry while avoiding unnecessary complexity and mass.**
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/chassis_bottom.jpg"
+  alt="Bottom view of Piolín chassis structure"
+  width="720"
+/>
+
+<br>
+
+<sub><b>Figure 10.3.</b> Bottom view of the structural chassis used to maintain drivetrain, steering, and sensor alignment.</sub>
+
+</div>
+
+Structural changes should therefore be followed by mechanical and sensor verification before previously tuned software values are assumed to remain valid.
 
 ---
 
-# 10.6 Technic Beams and Connectors
+## 10.4 Modular Construction
 
-LEGO Technic beams and connectors are used throughout Piolín to create the structural frame and connect different subsystems.
+LEGO Technic construction provides an important development advantage: major assemblies can be modified without manufacturing an entirely new chassis.
 
-Their main function is to maintain the relative position of the robot's components.
-
-Conceptually:
+Piolín's design evolved repeatedly through changes to:
 
 ```text
-         STRUCTURAL FRAME
-                │
-       ┌────────┼────────┐
-       ▼        ▼        ▼
-     EV3      Sensors   Motors
-       │        │        │
-       └────────┼────────┘
-                ▼
-            One Chassis
+sensor orientation
+
+camera architecture
+
+steering reinforcement
+
+wheel support
+
+cable routing
+
+S1 hardware
 ```
 
-This structural consistency is particularly important for the lateral ultrasonic sensors and Ackermann steering mechanism.
+The modular construction system made those iterations possible.
 
-If the structure holding those components changes orientation, the software may continue using the same values while the physical geometry of the robot has changed.
+However, modularity also introduces mechanical joints.
 
-The LEGO Technic frame therefore acts as the mechanical reference shared by sensing and actuation.
+Every additional connection can introduce:
+
+```text
+small play
+
+small misalignment
+
+structural flexibility
+```
+
+The final design therefore balances:
+
+```text
+ease of modification
+```
+
+against:
+
+```text
+mechanical rigidity
+```
+
+rather than maximizing either property independently.
 
 ---
 
-# 10.7 Axles and Rotational Components
+# 10.5 Wheels and Tires
 
-Technic axles are used in Piolín's drivetrain and steering assemblies to transmit rotational movement between components.
+Piolín uses separate front and rear wheel roles.
 
-In the propulsion system:
-
-```text
-Drive Motor
-    ↓
-Mechanical Transmission
-    ↓
-Axle
-    ↓
-Rear Wheels
-```
-
-In the steering system:
-
-```text
-Steering Motor
-      ↓
-Mechanical Linkage
-      ↓
-Steering Components
-      ↓
-Front Wheel Direction
-```
-
-Axles therefore perform a different role from structural beams.
-
-Beams primarily maintain geometry, while axles primarily transmit rotation.
-
-Both are necessary for Piolín to behave as a vehicle rather than as a collection of independently mounted components.
-
----
-
-# 10.8 Rear Wheels
-
-Piolín's rear wheels form the primary propulsion interface with the competition surface.
-
-Their measured diameter is approximately:
-
-```text
-2.4 in
-```
-
-which corresponds to:
-
-```text
-≈ 60.96 mm
-```
-
-or approximately:
-
-```text
-61.0 mm
-```
-
-The resulting radius is approximately:
-
-```text
-30.5 mm
-```
-
-and the geometric circumference is approximately:
-
-```text
-191.5 mm
-```
-
-Their role is:
+The rear wheels are associated primarily with propulsion:
 
 ```text
 Motor A
-   ↓
-Rear Drivetrain
-   ↓
-Rear Wheels
-   ↓
-Floor Contact
-   ↓
-Vehicle Propulsion
+→ drivetrain
+→ rear wheels
 ```
 
-These wheels therefore convert drivetrain rotation into forward or reverse movement of the complete robot.
-
----
-
-# 10.9 Front Wheels
-
-Piolín's front wheels have a measured diameter of:
-
-```text
-1.5 in
-```
-
-which corresponds to:
-
-```text
-38.1 mm
-```
-
-Their radius is therefore:
-
-```text
-19.05 mm
-```
-
-and their approximate circumference is:
-
-```text
-119.7 mm
-```
-
-Unlike the rear wheels, the front wheels are not Piolín's primary propulsion wheels.
-
-Their main responsibility is directional control.
+while the front wheels are associated primarily with steering:
 
 ```text
 Motor B
-    ↓
-Ackermann Linkage
-    ↓
-Front Wheels
-    ↓
-Vehicle Direction
+→ Ackermann linkage
+→ front wheels
 ```
-
-The smaller front wheels therefore belong primarily to the steering system, while the larger rear wheels belong primarily to the propulsion system.
-
----
-
-# 10.10 Different Front and Rear Wheel Sizes
-
-Piolín operates with different wheel sizes at the front and rear because the two wheel groups perform different mechanical functions.
-
-The final wheel configuration is:
-
-| Wheel Position | Diameter | Primary Function |
-| :--- | :---: | :--- |
-| **Front** | **38.1 mm** | Steering |
-| **Rear** | **~61.0 mm** | Propulsion |
-
-The architecture can be represented as:
-
-```text
-                 FRONT
-
-          O                 O
-        38.1 mm          38.1 mm
-           \               /
-            \  STEERING   /
-             \           /
-
-              [ PIOLÍN ]
-
-             PROPULSION
-
-          O=================O
-             ~61.0 mm
-
-                  REAR
-```
-
-The front assembly prioritizes directional movement through the Ackermann mechanism, while the rear assembly converts Motor A rotation into vehicle displacement.
-
----
-
-# 10.11 Tires
-
-The tires form the physical contact point between Piolín and the competition surface.
-
-Every motor command ultimately depends on this interface.
-
-```text
-Motor
-  ↓
-Wheel
-  ↓
-Tire
-  ↓
-Competition Surface
-  ↓
-Vehicle Movement
-```
-
-Tire behavior affects both propulsion and steering.
-
-At the rear, traction is required to convert wheel rotation into forward movement.
-
-At the front, tire interaction with the floor influences how effectively the Ackermann steering position changes the direction of the complete vehicle.
-
-This means tire behavior is connected to:
-
-```text
-Acceleration
-Braking
-Cornering
-Steering response
-Wheel slip
-```
-
-The tires therefore form an important mechanical part of Piolín's control system even though they contain no electronics or software.
-
----
-
-# 10.12 Color Sensor Casing
-
-Piolín includes a dedicated casing around the downward-facing color sensor.
-
-The purpose of the casing is to reduce uncontrolled ambient light entering the sensing region.
-
-The optical relationship is:
-
-```text
-        External Light
-      ↘      ↓      ↙
-
-      ┌─────────────┐
-      │   CASING    │
-      │             │
-      │ ColorSensor │
-      └──────┬──────┘
-             │
-             ▼
-      Competition Mat
-```
-
-The casing helps create a more consistent local optical environment.
-
-This component represents a good example of solving a sensing problem mechanically rather than relying entirely on software.
-
----
-
-# 10.13 Custom 3D-Printed Component
-
-The repository includes the model for Piolín's color-sensor casing:
-
-```text
-models/
-└── 3dprint/
-    └── ColorSensorCasing.stl
-```
-
-This custom component connects CAD design directly with sensor reliability.
-
-The relationship is:
-
-```text
-3D MODEL
-    ↓
-Physical Casing
-    ↓
-Controlled Sensor Environment
-    ↓
-Color Measurements
-    ↓
-EV3 Classification
-```
-
-A custom physical component that affects sensing behavior is therefore documented alongside the software and electronic configuration that depends on it.
-
-This contributes directly to Piolín's reproducibility because the sensing environment can be reconstructed rather than being described only in text.
-
----
-
-# 10.14 Sensor Mounting Components
-
-All of Piolín's sensors depend on mechanical mounts that keep them oriented correctly relative to the chassis.
-
-This is particularly important for:
-
-```text
-Front Ultrasonic
-Right Ultrasonic
-Left Ultrasonic
-Color Sensor
-HuskyLens
-```
-
-Each sensor observes a different region.
-
-```text
-                  HUSKYLENS
-                      ↑
-                Forward Vision
-
-                FRONT US
-                    ↑
-               Front Distance
-
-
-LEFT US ←       [ PIOLÍN ]       → RIGHT US
-
-
-                COLOR SENSOR
-                    ↓
-                   Floor
-```
-
-The mounting components establish these sensing directions physically.
-
-A correctly functioning sensor mounted at the wrong angle could still provide information that does not correspond correctly with the software model.
-
-Sensor mounting is therefore part of Piolín's perception architecture.
-
----
-
-# 10.15 Lateral Ultrasonic Mounting
-
-Piolín's two lateral ultrasonic sensors are mounted facing toward opposite sides of the chassis.
-
-Their measured mounting height is approximately:
-
-```text
-43 mm above the competition surface
-```
-
-The supports holding these sensors maintain their lateral orientation.
-
-```text
-LEFT WALL                         RIGHT WALL
-    │                                 │
-    │                                 │
-    └──── S3 ← [ PIOLÍN ] → S2 ──────┘
-```
-
-This orientation supports the geometry used by Piolín's wall-navigation system.
-
-The structural pieces holding the sensors are therefore part of the measurement system itself rather than merely decorative supports.
-
----
-
-# 10.16 HuskyLens Mounting Structure
-
-The HuskyLens is mounted on Piolín in a forward-facing position so that it can observe the traffic pillars used during the Obstacle Challenge.
 
 <div align="center">
-  <img
-    width="358"
-    height="358"
-    alt="HuskyLens installed on Piolín"
-    src="https://github.com/user-attachments/assets/b00dbb40-e32a-446d-83df-9d760912ccf6"
-  />
-  <br>
-  <sub><b>Figure 10.1.</b> HuskyLens mounted on Piolín as part of the final vision subsystem.</sub>
+
+<img
+  src="../../v-photos/v4/rear_wheels.jpg"
+  alt="Piolín rear propulsion wheels"
+  width="660"
+/>
+
+<br>
+
+<sub><b>Figure 10.4.</b> Rear wheels used to transfer Motor A propulsion to the competition surface.</sub>
+
 </div>
 
-The image above shows how the vision sensor is physically integrated into the robot rather than functioning as an external device.
+<div align="center">
 
-The supporting structure maintains the camera position relative to the chassis and keeps its forward viewing region available.
+<img
+  src="../../v-photos/v4/front_wheels.jpg"
+  alt="Piolín front steering wheels"
+  width="660"
+/>
+
+<br>
+
+<sub><b>Figure 10.5.</b> Front wheels integrated with the Ackermann-style steering system.</sub>
+
+</div>
+
+The wheels influence more than movement speed. Their diameter, tire deformation, traction, and alignment affect:
 
 ```text
-                 VISIBLE ENVIRONMENT
-                         ▲
-                        / \
-                       /   \
-                      /     \
-                 [ HUSKYLENS ]
-                       │
-                       │
-                 Mounting Frame
-                       │
-                       ▼
-                    PIOLÍN
+theoretical encoder distance
+
+cornering
+
+steering load
+
+vehicle speed
+
+turning radius
+
+odometry
+
+parking displacement
 ```
 
-Because the HuskyLens is rigidly mounted to the robot, the camera rotates whenever the chassis rotates.
+For this reason, the current wheel diameters should be physically remeasured before final numerical specifications are published.
 
-Therefore:
+Older wheel dimensions from previous Piolín configurations should not automatically be treated as current V4 values.
+
+---
+
+## 10.6 Wheel Traction
+
+Motor rotation only produces useful vehicle motion when the tire can transfer force to the track.
+
+The complete relationship is:
 
 ```text
-ROBOT HEADING
+Motor rotation
       ↓
-CAMERA HEADING
+drivetrain
       ↓
-VISIBLE REGION
+wheel rotation
+      ↓
+tire / track interaction
+      ↓
+vehicle displacement
 ```
 
-The mechanical installation of the HuskyLens is consequently part of Piolín's vision geometry.
-
-The mount must support the camera while avoiding unnecessary obstruction of its forward-facing observation region.
-
-Detailed information about visual detection and the HuskyLens subsystem is documented in:
+If slip occurs:
 
 ```text
-docs/components/07_HuskyLens.md
+wheel rotation
+≠
+equivalent vehicle displacement
 ```
+
+This is one reason wheel encoders are useful but are not treated as perfect odometry.
+
+Track cleanliness, tire condition, steering angle, and vehicle loading can all influence the effective traction available during a run.
 
 ---
 
-# 10.17 Cable Routing
+## 10.7 Wheel Alignment
 
-Piolín contains several cables connecting the EV3, motors, sensors, Arduino Nano, and vision subsystem.
+Wheel alignment affects both propulsion and steering.
 
-Cable routing is important because the robot also contains moving mechanical assemblies.
-
-The primary objective is to prevent cables from interfering with:
+A rear wheel that is not aligned correctly can introduce:
 
 ```text
-Steering linkage
-Front wheels
-Rear wheels
-Drivetrain
-Sensor fields
+rolling resistance
+
+lateral drift
+
+unequal drivetrain load
 ```
 
-The relationship can be represented as:
+A front wheel that is misaligned can produce:
 
 ```text
-ELECTRICAL CONNECTION
-       ↓
-Cable routing
-       ↓
-Secure path through chassis
-       ↓
-No interference with movement
+constant steering bias
+
+unequal turning behavior
+
+increased tire scrub
 ```
 
-Cable routing therefore belongs to both the electrical and mechanical design.
+Therefore straight-line drift should not automatically be corrected through software before wheel alignment and steering center are inspected.
+
+Mechanical alignment is part of navigation calibration.
 
 ---
 
-# 10.18 Why Cable Management Matters
+# 10.8 Axles and Rotational Support
 
-A cable can be electrically correct but mechanically problematic.
+LEGO axles transfer rotation through Piolín's drivetrain and steering mechanisms.
 
-For example:
+Their alignment is critical because an axle that is slightly forced sideways can increase friction.
+
+This can create a misleading software symptom:
 
 ```text
-Loose cable
-    ↓
-Moves during steering
-    ↓
-Touches linkage or wheel
-    ↓
-Mechanical resistance
-    ↓
-Navigation changes
+Motor A command unchanged
+      ↓
+vehicle becomes slower
 ```
 
-The resulting behavior may appear to be a software or motor-control issue even though the actual cause is mechanical interference.
+while the real cause is:
 
-Organizing the cables helps keep electrical connections stable and keeps moving mechanisms free.
+```text
+mechanical resistance increased
+```
 
-This is especially important around Piolín's front steering assembly and the electronics mounted above the chassis.
+Bushings and supports are therefore used to keep rotating parts in their intended positions while preventing unwanted axial movement.
+
+The objective is to achieve:
+
+```text
+free rotation
++
+controlled positioning
+```
+
+rather than simply adding as many axle supports as possible.
 
 ---
 
-# 10.19 Connectors
+## 10.9 Drivetrain Components
 
-Connectors allow the major components to remain electrically modular.
+The rear drivetrain transfers the Large Motor's output to the wheels.
 
-The LEGO sensors and motors use the EV3 connection system, while the external vision subsystem uses its own electrical and communication connections.
+<div align="center">
 
-The architecture can be separated into:
+<img
+  src="../../v-photos/v4/rear_drivetrain_top.jpg"
+  alt="Top view of Piolín rear drivetrain"
+  width="700"
+/>
+
+<br>
+
+<sub><b>Figure 10.6.</b> Rear drivetrain showing the mechanical path between Motor A and the driven wheels.</sub>
+
+</div>
+
+The drivetrain can contain several mechanical functions:
 
 ```text
-LEGO DOMAIN
+rotation transfer
 
-EV3
- ├── Motor A
- ├── Motor B
- ├── S1
- ├── S2
- ├── S3
- └── S4
+axle support
+
+gear transmission
+
+wheel support
+```
+
+depending on the final V4 arrangement.
+
+The exact current gear ratio should be documented only after the final drivetrain is physically verified.
+
+This is important because an old ratio or wheel size can produce incorrect odometry calculations even if the equation itself is correct.
+
+---
+
+## 10.10 Drivetrain Friction
+
+Mechanical efficiency matters because Motor A must overcome both the resistance of the vehicle and the internal resistance of the drivetrain.
+
+Potential friction sources include:
+
+```text
+misaligned axles
+
+tight bushings
+
+gear contact
+
+wheel rubbing
+
+structural deformation
+```
+
+A useful drivetrain test is to rotate the system manually with power removed and verify that no unexpected binding exists.
+
+This test should be performed after significant chassis changes before increasing motor commands to compensate for reduced motion.
+
+---
+
+# 10.11 Steering Linkage Components
+
+The Ackermann-style steering system depends on several passive mechanical components in addition to Motor B.
+
+These include:
+
+```text
+steering arms
+
+links
+
+pivots
+
+axles
+
+pins
+
+wheel hubs
+
+structural supports
+```
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/ackermann_top.jpg"
+  alt="Piolín Ackermann steering linkage"
+  width="700"
+/>
+
+<br>
+
+<sub><b>Figure 10.7.</b> Complete steering assembly showing the passive linkage that transforms Motor B rotation into coordinated front-wheel movement.</sub>
+
+</div>
+
+These passive elements define the relationship between:
+
+```text
+Motor B rotation
 ```
 
 and:
 
 ```text
-VISION DOMAIN
+left / right wheel angle
+```
 
+The steering motor therefore cannot be calibrated independently of the linkage.
+
+Changing one steering-arm connection point can change the entire steering response even if the same Medium Motor remains installed.
+
+---
+
+## 10.12 Steering Pivots
+
+The front wheels must rotate around stable steering pivots.
+
+The pivot structure must simultaneously provide:
+
+```text
+low enough friction for Motor B to steer
+
+enough rigidity to maintain geometry
+```
+
+A pivot that is too tight increases Motor B load.
+
+A pivot with excessive play decreases wheel-angle repeatability.
+
+This creates another mechanical trade-off:
+
+```text
+freedom of movement
+```
+
+versus:
+
+```text
+positional precision
+```
+
+The best configuration is the one that provides repeatable movement without binding.
+
+---
+
+## 10.13 Mechanical Play
+
+Some mechanical clearance is unavoidable in LEGO assemblies.
+
+This can appear in:
+
+```text
+axles
+
+pins
+
+steering pivots
+
+linkage joints
+
+gear interfaces
+```
+
+A small amount may have little practical effect.
+
+Too much can cause a visible delay between:
+
+```text
+Motor B changes direction
+```
+
+and:
+
+```text
+front wheels respond
+```
+
+This is particularly important during obstacle avoidance, where the robot can move from:
+
+```text
+avoid
+→ countersteer
+```
+
+in a short period.
+
+The current documentation therefore does not claim zero backlash or perfectly rigid steering.
+
+---
+
+# 10.14 Sensor Mounting Hardware
+
+Sensor mounting is part of sensor performance.
+
+A sensor measurement is only meaningful if its position relative to the chassis remains known.
+
+The current permanent sensors are:
+
+```text
+S2 Left Ultrasonic
+
+S3 Right Ultrasonic
+
+S4 Color Sensor
+```
+
+while S1 is round-specific:
+
+```text
+Open
+→ Gyro
+
+
+Obstacles
+→ Pixy2.1
+```
+
+Each requires a different physical mounting strategy.
+
+The ultrasonic sensors require stable lateral orientation.
+
+The Color Sensor requires controlled height above the floor.
+
+The gyro requires fixed orientation relative to the chassis.
+
+Pixy requires repeatable camera alignment.
+
+The sensor mounts are therefore functional components rather than passive decoration.
+
+---
+
+## 10.15 Ultrasonic Mounting
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/PiolinUSlabeling.png"
+  alt="Piolín left and right ultrasonic sensor labeling"
+  width="720"
+/>
+
+<br>
+
+<sub><b>Figure 10.8.</b> Physical identification of Piolín's lateral ultrasonic sensors: S2 LEFT and S3 RIGHT.</sub>
+
+</div>
+
+The current ultrasonic sensors are mounted laterally.
+
+The mount must preserve:
+
+```text
+left/right orientation
+
+sensor height
+
+horizontal direction
+
+rigidity
+```
+
+A loose ultrasonic mount can make a correct wall-following algorithm appear unstable.
+
+Because the software assumes:
+
+```text
+S2 = LEFT
+S3 = RIGHT
+```
+
+the physical mounting and electrical mapping must remain consistent.
+
+---
+
+# 10.16 Color Sensor Light-Isolation Casing
+
+Piolín includes a custom casing around the downward-facing EV3 Color Sensor.
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/color_sensor_casing.jpg"
+  alt="Piolín Color Sensor light isolation casing"
+  width="650"
+/>
+
+<br>
+
+<sub><b>Figure 10.9.</b> Custom casing used to reduce uncontrolled environmental light around the S4 Color Sensor.</sub>
+
+</div>
+
+This component was introduced because color sensing is affected by the optical environment.
+
+Instead of attempting to solve all lighting variation through increasingly broad software thresholds, the casing improves the physical measurement conditions before the data reaches the EV3.
+
+The intended effect is:
+
+```text
+less uncontrolled light
+        ↓
+more repeatable sensor data
+        ↓
+cleaner Blue / Orange separation
+```
+
+The casing therefore demonstrates a broader engineering principle used in Piolín:
+
+> **Improve the physical measurement system when possible before compensating entirely in software.**
+
+---
+
+## 10.17 Casing Clearance
+
+The casing must remain close enough to the floor to reduce external light while maintaining sufficient physical clearance.
+
+It must not:
+
+```text
+drag on the mat
+
+contact floor markings
+
+change the sensor angle
+
+create additional friction
+```
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/color_sensor_casing_bottom.jpg"
+  alt="Bottom view of Piolín Color Sensor casing"
+  width="640"
+/>
+
+<br>
+
+<sub><b>Figure 10.10.</b> Bottom view used to verify the casing opening and physical clearance above the competition surface.</sub>
+
+</div>
+
+The casing is therefore both an optical and mechanical component.
+
+---
+
+## 10.18 Additive-Manufactured Components
+
+The Color Sensor casing is one example of how custom-manufactured components can complement the LEGO platform without replacing the main mechanical architecture.
+
+The part allows Piolín to solve a specific sensing problem that standard structural elements do not address as effectively.
+
+When custom parts are used, reproducibility requires documenting:
+
+```text
+part geometry
+
+installation position
+
+purpose
+
+orientation
+```
+
+The current Color Sensor casing model is stored in the repository so that it can be reproduced consistently.
+
+Where applicable, custom manufactured components should always have their source or printable model included alongside the documentation.
+
+---
+
+# 10.19 Pixy2.1 Mount
+
+Pixy2.1 requires a mechanically stable forward-facing mount.
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/pixy21_top.jpg"
+  alt="Top view of Pixy2.1 mounted on Piolín"
+  width="700"
+/>
+
+<br>
+
+<sub><b>Figure 10.11.</b> Top view of the Pixy2.1 installation used to evaluate its alignment relative to Piolín's forward axis.</sub>
+
+</div>
+
+Unlike a lateral distance sensor, the camera produces measurements in image coordinates.
+
+This makes its physical alignment especially important.
+
+A change in camera orientation changes:
+
+```text
+where image center points
+
+where a pillar appears in X
+
+where a pillar appears in Y
+
+which objects remain inside the field of view
+```
+
+The mount therefore acts as part of the visual calibration.
+
+---
+
+## 10.20 Pixy Mount Rigidity
+
+A Pixy mount should remain stable during:
+
+```text
+acceleration
+
+cornering
+
+reverse movement
+
+obstacle maneuvers
+
+handling between runs
+```
+
+If the camera tilts after calibration:
+
+```text
+same physical pillar
+        ↓
+different image position
+```
+
+The software may then interpret the changed image as a changed target geometry.
+
+For this reason, visual tuning should only begin after the camera mount is mechanically repeatable.
+
+---
+
+# 10.21 Pixy2.1 Connection Hardware
+
+Pixy2.1 is the only major non-LEGO sensor in the current competition architecture.
+
+Its connection hardware therefore deserves special documentation.
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/pixy21_connection_cable.jpg"
+  alt="Connection cable used between Pixy2.1 and Piolín EV3"
+  width="650"
+/>
+
+<br>
+
+<sub><b>Figure 10.12.</b> Physical connection cable used by the current Pixy2.1-to-EV3 S1 architecture.</sub>
+
+</div>
+
+The current obstacle configuration is:
+
+```text
+Pixy2.1
+   ↓
+S1 connection
+   ↓
+EV3
+```
+
+The exact physical cable must be documented because the visual appearance of a camera alone does not tell another team how to reproduce its EV3 integration.
+
+This cable replaces the previous multi-device communication chain involving the HuskyLens and Arduino Nano.
+
+---
+
+## 10.22 EV3 Cables
+
+The LEGO motors and LEGO sensors use EV3-compatible cables to connect to the controller.
+
+These connections may seem simple, but incorrect routing or port assignment can create serious navigation failures.
+
+Current mapping:
+
+```text
+A
+→ Large Motor
+
+
+B
+→ Medium Motor
+
+
+S2
+→ Left Ultrasonic
+
+
+S3
+→ Right Ultrasonic
+
+
+S4
+→ Color Sensor
+```
+
+S1 is the only modular connection:
+
+```text
+Open
+→ Gyro
+
+
+Obstacles
+→ Pixy2.1
+```
+
+Cable placement must therefore preserve both electrical correctness and mechanical freedom.
+
+---
+
+# 10.23 Cable Management
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/cable_management.jpg"
+  alt="Piolín cable routing and mechanical cable management"
+  width="700"
+/>
+
+<br>
+
+<sub><b>Figure 10.13.</b> Cable routing designed to keep electrical connections clear of wheels, drivetrain elements, and the moving steering mechanism.</sub>
+
+</div>
+
+Cables must be secured enough to prevent unwanted movement while retaining enough slack to avoid connector stress.
+
+The two undesirable extremes are:
+
+```text
+TOO TIGHT
+
+→ connector tension
+→ possible disconnection
+```
+
+and:
+
+```text
+TOO LOOSE
+
+→ steering interference
+→ wheel interference
+→ drivetrain interference
+```
+
+Cable management is therefore part of mechanical reliability.
+
+---
+
+## 10.24 Steering-Cable Clearance
+
+The steering area deserves particular attention because Motor B moves a physical linkage through a changing range of positions.
+
+A cable that is clear when the wheels are centered may enter the mechanism when the wheels turn.
+
+Cable verification should therefore be performed at:
+
+```text
+LEFT steering position
+
+CENTER
+
+RIGHT steering position
+```
+
+rather than only while the robot is stationary at center.
+
+This is another reason the complete steering range should be tested mechanically before autonomous navigation begins.
+
+---
+
+# 10.25 Structural Fasteners and Connectors
+
+LEGO pins, axle connectors, bushings, and frame joints perform the same basic function as fasteners in a conventional mechanical assembly.
+
+Their orientation and placement matter.
+
+A partially seated connector can introduce:
+
+```text
+structural movement
+
+misalignment
+
+unexpected friction
+
+sensor position changes
+```
+
+For critical structures such as:
+
+```text
+steering supports
+
+motor mounts
+
+sensor mounts
+
+EV3 mounting
+
+camera mounting
+```
+
+connections should be visually inspected before important competition runs.
+
+---
+
+## 10.26 EV3 Mounting
+
+The EV3 is one of the largest and more massive individual components in Piolín.
+
+Its mount therefore contributes to:
+
+```text
+overall rigidity
+
+mass distribution
+
+cable accessibility
+
+battery accessibility
+```
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/ev3_installed.jpg"
+  alt="EV3 mounted within the Piolín chassis"
+  width="680"
+/>
+
+<br>
+
+<sub><b>Figure 10.14.</b> EV3 mounting integrates the main controller and battery into the structural chassis.</sub>
+
+</div>
+
+The controller must be sufficiently secure to prevent movement while still allowing practical access to:
+
+```text
+power button
+
+screen/buttons
+
+ports
+
+battery
+```
+
+during testing.
+
+---
+
+# 10.27 Round-Specific Mechanical Conversion
+
+Piolín uses the same vehicle chassis for both competition rounds.
+
+The main physical configuration change is the specialized S1 sensor.
+
+```text
+OPEN
+→ Gyro installed
+
+
+OBSTACLES
+→ Pixy2.1 installed
+```
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/piolin_obstacle_isometric.jpg"
+  alt="Piolín complete Obstacle Challenge configuration"
+  width="720"
+/>
+
+<br>
+
+<sub><b>Figure 10.15.</b> Obstacle configuration using the same base vehicle with Pixy2.1 replacing the Open Gyro sensing role.</sub>
+
+</div>
+
+This modular strategy avoids maintaining two mechanically different robots.
+
+The following remain unchanged:
+
+```text
+chassis
+
+Motor A
+
+Motor B
+
+drivetrain
+
+steering
+
+S2 Left Ultrasonic
+
+S3 Right Ultrasonic
+
+S4 Color Sensor
+
+EV3
+
+battery
+```
+
+This makes the robot easier to calibrate because most mechanical variables remain common between both rounds.
+
+---
+
+## 10.28 Why a Modular S1 Mount Is Useful
+
+The S1 system must allow the specialized device to be changed without disturbing unrelated subsystems.
+
+A good round conversion should not require rebuilding:
+
+```text
+steering
+
+drivetrain
+
+ultrasonic mounts
+
+Color Sensor mount
+```
+
+The goal is:
+
+```text
+one controlled hardware change
+```
+
+rather than:
+
+```text
+complete robot reconstruction
+```
+
+This reduces the risk that switching competition rounds invalidates unrelated mechanical calibration.
+
+---
+
+# 10.29 Components Removed from the Current Architecture
+
+Several components appeared in previous Piolín development stages but are **not part of the current competition robot**.
+
+These include:
+
+```text
+HuskyLens
+
+Arduino Nano
+
+permanent front ultrasonic sensor
+
+external battery
+
+permanent buck converter
+
+prototype jumper-wire assemblies
+```
+
+These components should remain in legacy documentation where they provide useful engineering history, but they should not appear in the current Bill of Materials, wiring instructions, or reproduction procedure.
+
+This distinction is particularly important because older photographs or code may still show those devices.
+
+---
+
+## 10.30 Why the Arduino Nano Is Not a Current Component
+
+The Arduino Nano previously acted as an interface between HuskyLens and the EV3.
+
+Its former architecture was:
+
+```text
 HuskyLens
     ↓
 Arduino Nano
@@ -711,427 +1187,459 @@ USB
 EV3
 ```
 
-This modularity allows the responsibilities of individual components to remain clear within the complete vehicle architecture.
-
----
-
-# 10.20 Mechanical Fastening
-
-Piolín uses LEGO Technic connection elements and additional securing methods where necessary to hold hardware in place.
-
-The objective of these components is:
+The current obstacle architecture is:
 
 ```text
-Component
+Pixy2.1
     ↓
-Secure attachment
+S1
     ↓
-Stable orientation
-    ↓
-Repeatable system geometry
+EV3
 ```
 
-This is particularly important for sensing hardware.
+Because the intermediate processor is no longer required, retaining it would add:
 
-A sensor whose mount changes orientation can begin observing a different region of the environment even though its electronic operation remains correct.
+```text
+another controller
 
-Mechanical fastening therefore supports sensor repeatability as well as structural integrity.
+another firmware
+
+more wiring
+
+another communication layer
+```
+
+without providing a necessary current function.
+
+It was therefore removed from the final active architecture.
 
 ---
 
-# 10.21 Component Placement
+## 10.31 Why the HuskyLens Is Not a Current Component
 
-The location of each component influences more than the physical appearance of the robot.
+HuskyLens played an important role in Piolín's vision-development process, but the current obstacle architecture uses Pixy2.1.
+
+The change should not be interpreted as evidence that HuskyLens is inherently unsuitable for robotics.
+
+Instead, the final vision requirements favored:
+
+```text
+direct color signatures
+
+block position
+
+block width / height
+
+simpler current EV3 integration
+```
+
+provided by the current Pixy approach.
+
+HuskyLens therefore belongs in the repository's legacy engineering history rather than the current components section.
+
+---
+
+## 10.32 Why the Front Ultrasonic Is Not a Current Component
+
+Earlier configurations used or experimented with a forward ultrasonic sensor.
+
+The current architecture contains only:
+
+```text
+S2 Left Ultrasonic
+
+S3 Right Ultrasonic
+```
+
+S1 is reserved for:
+
+```text
+Gyro during Open
+```
+
+or:
+
+```text
+Pixy2.1 during Obstacles
+```
+
+The front ultrasonic was therefore removed as a deliberate sensor-allocation trade-off.
+
+This is documented more fully in the ultrasonic and electrical sections.
+
+---
+
+# 10.33 Hardware Common to Both Rounds
+
+Most of Piolín's hardware is permanent.
+
+| Component / Subsystem | Open | Obstacles |
+| :--- | :---: | :---: |
+| EV3 Brick | Yes | Yes |
+| Battery 45501 | Yes | Yes |
+| Large Motor A | Yes | Yes |
+| Medium Motor B | Yes | Yes |
+| Rear drivetrain | Yes | Yes |
+| Ackermann steering | Yes | Yes |
+| Left Ultrasonic S2 | Yes | Yes |
+| Right Ultrasonic S3 | Yes | Yes |
+| Color Sensor S4 | Yes | Yes |
+| Color Sensor casing | Yes | Yes |
+| LEGO Technic chassis | Yes | Yes |
+| EV3 cables | Yes | Yes |
+| Gyro | Yes | No |
+| Pixy2.1 | No | Yes |
+| Pixy connection hardware | No | Yes |
+
+The table shows that the majority of Piolín is a common physical platform.
+
+Only the specialized S1 sensing subsystem changes.
+
+---
+
+## 10.34 Why Common Hardware Matters
+
+A common platform provides more than convenience.
+
+If the drivetrain and steering remain identical between rounds, mechanical calibration performed in one configuration can remain relevant to the other.
 
 For example:
 
 ```text
-Battery / EV3 Position
-        ↓
-Mass Distribution
+steering center
 
+steering limits
 
-Sensor Position
-        ↓
-Perception Geometry
+drivetrain friction
 
-
-Motor Position
-        ↓
-Mechanical Transmission
-
-
-Wheel Position
-        ↓
-Vehicle Geometry
-
-
-Camera Position
-        ↓
-Field of View
+wheel alignment
 ```
 
-The final Piolín architecture therefore treats component placement as an engineering decision rather than simply fitting parts wherever space is available.
+do not need to be rediscovered simply because S1 changes.
 
-The full robot measures approximately:
-
-```text
-Length = 210 mm
-
-Width = 150 mm
-
-Height = 230 mm
-```
-
-with a final measured mass of approximately:
-
-```text
-0.80476 kg
-```
-
-All supporting components must fit within and contribute to this complete vehicle architecture.
+This is a major systems-engineering advantage of the current design.
 
 ---
 
-# 10.22 Supporting Components and Mass
+# 10.35 Physical Dimensions
 
-Even relatively small components contribute to Piolín's total vehicle mass.
+Piolín's final V4 dimensions should be documented from the current physical robot rather than inherited from earlier versions.
 
-The final measured mass includes:
+Older values exist from previous configurations, but the robot has changed through:
 
 ```text
-EV3
-Battery
-Motors
-Sensors
-HuskyLens
-Arduino Nano
-Wheels
-Tires
-Technic Structure
-Cables
-Mounting Components
-Custom Parts
+sensor repositioning
+
+camera changes
+
+structural modifications
+
+wheel changes
+
+steering reinforcement
 ```
 
-The drivetrain must accelerate all of these components together.
+Therefore the following should be remeasured before being published as final:
 
-Therefore, structural and supporting hardware influence the same propulsion system that moves the main electronic components.
+```text
+overall length
 
-This is one reason component placement and structural design are considered at the system level rather than individually.
+overall width
+
+overall height
+
+wheelbase
+
+front track
+
+rear track
+
+ground clearance
+```
+
+<div align="center">
+
+<img
+  src="../../embed/chassis_dimensions.png"
+  alt="Piolín chassis dimension reference drawing"
+  width="850"
+/>
+
+<br>
+
+<sub><b>Figure 10.16.</b> Dimension reference drawing. Numerical values should only be added after the current V4 robot is physically remeasured.</sub>
+
+</div>
+
+This figure should not contain estimated values presented as measurements.
 
 ---
 
-# 10.23 Mechanical Integration
+## 10.36 Vehicle Mass
 
-Supporting components connect Piolín's main subsystems into one physical vehicle.
+The final current mass should also be remeasured after all current hardware is installed.
 
-Without mechanical integration, the robot would consist of separate functional modules:
-
-```text
-Controller
-
-Motors
-
-Sensors
-
-Vision
-
-Battery
-```
-
-The chassis and supporting components transform those modules into:
+The mass of the robot influences:
 
 ```text
-                     PIOLÍN
-                        │
-        ┌───────────────┼───────────────┐
-        │               │               │
-        ▼               ▼               ▼
-     SENSING          CONTROL        ACTUATION
-        │               │               │
-        └───────────────┼───────────────┘
-                        ▼
-                  ONE VEHICLE
+acceleration
+
+braking
+
+motor load
+
+wheel traction
+
+steering load
+
+battery consumption
 ```
 
-This integration allows information measured at one physical position on the chassis to result in predictable movement through an actuator mounted elsewhere on the robot.
+A previously measured robot mass may no longer represent the present configuration after structural and vision changes.
+
+Therefore this document intentionally does not claim a final V4 mass until it is reweighed.
 
 ---
 
-# 10.24 Supporting Components and Reproducibility
+# 10.37 Component Selection Philosophy
 
-Documenting only the EV3, motors, and sensors would not be enough for another team to understand how Piolín was constructed.
+Piolín's supporting components follow the same philosophy as its main electronic architecture.
 
-Reproducing the robot also requires information about:
+A component should exist because it solves a specific engineering problem.
 
-```text
-Wheel sizes
-Sensor orientation
-Structural arrangement
-Custom casing
-Controller placement
-Vision subsystem
-Connections
-Cable routing
-```
-
-This is why supporting components are included in the repository rather than being treated as visually unimportant pieces.
-
-The component files explain **what hardware is used**, while the reproducibility section explains **how those components are connected and assembled into the complete robot**.
-
----
-
-# 10.25 Supporting Hardware Responsibility Matrix
-
-The final supporting hardware can be summarized as:
-
-| Component | Electrical Role | Mechanical Role | Software Role |
-| :--- | :---: | :---: | :---: |
-| **Arduino Nano** | Communication interface | Mounted to chassis | Transfers vision information |
-| **USB Connection** | Data connection | Routed through chassis | Nano-EV3 communication |
-| **Technic Beams** | None | Structural frame | None |
-| **Technic Axles** | None | Transfer rotation | None |
-| **Front Wheels** | None | Steering / rolling | Influences motion geometry |
-| **Rear Wheels** | None | Propulsion / rolling | Related to encoder-distance model |
-| **Tires** | None | Traction | Influences physical response |
-| **Color Sensor Casing** | None | Optical isolation | Improves sensing environment |
-| **Sensor Mounts** | None | Maintain orientation | Preserve sensor geometry |
-| **HuskyLens Mount** | None | Maintains camera position | Preserves vision geometry |
-| **Cable Routing Elements** | Supports connections | Prevent interference | None |
-
-The table demonstrates that a component does not need to contain electronics to influence autonomous behavior.
-
----
-
-# 10.26 Relationship With the Complete Piolín Architecture
-
-The supporting components can be placed around the primary systems as follows:
+Examples include:
 
 ```text
-                         PIOLÍN
-                            │
-             ┌──────────────┼──────────────┐
-             │              │              │
-             ▼              ▼              ▼
-          CONTROL        PERCEPTION      ACTUATION
-             │              │              │
-            EV3         Ultrasonic       Motor A
-                         Color           Motor B
-                       HuskyLens
-             │              │              │
-             └──────────────┼──────────────┘
-                            ▼
-                    SUPPORTING HARDWARE
-                            │
-          ┌─────────────────┼─────────────────┐
-          ▼                 ▼                 ▼
-    Arduino Nano       LEGO Structure     Wheels / Tires
-         USB           Sensor Mounts      Axles / Linkage
-                            │
-                            ▼
-                    Custom Components
-                            │
-                            ▼
-                 Color Sensor Casing
+Color Sensor casing
+→ reduces uncontrolled light
+
+
+steering linkage
+→ transforms Motor B motion
+
+
+ultrasonic mounts
+→ preserve lateral geometry
+
+
+Pixy mount
+→ preserves visual frame
+
+
+cable supports
+→ prevent mechanical interference
 ```
 
-The supporting hardware therefore does not exist separately from the main robot architecture.
+Components that no longer perform a necessary role are removed rather than kept simply because they were previously used.
 
-It enables the main subsystems to remain mechanically connected, electrically organized, and physically aligned.
-
----
-
-# 10.27 Engineering Philosophy
-
-Piolín's final hardware design follows a simple principle:
-
-> **Every component should have a defined responsibility.**
-
-For the primary hardware:
-
-```text
-EV3
-    → Main control
-
-Motor A
-    → Propulsion
-
-Motor B
-    → Steering
-
-Ultrasonic Sensors
-    → Distance / geometry
-
-Color Sensor
-    → Course-state information
-
-HuskyLens
-    → Obstacle identity
-```
-
-For the supporting hardware:
+This is why:
 
 ```text
 Arduino Nano
-    → Vision communication
 
-Technic Structure
-    → Mechanical support
+HuskyLens
 
-Wheels
-    → Vehicle-floor interaction
+front ultrasonic
 
-Sensor Mounts
-    → Perception geometry
-
-HuskyLens Mount
-    → Vision geometry
-
-Color Sensor Casing
-    → Optical isolation
-
-Cables / Connectors
-    → Electrical integration
+external power hardware
 ```
 
-This avoids adding parts without a clear reason and makes the final robot easier to understand as an engineering system.
+are not included in the current architecture.
 
 ---
 
-# 10.28 Current vs. Legacy Supporting Hardware
+## 10.38 Supporting Components and Reproducibility
 
-Piolín's hardware architecture changed significantly during development.
-
-Some components and configurations explored during earlier phases are no longer part of the final robot.
-
-These previous systems are preserved separately in:
+A robot cannot be reproduced from a list containing only:
 
 ```text
-docs/legacy/
+EV3
+
+motors
+
+sensors
 ```
 
-This separation is important because older hardware may appear in development photographs, experiments, or source files without representing the current configuration.
+because the exact way those parts are mechanically integrated strongly influences behavior.
 
-The final supporting architecture described in this section reflects Piolín's current WRO Future Engineers 2026 configuration.
+For this reason, Piolín's repository should document supporting hardware using:
+
+```text
+photographs
+
+mechanical diagrams
+
+3D-printable files
+
+wiring diagrams
+
+assembly details
+```
+
+A reconstruction should be able to identify not only **which component** was used but also:
+
+```text
+where it was installed
+
+how it was oriented
+
+what it was connected to
+
+why it was placed there
+```
+
+This is especially important for the ultrasonic sensors, Color Sensor, steering linkage, and Pixy camera.
 
 ---
 
-# 10.29 Component Documentation Structure
+# 10.39 Inspection Before a Run
 
-The complete current hardware documentation is organized as:
+Supporting hardware should be included in the pre-run inspection.
 
-```text
-docs/components/
-
-01_Hardwareoverview.md
-        ↓
-Complete hardware architecture
-
-02_EV3.md
-        ↓
-Main controller
-
-03_Motors.md
-        ↓
-Actuation system
-
-04_SteeringMotor.md
-        ↓
-Steering actuator and Ackermann interface
-
-05_UltrasonicSensors.md
-        ↓
-Three-sensor distance architecture
-
-06_ColorSensor.md
-        ↓
-Floor sensing and course-state detection
-
-07_HuskyLens.md
-        ↓
-Vision subsystem
-
-08_Battery.md
-        ↓
-Main energy source
-
-09_PowerDistribution.md
-        ↓
-Electrical distribution architecture
-
-10_OtherComponents.md
-        ↓
-Supporting electronics and mechanical hardware
-```
-
-Together, these files describe Piolín's complete current hardware configuration without mixing the final system with obsolete development components.
-
----
-
-# 10.30 Final Supporting Hardware Summary
-
-Piolín's autonomous behavior depends on more than its main electronic devices.
-
-The final robot also relies on a collection of supporting components that connect the electrical, mechanical, sensing, and control systems into one vehicle.
-
-The most important supporting elements include:
+A useful mechanical inspection is:
 
 ```text
-ARDUINO NANO
+Check EV3 mounting
       ↓
-Vision communication
+Check Motor A mount
+      ↓
+Check Motor B mount
+      ↓
+Check steering linkage
+      ↓
+Check wheel alignment
+      ↓
+Check ultrasonic mounts
+      ↓
+Check Color Sensor casing
+      ↓
+Check S1 device
+      ↓
+Check cable clearance
+      ↓
+Verify free wheel / steering motion
+```
 
+A loose passive component can cause the same level of navigation failure as an incorrect software parameter.
 
+---
+
+## 10.40 Typical Supporting-Hardware Failure Modes
+
+| Observed Behavior | Possible Supporting-Hardware Cause |
+| :--- | :--- |
+| Robot drifts on a straight | Wheel alignment or steering-center structure |
+| Steering becomes inconsistent | Linkage play, pivot friction, loose Motor B mount |
+| Motor A appears weak | Drivetrain friction or axle misalignment |
+| Ultrasonic values change unexpectedly | Sensor mount moved |
+| Color detection becomes inconsistent | Casing shifted or sensor height changed |
+| Pixy X values change after rebuild | Camera alignment changed |
+| Pixy loses targets more often | Camera pitch/yaw mount changed |
+| Random cable-related sensor loss | Connector tension or cable movement |
+| Steering jams at one extreme | Cable or structure interfering with linkage |
+| Same software produces different path | Mechanical geometry changed |
+
+This table reinforces that not every apparent software problem originates in code.
+
+---
+
+# 10.41 Current Supporting-Hardware Definition
+
+The current Piolín supporting hardware can be summarized as:
+
+```text
 LEGO TECHNIC STRUCTURE
-      ↓
-Mechanical framework
+        │
+        ├── chassis beams / frames
+        ├── pins / connectors
+        ├── axles / bushings
+        ├── drivetrain elements
+        ├── steering linkage
+        └── wheel supports
 
 
-AXLES + LINKAGES
-      ↓
-Motion transmission
+WHEELS
+        │
+        ├── front steering wheels
+        └── rear propulsion wheels
 
 
-FRONT + REAR WHEELS
-      ↓
-Vehicle movement
+SENSOR SUPPORT
+        │
+        ├── S2 Left US mount
+        ├── S3 Right US mount
+        ├── S4 Color Sensor mount
+        ├── Color Sensor casing
+        └── S1 modular mounting
 
 
-HUSKYLENS MOUNT
-      ↓
-Stable forward vision
-
-
-COLOR SENSOR CASING
-      ↓
-Optical isolation
-
-
-SENSOR MOUNTS
-      ↓
-Stable perception geometry
-
-
-CABLES + CONNECTORS
-      ↓
-Electrical integration
+ELECTRICAL SUPPORT
+        │
+        ├── EV3 motor/sensor cables
+        ├── Pixy2.1 connection hardware
+        └── cable-management elements
 ```
 
-Piolín's final wheel configuration uses approximately **61.0 mm rear propulsion wheels** and **38.1 mm front steering wheels**.
+These components transform a collection of motors and sensors into a repeatable autonomous vehicle.
 
-The Arduino Nano provides the communication bridge used by the HuskyLens vision subsystem, while the EV3 remains the main controller.
+---
 
-The LEGO Technic structure maintains the geometry between the drivetrain, steering system, sensors, camera, and electronic components.
+## 10.42 Final Engineering Assessment
 
-The HuskyLens mounting structure shown in **Figure 10.1** demonstrates how a sensing component becomes part of the robot's mechanical geometry once it is physically integrated into the chassis.
+Piolín's supporting components demonstrate that autonomous-robot performance depends on much more than processor speed or software sophistication.
 
-The custom color-sensor casing similarly demonstrates how a relatively simple mechanical component can directly improve the environment in which a sensor operates.
+A useful sensor must be mounted correctly.
 
-The final engineering concept can therefore be summarized as:
+A powerful motor must transfer its rotation through a low-friction drivetrain.
 
-> **The main components provide Piolín's core functions.**
+A steering algorithm requires a repeatable linkage.
 
-> **The supporting components make those functions physically possible, mechanically stable, electrically connected, and reproducible.**
+A camera requires a stable optical reference.
 
-With this section, the `docs/components/` directory documents the complete current hardware architecture of Piolín before the repository moves into the more detailed mobility, sensing, software, systems-engineering, and reproducibility documentation.
+A controller requires reliable wiring.
+
+A Color Sensor classifier benefits from controlled lighting.
+
+The complete relationship is therefore:
+
+```text
+MECHANICAL STRUCTURE
+         +
+MOUNTING
+         +
+WIRING
+         +
+ACTIVE ELECTRONICS
+         +
+SOFTWARE
+         ↓
+AUTONOMOUS VEHICLE
+```
+
+<div align="center">
+
+<img
+  src="../../v-photos/v4/piolin_obstacle_top.jpg"
+  alt="Top view of Piolín complete hardware integration"
+  width="720"
+/>
+
+<br>
+
+<sub><b>Figure 10.17.</b> Complete Piolín hardware integration demonstrating how structural, electrical, sensing, and actuation components form one common vehicle platform.</sub>
+
+</div>
+
+The final supporting-hardware architecture was therefore selected according to the same systems-engineering principle used throughout the robot:
+
+> **Every component should have a clear function, its physical implementation should support repeatable behavior, and unnecessary hardware should be removed when it no longer provides enough value to justify its complexity.**
+
+This approach allows Piolín to maintain one mechanically consistent vehicle platform while adapting only the specialized S1 sensing subsystem between the Open and Obstacle Challenges.
+
+---
+
+<div align="center">
+
+### [← Back to PiolínTech Main README](../../README.md)
+
+</div>
