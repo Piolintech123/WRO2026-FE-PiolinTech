@@ -1,124 +1,450 @@
-#!/usr/bin/env python3
-from ev3dev2.sensor import INPUT_2, INPUT_4, INPUT_3
-from ev3dev2.sensor.lego import UltrasonicSensor, ColorSensor
-from ev3dev2.motor import MediumMotor, OUTPUT_B, OUTPUT_D
-from time import sleep
-import math
-from ev3dev2.button import Button
-from ev3dev2.led import Leds
+#!/usr/bin/env pybricks-micropython
 
-# --- CONFIGURACIÓN DE HARDWARE (SOLO 2 MOTORES) ---
-rast = UltrasonicSensor(INPUT_2)        # Pared Derecha
-chap = UltrasonicSensor(INPUT_3)        # Pared Izquierda
-color_sensor = ColorSensor(INPUT_4)    # Suelo / Líneas
+# ================================================================
+# PIOLIN - WRO FUTURE ENGINEERS 2026
+# ROUND 1 / OPEN CHALLENGE - EV3 V1
+#
+# EARLY OPEN-ROUND PROTOTYPE
+#
+# Logic:
+#   1. Drive straight.
+#   2. Detect a floor color marking.
+#   3. BLUE   -> turn LEFT.
+#      ORANGE -> turn RIGHT.
+#   4. Return steering to center.
+#   5. Continue forward.
+#   6. Count each accepted color event as one corner.
+#   7. Stop after 12 accepted events.
+#
+# Hardware used in this version:
+#   Motor A = rear propulsion
+#   Motor B = steering
+#   S4      = EV3 Color Sensor
+#
+# This early version does NOT use the ultrasonic sensors or gyro.
+# It is preserved as part of Piolin's software evolution.
+#
+# IMPORTANT:
+# This is a legacy/development version and does not represent
+# the current Phase 4 Open Challenge controller.
+# ================================================================
 
-motor_a = MediumMotor(OUTPUT_B)         # Motor de Dirección
-motor_b = MediumMotor(OUTPUT_D)         # Motor Único de Tracción
 
-motor_a.reset()
+from pybricks.hubs import EV3Brick
+from pybricks.ev3devices import Motor, ColorSensor
+from pybricks.parameters import Port, Stop, Button, Color
+from pybricks.tools import wait
 
-btn = Button()
-leds = Leds()
-leds.set_color('LEFT', 'ORANGE')
-leds.set_color('RIGHT', 'ORANGE')
 
-# Esperar presionar el botón central para iniciar
-btn.wait_for_bump('enter')
-leds.set_color('LEFT', 'GREEN')
-leds.set_color('RIGHT', 'GREEN')
+# ================================================================
+# HARDWARE
+# ================================================================
 
-def clamp(value, minimum, maximum):
-    if value > maximum: value = maximum
-    if value < minimum: value = minimum
-    return value
+ev3 = EV3Brick()
 
-def amotor(degrese, cl=50):
-    diff = degrese - motor_a.position
-    diff = clamp(diff, -cl, cl)
-    motor_a.on(diff)
+# Motor A = propulsion
+drive = Motor(Port.A)
 
-a = 0
+# Motor B = Ackermann steering
+steering = Motor(Port.B)
 
-def lineChek():
-    global a
-    cr1 = color_sensor.color
-    if (motor_b.position > 1000 and (cr1 in [1, 2, 5, 7])) or (a == 0 and (cr1 in [1, 2, 5, 7])):
-        a += 1
-        motor_b.reset()
+# Downward-facing floor sensor
+color_sensor = ColorSensor(Port.S4)
 
-abi = [1, 2]       # Colores sentido Azul
-narengi = [5, 7]  # Colores sentido Naranja
-cr1 = color_sensor.color
-speed = 40
 
-# --- TRAMO INICIAL DE CENTRADO (120 CICLOS) ---
-g = 0
-while g != 120:
-    cr1 = color_sensor.color
-    if cr1 != 6:
-        speed = 100
+# ================================================================
+# MAIN CALIBRATION PARAMETERS
+# ================================================================
 
-    motor_b.on(speed)
+# Negative values correspond to forward motion on this Piolin build.
+NORMAL_SPEED = -620
 
-    r = rast.distance_centimeters
-    c = chap.distance_centimeters
-    fr = (-2 * (math.sqrt(11 * r))) + 100
-    fc = (-2 * (math.sqrt(11 * c))) + 100
-    target = (fc * 1.3) - (fr * 1.3)
-    amotor(clamp(target, -28, 28))
-    g += 1
+# Reduced speed while executing a corner.
+TURN_SPEED = -420
 
-# --- BUCLE PRINCIPAL (SEGUIMIENTO DE PARED) ---
-while True:
-    cr1 = color_sensor.color
+# Steering motor target used during a color-triggered turn.
+TURN_STEERING_ANGLE = 30
 
-    # Caso 1: Pista en sentido Azul -> Seguir pared IZQUIERDA
-    if cr1 in abi:
-        while True:
-            lineChek()
-            motor_b.on(100)
-            
-            distance = chap.distance_centimeters
-            diff = (distance - 28) * -2
-            diff = diff - motor_a.position
-            amotor(clamp(diff, -35, 35))
-            
-            lineChek()
-            
-            # Fin de carrera
-            if a == 11:
-                for _ in range(60):
-                    motor_b.on(100)
-                    distance = chap.distance_centimeters
-                    diff = (distance - 28) * -2 - motor_a.position
-                    amotor(clamp(diff, -35, 35))
-                break
-        break
+# Time spent maintaining the turning trajectory.
+#
+# This is one of the main calibration parameters in this early
+# time-based corner implementation.
+TURN_TIME_MS = 650
 
-    # Caso 2: Pista en sentido Naranja -> Seguir pared DERECHA
-    elif cr1 in narengi:
-        while True:
-            lineChek()
-            motor_b.on(100)
-            
-            distance = rast.distance_centimeters
-            diff = (distance - 28) * 2
-            diff = diff - motor_a.position
-            amotor(clamp(diff, -35, 35))
-            
-            lineChek()
-            
-            # Fin de carrera
-            if a == 11:
-                for _ in range(60):
-                    motor_b.on(100)
-                    distance = rast.distance_centimeters
-                    diff = (distance - 28) * 2 - motor_a.position
-                    amotor(clamp(diff, -35, 35))
-                break
-        break
+# Short forward movement after the turn to leave the color region.
+POST_TURN_STRAIGHT_MS = 180
 
-# Detener motores al finalizar
-motor_b.off()
-motor_a.off()
+# Steering motor movement speed.
+STEERING_SPEED = 700
 
+# Change to -1 only if the physical steering direction is reversed.
+STEER_DIRECTION = 1
+
+# Three laps correspond to 12 corner events in this early model.
+TOTAL_COUNTS = 12
+
+# Number of equal readings required before accepting a color.
+COLOR_CONFIRMATIONS = 2
+
+# Number of neutral readings required before accepting a new line.
+COLOR_RELEASE_CONFIRMATIONS = 3
+
+# Main-loop delay.
+LOOP_DELAY_MS = 10
+
+
+# ================================================================
+# STATE
+# ================================================================
+
+count = 0
+
+candidate_color = None
+candidate_count = 0
+
+ready_for_new_color = True
+release_count = 0
+
+
+# ================================================================
+# STEERING
+# ================================================================
+
+def center_steering():
+    """
+    Return Motor B to the steering-center reference.
+    """
+
+    steering.run_target(
+        STEERING_SPEED,
+        0,
+        then=Stop.HOLD,
+        wait=True
+    )
+
+
+# ================================================================
+# FLOOR COLOR DETECTION
+# ================================================================
+
+def read_track_color():
+    """
+    Classify the current S4 reading.
+
+    Returns:
+        'BLUE'
+        'ORANGE'
+        None
+
+    In this early prototype, the EV3 built-in color classifier
+    was used directly.
+
+    Depending on lighting, the orange floor marking could appear
+    as RED, YELLOW, or BROWN to the EV3 sensor.
+    """
+
+    try:
+        detected = color_sensor.color()
+
+    except Exception:
+        return None
+
+    if detected == Color.BLUE:
+        return 'BLUE'
+
+    if detected in (
+        Color.RED,
+        Color.YELLOW,
+        Color.BROWN
+    ):
+        return 'ORANGE'
+
+    return None
+
+
+# ================================================================
+# EARLY COLOR-TRIGGERED CORNER LOGIC
+# ================================================================
+
+def turn_for_color(detected_color):
+    """
+    Execute the early time-based turn.
+
+    BLUE:
+        turn LEFT
+
+    ORANGE:
+        turn RIGHT
+
+    This version uses the floor color itself to determine the turn
+    direction and uses time to determine how long the corner lasts.
+    """
+
+    if detected_color == 'BLUE':
+
+        target = (
+            -TURN_STEERING_ANGLE
+            * STEER_DIRECTION
+        )
+
+        print('BLUE -> LEFT')
+
+    else:
+
+        target = (
+            TURN_STEERING_ANGLE
+            * STEER_DIRECTION
+        )
+
+        print('ORANGE -> RIGHT')
+
+    # Move Motor B to the requested steering angle.
+    steering.run_target(
+        STEERING_SPEED,
+        target,
+        then=Stop.HOLD,
+        wait=True
+    )
+
+    # Move through the corner.
+    drive.run(TURN_SPEED)
+
+    wait(TURN_TIME_MS)
+
+    # Return steering to center.
+    center_steering()
+
+    # Leave the color marking before normal detection resumes.
+    drive.run(NORMAL_SPEED)
+
+    wait(POST_TURN_STRAIGHT_MS)
+
+
+# ================================================================
+# FINISH
+# ================================================================
+
+def stop_finished():
+    """
+    Stop Piolin after completing the 12 accepted events.
+    """
+
+    drive.hold()
+
+    center_steering()
+
+    ev3.screen.clear()
+
+    ev3.screen.draw_text(
+        30,
+        45,
+        'FINISHED 12/12'
+    )
+
+    try:
+        ev3.speaker.beep(
+            1200,
+            300
+        )
+
+    except Exception:
+        pass
+
+    print('FINISHED 12/12')
+
+
+# ================================================================
+# START CONTROL
+# ================================================================
+
+def wait_for_start():
+    """
+    Wait until the EV3 center button is pressed.
+    """
+
+    ev3.screen.clear()
+
+    ev3.screen.draw_text(
+        25,
+        45,
+        'PRESS CENTER'
+    )
+
+    # Wait for any previous press to be released.
+    while Button.CENTER in ev3.buttons.pressed():
+        wait(20)
+
+    # Wait for start press.
+    while Button.CENTER not in ev3.buttons.pressed():
+        wait(20)
+
+    # Wait for release.
+    while Button.CENTER in ev3.buttons.pressed():
+        wait(20)
+
+
+# ================================================================
+# INITIALIZATION
+# ================================================================
+
+# The steering wheels must be physically centered before startup.
+steering.reset_angle(0)
+
+center_steering()
+
+wait_for_start()
+
+ev3.screen.clear()
+
+ev3.screen.draw_text(
+    35,
+    45,
+    'COUNT 0/12'
+)
+
+drive.run(NORMAL_SPEED)
+
+
+# ================================================================
+# MAIN LOOP
+# ================================================================
+
+try:
+
+    while count < TOTAL_COUNTS:
+
+        # DOWN button = manual emergency stop.
+        if Button.DOWN in ev3.buttons.pressed():
+            break
+
+        detected = read_track_color()
+
+        # --------------------------------------------------------
+        # WAITING FOR A NEW FLOOR EVENT
+        # --------------------------------------------------------
+
+        if ready_for_new_color:
+
+            if detected is None:
+
+                candidate_color = None
+                candidate_count = 0
+
+            else:
+
+                # Same candidate observed again.
+                if detected == candidate_color:
+
+                    candidate_count += 1
+
+                # New candidate.
+                else:
+
+                    candidate_color = detected
+                    candidate_count = 1
+
+                # ------------------------------------------------
+                # CONFIRMED COLOR EVENT
+                # ------------------------------------------------
+
+                if candidate_count >= COLOR_CONFIRMATIONS:
+
+                    drive.hold()
+
+                    # Execute the corresponding corner.
+                    turn_for_color(candidate_color)
+
+                    # Count one physical event.
+                    count += 1
+
+                    print(
+                        'COUNT: {}/{}'.format(
+                            count,
+                            TOTAL_COUNTS
+                        )
+                    )
+
+                    ev3.screen.clear()
+
+                    ev3.screen.draw_text(
+                        35,
+                        45,
+                        'COUNT {}/{}'.format(
+                            count,
+                            TOTAL_COUNTS
+                        )
+                    )
+
+                    # Finish after the twelfth event.
+                    if count >= TOTAL_COUNTS:
+                        break
+
+                    # ------------------------------------------------
+                    # LATCH THE CURRENT PHYSICAL LINE
+                    # ------------------------------------------------
+                    #
+                    # Prevent the same floor marking from being counted
+                    # repeatedly while S4 remains above it.
+                    #
+
+                    ready_for_new_color = False
+
+                    release_count = 0
+
+                    candidate_color = None
+                    candidate_count = 0
+
+                    drive.run(NORMAL_SPEED)
+
+        # --------------------------------------------------------
+        # WAITING TO LEAVE THE CURRENT LINE
+        # --------------------------------------------------------
+
+        else:
+
+            if detected is None:
+
+                release_count += 1
+
+                # Require several neutral readings before re-arming.
+                if (
+                    release_count
+                    >= COLOR_RELEASE_CONFIRMATIONS
+                ):
+
+                    ready_for_new_color = True
+
+                    release_count = 0
+
+            else:
+
+                release_count = 0
+
+        wait(LOOP_DELAY_MS)
+
+
+# ================================================================
+# SAFE EXIT
+# ================================================================
+
+finally:
+
+    drive.hold()
+
+    center_steering()
+
+    if count >= TOTAL_COUNTS:
+
+        stop_finished()
+
+    else:
+
+        ev3.screen.clear()
+
+        ev3.screen.draw_text(
+            45,
+            45,
+            'STOPPED'
+        )
+
+        print('STOPPED')
