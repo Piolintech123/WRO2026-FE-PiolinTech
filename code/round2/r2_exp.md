@@ -1,42 +1,158 @@
-# Code for Round 2 Overview & Explanation
+# Round 2 EV3 V1 — Code Explanation
 
-The software architecture for the Round 2 obstacle challenge is engineered around a four-phase state machine that integrates real-time computer vision with low-level chassis telemetry. Compared to the basic wall-following requirements of the first round, this round forces the system to continuously balance wall distance metrics against dynamic obstacle avoidance vectors. This strict isolation of execution states prevents the vehicle from attempting conflicting maneuvers when an obstacle appears directly inside its preferred wall-tracking path.
+This document explains the logic implemented in [`ev3v1.py`](./ev3v1.py), an early obstacle-round software version developed for Piolín during the evolution of the WRO Future Engineers 2026 project.
 
-The initial phase manages dynamic sensor calibration and vision matrix initialization. Prior to movement, the microcontroller resets all drive motor encoders, zeroes the steering rack, and initializes the camera sensor with pre-calibrated color threshold profiles. This step ensures that ambient arena lighting does not corrupt the vision processing pipeline, establishing a reliable color signature baseline for red and green obstacle detection before the vehicle begins its acceleration.
+Unlike the first Open Challenge program, this version introduces visual perception through the **Pixy2.1 camera** and combines it with the two lateral EV3 Ultrasonic Sensors. The objective of the program is to allow Piolín to navigate using basic lateral correction while identifying Red and Green pillars and selecting the passing side required by the WRO rules.
 
-The second operational phase executes real-time vision processing and trajectory planning. As the vehicle moves along the track, the vision sensor scans for color signatures at sixty frames per second. Upon detecting a pillar, the algorithm calculates the bounding box area and centroid location to estimate relative distance and position. If a red signature is detected, the trajectory planner generates a right-hand bypass vector. If a green signature is identified, the planner calculates a left-hand bypass vector. This spatial filtering ensures the robot strictly adheres to competition regulations while keeping the vehicle within safe track boundaries.
+This program represents an important intermediate development stage. It already includes several ideas that later became fundamental to the current obstacle architecture, such as separating pillar identity from image position, validating detections before using them, preserving a detected target during short camera losses, and assigning priorities between obstacle avoidance and wall protection.
 
-The third phase manages hybrid wall-tracking and obstacle evasion. During clear stretches of the track, the robot relies on ultrasonic distance sensors to maintain a consistent offset along the wall. However, as soon as an obstacle passes a proximity threshold in the vision feed, the steering logic temporarily suppresses the wall-following loop. The controller smoothly blends the wall distance error with the camera-based evasion angle, executing an arc that clears the pillar without losing overall track orientation or causing erratic wheel slip.
+However, `ev3v1.py` should be considered a **development baseline**, not the current complete Round 2 controller. It does not yet contain the complete corner state machine, reliable three-lap progression, dedicated pass confirmation, full post-pillar recovery, or the final parking sequence.
 
-The final phase controls spatial odometry, lap validation, and automated precision parking. Rather than relying on simple vision triggers that can be spoofed by background reflections, the architecture combines camera data with wheel encoder counts to verify lap progression. Once three full circuits are completed, the state machine transitions into the parking routine. The robot actively scans for the designated finish bay, utilizes ultrasonic distance sensors to measure enclosure depth, and executes a controlled deceleration sequence to come to a complete stop within the marked zone.
+---
 
-### Vision-Driven Steering & Bounding Box Filtering
+## Hardware Configuration
 
-The steering correction during an obstacle evasion maneuver is calculated using the relative offset of the detected bounding box centroid combined with the specific color signature rule.
+This version uses the obstacle-round hardware configuration of Piolín.
+
+| Port | Component | Function |
+|---|---|---|
+| A | EV3 Large Motor | Rear propulsion |
+| B | EV3 Medium Motor | Ackermann steering |
+| S1 | Pixy2.1 | Red, Green, and Pink visual perception |
+| S2 | EV3 Ultrasonic Sensor | Left lateral sensing |
+| S3 | EV3 Ultrasonic Sensor | Right lateral sensing |
+| S4 | EV3 Color Sensor | Floor sensing and future course-event integration |
+
+Motor A provides propulsion while Motor B controls the front Ackermann steering mechanism. As in the current Piolín architecture, propulsion and steering remain independent.
+
+The two Ultrasonic Sensors retain fixed physical identities. S2 is always the **left** sensor and S3 is always the **right** sensor. Their physical assignments do not change depending on course direction.
+
+During Round 2, Pixy2.1 occupies S1. The EV3 Gyro Sensor used during the Open Challenge is therefore not installed at the same time.
+
+---
+
+## Pixy2.1 Integration
+
+The camera is initialized through the EV3 S1 connection using the `Pixy2` interface:
 
 ```python
-def calculate_obstacle_steering(block, frame_center_x=158, max_steering_limit=45):
-    signature_bias = 1 if block.signature == 1 else -1
-    required_clearance = (block.width // 2) + 35
-    target_x = block.x + (signature_bias * required_clearance)
-    
-    error_x = target_x - frame_center_x
-    steering_angle = clamp(error_x * 0.35, -max_steering_limit, max_steering_limit)
-    
-    return steering_angle
-
+PIXY = Pixy2(
+    port=1,
+    i2c_address=0x54
+)
 ```
 
-The calculate obstacle steering function translates visual metadata into a precise angular command for the steering motor. The signature bias variable inspects the detected color ID. For red obstacles, a positive multiplier shifts the target waypoint to the right side of the block. For green obstacles, a negative multiplier shifts the waypoint to the left side of the block.
+This version uses Pixy2.1's Color Connected Components capability to receive detected colored blocks. Instead of attempting to interpret the entire image, the program works with information already extracted by the camera, including the object's signature, horizontal position, vertical position, width, and height.
 
-The algorithm adds a safety margin to half of the detected bounding box width, creating a dynamic clearance offset that adapts as the obstacle grows larger in the camera frame. The raw horizontal error is multiplied by a proportional gain constant and passed through a clamping function. This clamping prevents the steering rack from over-rotating beyond its physical mechanical stops, ensuring smooth, predictable evasion curves even when obstacles appear near the edge of the lens field of view.
+The three signatures used in the current Piolín convention are:
 
-### Advanced Stability Analysis
+| Signature | Color | Purpose |
+|---|---|---|
+| `sig1` | Pink | Parking reference |
+| `sig2` | Red | Pillar that must be passed on the right |
+| `sig3` | Green | Pillar that must be passed on the left |
 
-To achieve maximum reliability and speed during the Round 2 obstacle challenge, developers should consider several key structural upgrades to the visual and mechanical control loops.
+The program requests these three signatures using:
 
-1. **Dynamic Velocity Profiling:** High vehicle speeds during evasive turns often cause lateral tire scrub and motion blur in the camera sensor. Implementing speed profiling allows the main controller to scale down motor power proportionally as the required steering angle increases. Slowing down slightly during sharp evasive maneuvers stabilizes the image feed, reduces mechanical strain on the steering linkage, and ensures maximum tire traction when re-entering the wall-tracking phase.
-2. **State Machine Resilience via Optical Odometry Fusion:** Visual occlusion can occur when an obstacle briefly blocks the camera from seeing distant wall markers or upcoming turns. By fusing optical flow or wheel encoder data into a local position estimation matrix, the robot maintains a short-term memory of the track layout. If a frame drop or lighting flicker causes the camera to briefly lose sight of a pillar, the vehicle continues along its calculated arc rather than making sharp, erratic steering adjustments.
-3. **Telemetry Logging for Vision Gain Tuning:** Fine-tuning the balance between the visual proportional gain and the ultrasonic wall-following gain requires empirical test data. Writing frame execution latency, bounding box dimensions, calculated steering angles, and raw ultrasonic readings to an onboard log file allows developers to identify system bottlenecks. Analyzing these logs reveals whether steering instability stems from camera latency, incorrect HSV color thresholds, or overly aggressive proportional gains in the control loop.
+```python
+PIXY_SIGNATURE_MASK = 0x07
+```
 
-This integrated architectural framework provides a robust foundation for navigating complex obstacle layouts. By combining real-time visual categorization with physical clamping, spatial odometry, and adaptive trajectory planning, the robot achieves high-speed precision while remaining resilient against physical environmental variations.
+although this V1 controller actively uses Red and Green for obstacle navigation. Pink is reserved for later parking integration.
+
+---
+
+## The Most Important Obstacle Rule
+
+One of the most important ideas in this program is that the **pillar signature determines the passing side**.
+
+For Piolín:
+
+```python
+SIG_RED = 2
+SIG_GREEN = 3
+```
+
+and the WRO behavior is fixed as:
+
+**Red pillar → pass RIGHT**
+
+**Green pillar → pass LEFT**
+
+The location of the object inside the Pixy image does not change this rule.
+
+This is extremely important because early obstacle experiments showed that using the object's horizontal position to decide the passing side could cause the robot to invert Red and Green behavior depending on the angle from which the pillar entered the camera's field of view.
+
+In this version, the image coordinates only influence how strongly Piolín reacts. They never redefine which side is legal.
+
+---
+
+## Steering Convention
+
+The program establishes a consistent steering convention near the beginning of the file:
+
+```python
+STEER_LEFT = 1
+STEER_RIGHT = -1
+CENTER = 0
+```
+
+Positive Motor B targets therefore represent left steering and negative targets represent right steering.
+
+This convention is used throughout the complete program so that every controller speaks the same steering language. Normal wall navigation, pillar avoidance, and wall safety all eventually produce a steering angle that follows this same sign convention.
+
+Having one consistent convention is especially important when several control systems are active inside the same program.
+
+---
+
+## Vehicle Speed
+
+The program uses different propulsion speeds depending on the current situation.
+
+`SPEED_NORMAL` is used during ordinary lateral navigation. `SPEED_PILLAR` reduces the speed while Piolín is actively reacting to a detected obstacle, and `SPEED_WALL_DANGER` is used when the Ultrasonic Sensors indicate that the robot is dangerously close to a wall.
+
+This means speed is not treated as one constant value throughout the run. The robot becomes more conservative when the navigation problem becomes more demanding.
+
+The actual values in this file are development values and should not be interpreted as permanently calibrated competition parameters.
+
+---
+
+## Steering Limits
+
+Piolín's steering actuator is controlled through Motor B, but the software prevents the requested angle from increasing without limit.
+
+The main restriction is:
+
+```python
+MAX_STEER_ANGLE = 34
+```
+
+This represents a software steering boundary for this V1 program.
+
+The normal wall controller is limited even further:
+
+```python
+MAX_NORMAL_STEER = 13
+```
+
+while obstacle avoidance is allowed to use a stronger range:
+
+```python
+MAX_PILLAR_STEER = 30
+```
+
+This distinction is intentional. Small wall-position errors should normally produce gentle corrections, while a pillar maneuver may require a substantially stronger trajectory change.
+
+---
+
+## Steering Rate Limiting
+
+The function:
+
+```python
+def set_steering(target, immediate=False):
+```
+
+does more than simply send a new angle to Motor B.
+
+The program limits how much
