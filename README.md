@@ -1,4 +1,4 @@
-<h1 align="center">Welcome to the PiolínTech Repository ꒰ঌ( •ө• )໒꒱ </h1>
+ <h1 align="center">Welcome to the PiolínTech Repository ꒰ঌ( •ө• )໒꒱ </h1>
 
 <h3 align="center">
 WRO Future Engineers 2026 · Panama
@@ -10,8 +10,6 @@ WRO Future Engineers 2026 · Panama
     alt="PiolínTech WRO Future Engineers 2026 robot"
     src="https://github.com/user-attachments/assets/8e642b8e-4903-4f40-a292-5d709d9ae346" 
   />
-</p>
-
 <p align="center">
   <b>Meet Piolín — our autonomous EV3 vehicle developed for WRO Future Engineers 2026.</b>
 </p>
@@ -19,15 +17,15 @@ WRO Future Engineers 2026 · Panama
 <div align="center">
 
   <a href="https://youtube.com/@piolintech">
-    <img src="https://img.shields.io/badge/YouTube-PiolínTech-FF0000?style=for-the-badge&logo=youtube&logoColor=white">
+    <img src="https://img.shields.io/badge/YouTube-PiolínTech-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="YouTube">
   </a>
 
   <a href="https://instagram.com/piolintech">
-    <img src="https://img.shields.io/badge/Instagram-PiolínTech-E4405F?style=for-the-badge&logo=instagram&logoColor=white">
+    <img src="https://img.shields.io/badge/Instagram-PiolínTech-E4405F?style=for-the-badge&logo=instagram&logoColor=white" alt="Instagram">
   </a>
 
   <a href="https://github.com/Piolintech123/WRO2026-FE-PiolinTech">
-    <img src="https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github&logoColor=white">
+    <img src="https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub">
   </a>
 
 </div>
@@ -50,43 +48,59 @@ WRO Future Engineers 2026 · Panama
 
 ## Project Summary
 
-**Piolín** is the autonomous robotic vehicle developed by PiolínTech for the **WRO Future Engineers 2026 Self-Driving Car Challenge**. The robot is built around a LEGO MINDSTORMS EV3 controller and uses a car-like architecture with rear propulsion and Ackermann-style front steering.
+Piolín is the autonomous robotic vehicle developed by PiolínTech for the WRO
+Future Engineers 2026 Self-Driving Car Challenge. The project is built around a
+LEGO MINDSTORMS EV3 controller and a car-like vehicle architecture with rear
+propulsion and Ackermann-style front steering.
 
-Our objective is not only to complete the competition track. Piolín has been developed as a complete electromechanical system in which mechanical geometry, sensor placement, perception, control software, and physical testing continuously affect one another. A mechanical modification can change sensor readings, a sensor relocation can require new calibration, and a software change is only useful when the physical vehicle can reproduce the expected behavior.
+Our objective is not only to make the robot complete the track. Piolín has been
+developed as a complete electromechanical system in which mechanics, sensor
+placement, control software, perception, testing, and calibration affect one
+another. A mechanical adjustment can change sensor measurements, a sensor
+relocation can require new calibration, and a software change is only useful
+when the physical vehicle can reproduce the expected behavior consistently.
 
-The current vehicle uses an EV3 Large Motor for propulsion and an EV3 Medium Motor for steering. Two lateral EV3 Ultrasonic Sensors provide track geometry, while a downward-facing EV3 Color Sensor identifies physical floor landmarks. Sensor Port S1 is round-specific: the **Open Challenge uses an EV3 Gyro Sensor**, while the **Obstacle Challenge uses Pixy2.1**.
+The current vehicle uses an EV3 Large Motor for propulsion and an EV3 Medium
+Motor for steering. Two lateral EV3 Ultrasonic Sensors describe Piolín's
+relationship with the track boundaries, while a downward-facing EV3 Color
+Sensor detects physical Blue and Orange course landmarks. Sensor Port S1 is
+round-specific: the Open Challenge uses an EV3 Gyro Sensor, while the Obstacle
+Challenge uses Pixy2.1.
 
-This repository documents the complete development process behind Piolín, including mechanics, power, sensors, software, obstacle avoidance, parking, testing, failures, calibration, technical diagrams, 3D-printed components, source code, videos, and the evolution of the robot since 2025.
+The current design intentionally avoids treating every available sensor as
+something that must be installed at all times. The gyro and Pixy2.1 solve
+different information problems, so they are used in different challenge
+configurations and are not installed simultaneously.
+
+This repository documents the complete development process behind Piolín. It
+includes mechanical design, components, power distribution, sensor
+architecture, autonomous software, obstacle avoidance, parking, calibration,
+testing, failed ideas, engineering trade-offs, technical diagrams, 3D-printed
+parts, source code, videos, photographic evidence, and the physical evolution
+of the robot since 2025.
 
 ---
 
 # General Project Index
 
-This index provides direct access to the most important parts of the PiolínTech repository. Each section corresponds to a major engineering area of the robot and contains the deeper technical documentation behind the summaries shown in this README.
-
----
+This index is designed as the fastest path through the repository. Each section
+provides direct access to the detailed documents behind the summaries in this
+README, while the short descriptions explain what a judge or reader can expect
+to find before opening a file.
 
 ## 1. Mobility & Mechanical Design
 
-*This section explains how Piolín moves, steers, and maintains a mechanically repeatable vehicle geometry.*
+This section explains how Piolín moves, steers, transfers propulsion to the
+rear wheels, and maintains a repeatable physical vehicle geometry. It also
+documents why Ackermann steering was selected and how mechanical testing is
+connected to software reliability.
 
-- **[Mechanical Architecture](./docs/mobility_mechanical/01_mecharchitecture.md)**  
-  Explains the complete mechanical organization of Piolín and how the main assemblies interact.
-
-- **[Chassis Design](./docs/mobility_mechanical/02_chassis.md)**  
-  Documents structural layout, reinforcement, component placement, and chassis development.
-
-- **[Robot Mobility](./docs/mobility_mechanical/03_RMobility.md)**  
-  Covers the vehicle's movement behavior and the relationship between propulsion and steering.
-
-- **[Ackermann Steering](./docs/mobility_mechanical/04_steering.md)**  
-  Explains the geometry, mechanism, steering angles, limitations, and physical tuning of the front axle.
-
-- **[Drivetrain](./docs/mobility_mechanical/05_drivetrain.md)**  
-  Documents Motor A, rear propulsion, wheel transmission, and drivetrain behavior.
-
-- **[Mechanical Testing](./docs/mobility_mechanical/06_testing.md)**  
-  Shows how mechanical changes are evaluated through repeated physical tests.
+- **[Mechanical Architecture](./docs/mobility_mechanical/01_mecharchitecture.md)** — Complete mechanical organization of Piolín and the relationship between the chassis, drivetrain, steering, sensors, and controller.
+- **[Chassis Design](./docs/mobility_mechanical/02_chassis.md)** — Structural layout, reinforcement, packaging, physical constraints, and the reasoning behind the present chassis configuration.
+- **[Robot Mobility](./docs/mobility_mechanical/03_RMobility.md)** — Vehicle movement, steering behavior, physical trajectory, and the interaction between propulsion and steering.
+- **[Ackermann Steering](./docs/mobility_mechanical/04_steering.md)** — Steering geometry, steering angles, linkage behavior, mechanical limitations, and calibration.
+- **[Drivetrain](./docs/mobility_mechanical/05_drivetrain.md)** — Motor A, rear propulsion, wheel transmission, mechanical coupling, and drivetrain decisions.
+- **[Mechanical Testing](./docs/mobility_mechanical/06_testing.md)** — Physical testing process used to compare mechanical changes and identify repeatability problems.
 
 <p align="center">
   <a href="./docs/mobility_mechanical/">
@@ -94,29 +108,19 @@ This index provides direct access to the most important parts of the PiolínTech
   </a>
 </p>
 
----
-
 ## 2. Power & Sensor Architecture
 
-*This section documents how Piolín is powered, how its sensors are connected, and what information each device contributes to autonomous navigation.*
+This section explains how Piolín is powered, how every active sensor is
+connected, what each sensor measures, and why the current sensor arrangement is
+different between the Open and Obstacle Challenges.
 
-- **[Power & Sensor Configuration](./docs/power_sensors/01_PowerSensorconfig.md)**  
-  Provides the complete overview of Piolín's current power and sensing architecture.
-
-- **[Ultrasonic Sensor Design](./docs/power_sensors/02_USSensorD.md)**  
-  Explains the two lateral sensors, their mounting geometry, and how S2 and S3 are interpreted.
-
-- **[Color Sensor](./docs/power_sensors/03_color_sensor.md)**  
-  Documents S4 floor detection, Blue/Orange recognition, event confirmation, and calibration.
-
-- **[Pixy2.1 Vision](./docs/power_sensors/04_pixycam.md)**  
-  Explains the current camera installation used during the Obstacle Challenge.
-
-- **[Sensor Calibration](./docs/power_sensors/05_Calibration.md)**  
-  Covers the practical calibration process required after changes to sensor mounting or environment.
-
-- **[Technical Schemes](./schemes/README.md)**  
-  Contains the EV3 electrical reference, port map, complete robot scheme, and Open configuration.
+- **[Power & Sensor Configuration](./docs/power_sensors/01_PowerSensorconfig.md)** — Current power and sensing architecture for both challenge configurations.
+- **[Ultrasonic Sensor Design](./docs/power_sensors/02_USSensorD.md)** — The two lateral ultrasonic sensors, their physical positions, their geometric purpose, and the S2-left / S3-right convention.
+- **[Color Sensor](./docs/power_sensors/03_color_sensor.md)** — S4 floor sensing, Blue and Orange detection, event confirmation, optical considerations, and calibration.
+- **[Pixy2.1 Vision](./docs/power_sensors/04_pixycam.md)** — Current Pixy2.1 obstacle configuration, S1 connection, signatures, and its role in perception.
+- **[Sensor Calibration](./docs/power_sensors/05_Calibration.md)** — Calibration workflow used after physical changes or environmental changes.
+- **[Hardware Components](./docs/components/)** — Individual documentation for the EV3, motors, sensors, battery, power distribution, and additional parts.
+- **[Technical Schemes](./schemes/README.md)** — EV3 reference, port mapping, current robot scheme, and Open configuration diagram.
 
 <p align="center">
   <a href="./docs/power_sensors/">
@@ -127,72 +131,40 @@ This index provides direct access to the most important parts of the PiolínTech
   </a>
 </p>
 
----
-
 ## 3. Software Architecture & Obstacle Strategy
 
-*This section contains the autonomous logic behind Piolín, from basic navigation and corner handling to vision, obstacle avoidance, course events, and parking.*
+This section contains the autonomous control logic behind Piolín. It covers
+normal navigation, corner handling, color events, vision processing, obstacle
+avoidance, recovery, control arbitration, software tuning, and parking.
 
-- **[Software Architecture](./docs/software_obstacles_strategy/01_SWArchitecture.md)**  
-  Explains how sensing, perception, states, controllers, and actuation are organized.
+- **[Software Architecture](./docs/software_obstacles_strategy/01_SWArchitecture.md)** — Overall software organization from sensing to final actuation.
+- **[Navigation State Machine](./docs/software_obstacles_strategy/02_statemachine.md)** — How Piolín changes behavior according to its current physical situation.
+- **[Wall Following & Geometry](./docs/software_obstacles_strategy/03_wallfollowing.md)** — Lateral navigation using the left and right Ultrasonic Sensors.
+- **[Corner Handling](./docs/software_obstacles_strategy/04_cornerhandling.md)** — Why corners are handled differently from straight sections and how physical evidence is used.
+- **[Obstacle Detection](./docs/software_obstacles_strategy/05_obstacledetec.md)** — How vision detections are validated and filtered before changing the robot trajectory.
+- **[Obstacle Strategy](./docs/software_obstacles_strategy/06_obstaclestrateg.md)** — Red-right, Green-left passing behavior, target lifecycle, pass confirmation, and recovery.
+- **[Software Tuning](./docs/software_obstacles_strategy/07_softwaretuning.md)** — How controller values and behaviors are adjusted through real track testing.
+- **[Pixy Vision Processing](./docs/software_obstacles_strategy/08_CameraPXVision.md)** — Interpretation of signature, x, y, width, height, candidate relevance, and target selection.
+- **[RGB Detection](./docs/software_obstacles_strategy/09_RGBdetection.md)** — Color classification logic used for floor sensing and experimental detection work.
+- **[Color & Lap Counting](./docs/software_obstacles_strategy/10_color_and_lap_counting.md)** — Physical event processing, duplicate prevention, course progress, and lap counting.
 
-- **[Navigation State Machine](./docs/software_obstacles_strategy/02_statemachine.md)**  
-  Describes how Piolín changes behavior depending on its current physical situation.
+### Parking Documentation
 
-- **[Wall Following & Geometry](./docs/software_obstacles_strategy/03_wallfollowing.md)**  
-  Covers lateral navigation using the left and right Ultrasonic Sensors.
+Parking is documented separately because it is a complete navigation problem
+rather than a final timing command.
 
-- **[Corner Handling](./docs/software_obstacles_strategy/04_cornerhandling.md)**  
-  Explains why corners require different logic from ordinary straight navigation.
+- **[Parking Overview](./docs/software_obstacles_strategy/parking/01_ParkingOverview.md)** — Complete parking objective and the information available to the robot.
+- **[Parking Algorithm](./docs/software_obstacles_strategy/parking/02_ParkingAlgorithm.md)** — Approach, entry, alignment, final position, and stopping logic.
+- **[Parking Geometry](./docs/software_obstacles_strategy/parking/03_ParkingGeom.md)** — Relationship between vehicle geometry and the physical parking maneuver.
+- **[Parking Calibration](./docs/software_obstacles_strategy/parking/04_ParkingCalib.md)** — Parameters that must be validated on the real robot.
+- **[Parking Testing](./docs/software_obstacles_strategy/parking/05_Parkingtesting.md)** — Repeatability tests and failure analysis for the parking maneuver.
 
-- **[Obstacle Detection](./docs/software_obstacles_strategy/05_obstacledetec.md)**  
-  Documents how Pixy detections are validated before affecting the vehicle.
+### Published Source Code
 
-- **[Obstacle Strategy](./docs/software_obstacles_strategy/06_obstaclestrateg.md)**  
-  Covers Red-right, Green-left passing logic, target handling, pass confirmation, and recovery.
-
-- **[Software Tuning](./docs/software_obstacles_strategy/07_softwaretuning.md)**  
-  Documents the process used to adjust controller behavior through track testing.
-
-- **[Pixy Vision Processing](./docs/software_obstacles_strategy/08_CameraPXVision.md)**  
-  Explains how signature, position, width, and height data are interpreted.
-
-- **[RGB Detection](./docs/software_obstacles_strategy/09_RGBdetection.md)**  
-  Covers floor-color classification and the logic used to separate relevant color regions.
-
-- **[Color & Lap Counting](./docs/software_obstacles_strategy/10_color_and_lap_counting.md)**  
-  Explains course-event detection, duplicate prevention, and progress counting.
-
-### Parking
-
-- **[Parking Overview](./docs/software_obstacles_strategy/parking/01_ParkingOverview.md)**  
-  Introduces the complete parking problem and its role in the final navigation sequence.
-
-- **[Parking Algorithm](./docs/software_obstacles_strategy/parking/02_ParkingAlgorithm.md)**  
-  Describes the intended approach, entry, alignment, and stopping logic.
-
-- **[Parking Geometry](./docs/software_obstacles_strategy/parking/03_ParkingGeom.md)**  
-  Connects steering geometry and physical vehicle placement to parking behavior.
-
-- **[Parking Calibration](./docs/software_obstacles_strategy/parking/04_ParkingCalib.md)**  
-  Documents the parameters that must be tuned on the real track.
-
-- **[Parking Testing](./docs/software_obstacles_strategy/parking/05_Parkingtesting.md)**  
-  Records how parking performance is validated through repeated runs.
-
-### Source Code
-
-- **[Round 1 — Open Code](./code/round1/ev3v1.py)**  
-  Published Open Challenge EV3 source code.
-
-- **[Round 1 Code Explanation](./code/round1/r1_exp.md)**  
-  Detailed explanation of the Open program and its development logic.
-
-- **[Round 2 — Obstacle Code](./code/round2/ev3v1.py)**  
-  Published Obstacle Challenge source code.
-
-- **[Round 2 Code Explanation](./code/round2/r2_exp.md)**  
-  Explains Pixy2.1, Ultrasonic control, pillar logic, and the limitations of the published version.
+- **[Round 1 — Open Code](./code/round1/ev3v1.py)** — Published Open Challenge EV3 program.
+- **[Round 1 Code Explanation](./code/round1/r1_exp.md)** — Detailed explanation of the Round 1 program, its logic, and its limitations.
+- **[Round 2 — Obstacle Code](./code/round2/ev3v1.py)** — Published Obstacle Challenge EV3 program.
+- **[Round 2 Code Explanation](./code/round2/r2_exp.md)** — Detailed explanation of the Pixy2.1, ultrasonic, obstacle, and steering logic used in the published Round 2 version.
 
 <p align="center">
   <a href="./docs/software_obstacles_strategy/">
@@ -203,35 +175,21 @@ This index provides direct access to the most important parts of the PiolínTech
   </a>
 </p>
 
----
-
 ## 4. Systems Thinking & Engineering Decisions
 
-*This section explains why Piolín looks and behaves the way it does today, including alternatives, failures, trade-offs, risks, and the engineering decisions made throughout development.*
+This section explains why the current robot looks and behaves the way it does.
+It records alternatives, trade-offs, failure modes, risk analysis, design
+constraints, and the engineering process used to decide whether a change should
+remain in the robot.
 
-- **[Engineering Process](./docs/systems_engineering/01_engineeringprocess.md)**  
-  Explains the observe–hypothesize–test–compare development method used by the team.
-
-- **[Decision Log](./docs/systems_engineering/02_decisionlog.md)**  
-  Records major design decisions and the reasoning behind them.
-
-- **[Design Constraints](./docs/systems_engineering/03_designconstraints.md)**  
-  Documents competition, mechanical, sensor, and software limitations that shaped the robot.
-
-- **[Trade-offs](./docs/systems_engineering/04_tradeoffs.md)**  
-  Compares alternatives and explains why specific solutions were selected.
-
-- **[Risks & Mitigation](./docs/systems_engineering/05_risksandmitigation.md)**  
-  Identifies important failure conditions and how the design attempts to reduce their impact.
-
-- **[What Didn't Work](./docs/systems_engineering/06_whatdidntwork.md)**  
-  Preserves unsuccessful ideas and explains what the team learned from them.
-
-- **[Project Timeline](./t-gtku/timeline.md)**  
-  Follows the complete PiolínTech journey from the first 2025 prototypes to the current robot.
-
-- **[Robot Evolution](./models/evolution/Phase1.md)**  
-  Documents how the physical and sensing architecture evolved through multiple phases.
+- **[Engineering Process](./docs/systems_engineering/01_engineeringprocess.md)** — Observe, identify the first incorrect behavior, form a hypothesis, change one variable, test, compare, and document.
+- **[Decision Log](./docs/systems_engineering/02_decisionlog.md)** — Major mechanical, sensing, and software decisions with their reasoning.
+- **[Design Constraints](./docs/systems_engineering/03_designconstraints.md)** — Competition, mechanical, sensor, control, and practical constraints.
+- **[Trade-offs](./docs/systems_engineering/04_tradeoffs.md)** — Comparison of alternative approaches and the reasons behind current choices.
+- **[Risks & Mitigation](./docs/systems_engineering/05_risksandmitigation.md)** — Important failure conditions and how the design attempts to reduce their impact.
+- **[What Didn't Work](./docs/systems_engineering/06_whatdidntwork.md)** — Rejected ideas, failed experiments, and lessons that affected later versions.
+- **[Project Timeline](./t-gtku/timeline.md)** — Development history beginning in June 2025.
+- **[Robot Evolution](./models/evolution/Phase1.md)** — Entry point to the documented physical and architectural evolution of Piolín.
 
 <p align="center">
   <a href="./docs/systems_engineering/">
@@ -242,44 +200,22 @@ This index provides direct access to the most important parts of the PiolínTech
   </a>
 </p>
 
----
-
 ## 5. Reproducibility & GitHub Quality
 
-*This section contains the material required to understand how Piolín is assembled, wired, configured, calibrated, programmed, tested, and reproduced.*
+This section contains the information required to understand how Piolín is
+assembled, wired, configured, calibrated, programmed, tested, and diagnosed.
 
-- **[Reproducibility Overview](./docs/reproducibility/01_ReproducibilityOverview.md)**  
-  Introduces the complete process for reproducing Piolín's hardware and software configuration.
-
-- **[Bill of Materials](./docs/reproducibility/02_BOM.pdf)**  
-  Lists the components required for the robot.
-
-- **[Wiring Guide](./docs/reproducibility/03_wiring.md)**  
-  Shows how motors, sensors, and round-specific devices are connected to the EV3.
-
-- **[Electrical Schematics](./docs/reproducibility/04_elecschem.md)**  
-  Provides the electrical reference and connection diagrams for the current system.
-
-- **[Software Setup](./docs/reproducibility/05_softwaresetup.md)**  
-  Explains how the EV3 environment is prepared and how the competition programs are transferred.
-
-- **[Calibration Guide](./docs/reproducibility/06_HowToCalibrate.md)**  
-  Covers steering, sensors, vision, and track calibration.
-
-- **[Testing Protocol](./docs/reproducibility/07_TestingProtocol.md)**  
-  Defines how PiolínTech performs repeatable tests and compares changes.
-
-- **[Troubleshooting](./docs/reproducibility/08_Troubleshooting.md)**  
-  Provides guidance for diagnosing common mechanical, sensor, and software failures.
-
-- **[3D Printing Files](./models/3dprint/)**  
-  Contains the printable Color Sensor and Pixy2.1 casing files and their manufacturing documentation.
-
-- **[Vehicle Photo Archive](./v-photos/README.md)**  
-  Provides visual evidence of the robot from early versions to the current V4 configuration.
-
-- **[Videos](./videos/links.md)**  
-  Contains autonomous driving demonstrations and test footage.
+- **[Reproducibility Overview](./docs/reproducibility/01_ReproducibilityOverview.md)** — Starting point for reproducing the present hardware and software configuration.
+- **[Bill of Materials](./docs/reproducibility/02_BOM.pdf)** — Components required for the robot.
+- **[Wiring Guide](./docs/reproducibility/03_wiring.md)** — Motor, sensor, and round-specific S1 connections.
+- **[Electrical Schematics](./docs/reproducibility/04_elecschem.md)** — Electrical and port-reference diagrams.
+- **[Software Setup](./docs/reproducibility/05_softwaresetup.md)** — Preparing the EV3 environment and transferring the competition programs.
+- **[Calibration Guide](./docs/reproducibility/06_HowToCalibrate.md)** — Steering, ultrasonic, color, gyro, and Pixy calibration.
+- **[Testing Protocol](./docs/reproducibility/07_TestingProtocol.md)** — How tests are repeated and compared.
+- **[Troubleshooting](./docs/reproducibility/08_Troubleshooting.md)** — Diagnosing common mechanical, sensing, and software problems.
+- **[3D Printing Files](./models/3dprint/)** — STL files and manufacturing documentation.
+- **[Vehicle Photo Archive](./v-photos/README.md)** — Visual evidence of the robot from previous generations through V4.
+- **[Videos](./videos/links.md)** — Autonomous track demonstrations and test footage.
 
 <p align="center">
   <a href="./docs/reproducibility/">
@@ -294,31 +230,49 @@ This index provides direct access to the most important parts of the PiolínTech
 
 # Watch Piolín
 
-The fastest way to understand Piolín is to see the robot operating on the physical WRO track. Our videos provide direct evidence of autonomous behavior under both competition configurations.
+## Video Evidence
 
-The Open Challenge demonstration shows Piolín operating with the gyro-based configuration, while the Obstacle Challenge demonstration shows the robot using its vision and obstacle-navigation architecture.
+The fastest way to understand Piolín is to see the vehicle operating on the
+physical track. Our videos provide direct evidence of autonomous behavior under
+both competition configurations and complement the source code and technical
+documents stored in this repository.
+
+The Open Challenge demonstration shows Piolín operating with the Open-round
+sensing configuration. The Obstacle Challenge demonstration shows the vehicle
+operating with visual traffic-sign detection and obstacle navigation.
 
 <p align="center">
-
-<a href="https://www.youtube.com/watch?v=JROB39Az-Ys">
-  <img src="https://img.shields.io/badge/WATCH-Open_Challenge-FF0000?style=for-the-badge&logo=youtube&logoColor=white">
-</a>
-
-<a href="https://youtu.be/Tlw_LM0b6WE">
-  <img src="https://img.shields.io/badge/WATCH-Obstacle_Challenge-FF0000?style=for-the-badge&logo=youtube&logoColor=white">
-</a>
-
+  <a href="https://www.youtube.com/watch?v=JROB39Az-Ys">
+    <img src="https://img.shields.io/badge/WATCH-Open_Challenge-FF0000?style=for-the-badge&logo=youtube&logoColor=white">
+  </a>
+  <a href="https://youtu.be/Tlw_LM0b6WE">
+    <img src="https://img.shields.io/badge/WATCH-Obstacle_Challenge-FF0000?style=for-the-badge&logo=youtube&logoColor=white">
+  </a>
 </p>
 
-Additional demonstrations and testing material are available in [**videos/links.md**](./videos/links.md).
+Additional demonstrations and testing material are available in
+[videos/links.md](./videos/links.md).
 
 ---
 
 # Meet the Team
 
-We are **PiolínTech**, a robotics team from Colegio Bilingüe de Panamá. The development of Piolín is a collaborative process involving mechanical construction, programming, testing, calibration, documentation, and engineering analysis.
+## Team Overview
 
-Future Engineers has taught us that many problems cannot be separated into purely mechanical or purely software categories. A steering error may originate from code, but it can also result from linkage geometry or mechanical alignment. A sensor problem may originate from calibration, but it can also result from mounting position or lighting conditions. This systems perspective has strongly influenced the way we develop Piolín.
+We are PiolínTech, a robotics team from Colegio Bilingüe de Panamá. Developing
+Piolín has required collaboration across mechanical construction, programming,
+sensor calibration, testing, documentation, failure analysis, and redesign.
+
+Future Engineers has repeatedly shown us that many problems cannot be separated
+into purely mechanical or purely software categories. A steering error may
+originate from code, but it can also result from linkage geometry or mechanical
+alignment. A sensor problem may originate from software thresholds, but it may
+also come from mounting geometry, light conditions, or the surface being
+observed.
+
+For that reason, the team approaches Piolín as a complete system. The objective
+during testing is not only to make the visible symptom disappear, but to
+understand which subsystem caused the first incorrect behavior.
 
 | Member | Information | Contact |
 | :---: | :--- | :---: |
@@ -334,21 +288,39 @@ Future Engineers has taught us that many problems cannot be separated into purel
   <a href="./t-gtku/funnypicture.md">
     <img src="https://img.shields.io/badge/TEAM-Funny_Photo-777777?style=for-the-badge">
   </a>
+  <a href="./t-gtku/timeline.md">
+    <img src="https://img.shields.io/badge/PROJECT-Full_Timeline-999999?style=for-the-badge">
+  </a>
 </p>
 
 ---
 
 # Meet Piolín
 
+## Current Vehicle Overview
+
 <p align="center">
   <img src="./v-photos/v4/piolin_open_isometric.jpg" width="680" alt="Current Piolín V4 robot">
 </p>
 
-The current V4 Piolín architecture is built around clearly defined subsystem responsibilities. Motor A handles propulsion, Motor B controls the Ackermann steering system, S2 and S3 observe lateral track geometry, and S4 detects physical floor landmarks.
+The current V4 Piolín architecture is built around clearly defined subsystem
+responsibilities. Motor A handles propulsion, Motor B controls Ackermann
+steering, S2 and S3 observe lateral track geometry, and S4 detects physical
+floor landmarks.
 
-S1 is the only major sensor port that changes between challenges. During Open, it contains the Gyro Sensor. During Obstacles, the gyro is removed and Pixy2.1 is installed instead.
+S1 is the only major sensor port that changes between challenges. During the
+Open Challenge, S1 contains the EV3 Gyro Sensor. During the Obstacle Challenge,
+the gyro is removed and Pixy2.1 is installed instead.
 
-Piolín currently has a measured mass of **0.84 kg**. The current physical configuration is approximately 250 mm long, approximately 119 mm across the front assembly, approximately 105 mm across the rear assembly, approximately 290 mm high, and has an approximate 120 mm wheelbase.
+Piolín currently has a measured mass of 0.84 kg. Current practical physical
+references are approximately 250 mm in overall length, approximately 119 mm
+across the front assembly, approximately 105 mm across the rear assembly,
+approximately 290 mm in height, and approximately 120 mm between the axles.
+
+These physical references are treated as current measurements rather than
+permanent CAD values. Mechanical changes can alter the final configuration, so
+the robot is rechecked when a modification affects the competition envelope,
+sensor location, or steering geometry.
 
 ## Current Hardware
 
@@ -371,24 +343,35 @@ Piolín currently has a measured mass of **0.84 kg**. The current physical confi
 
 ## Two Challenges, One Core Platform
 
-The mechanical vehicle remains nearly identical between the two competition challenges. What changes is the type of information required from S1.
+Piolín uses the same core mechanical vehicle for both competition challenges.
+Keeping the drivetrain, steering system, controller, two lateral Ultrasonic
+Sensors, and Color Sensor consistent reduces the number of variables that
+change when moving from one challenge to the other.
 
-During Open, heading and rotation information are important, so the EV3 Gyro Sensor is installed. During Obstacles, visual classification becomes necessary, so Pixy2.1 replaces the gyro.
+The main round-specific difference is S1. During Open, Piolín needs independent
+heading and rotation information, so the EV3 Gyro Sensor occupies S1. During
+Obstacles, visual color-signature information is required, so the gyro is
+removed and Pixy2.1 takes its place.
+
+The gyro and Pixy2.1 are not installed simultaneously in the current
+competition architecture.
 
 | Port | Open Challenge | Obstacle Challenge |
 | :---: | --- | --- |
-| **A** | Large Motor — propulsion | Large Motor — propulsion |
-| **B** | Medium Motor — steering | Medium Motor — steering |
-| **S1** | EV3 Gyro | Pixy2.1 |
-| **S2** | LEFT Ultrasonic | LEFT Ultrasonic |
-| **S3** | RIGHT Ultrasonic | RIGHT Ultrasonic |
-| **S4** | Color Sensor | Color Sensor |
+| **A** | EV3 Large Motor — propulsion | EV3 Large Motor — propulsion |
+| **B** | EV3 Medium Motor — steering | EV3 Medium Motor — steering |
+| **S1** | EV3 Gyro Sensor | Pixy2.1 |
+| **S2** | LEFT Ultrasonic Sensor | LEFT Ultrasonic Sensor |
+| **S3** | RIGHT Ultrasonic Sensor | RIGHT Ultrasonic Sensor |
+| **S4** | Downward Color Sensor | Downward Color Sensor |
 
 <p align="center">
   <img src="./schemes/02_EV3PortMap.png" width="650" alt="Piolín EV3 Port Map">
 </p>
 
-S2 remains physically left and S3 remains physically right in both challenges. Only their interpretation as the inner or outer sensor changes according to course direction.
+S2 remains physically left and S3 remains physically right in both rounds.
+Their interpretation as an inner or outer sensor changes only according to the
+course direction.
 
 ---
 
@@ -396,13 +379,27 @@ S2 remains physically left and S3 remains physically right in both challenges. O
 
 # Mobility & Mechanical Design
 
+## Mechanical Overview
+
 <p align="center">
   <img src="https://img.shields.io/badge/WRO_CRITERION_1-Mobility_%26_Mechanical_Design-454545?style=for-the-badge">
 </p>
 
-Piolín uses a car-like architecture based on **rear propulsion and front Ackermann-style steering**. Motor A provides propulsion while Motor B changes the angle of the front wheels.
+Piolín uses a car-like architecture based on rear propulsion and
+Ackermann-style front steering. Motor A drives the rear section of the vehicle,
+while Motor B controls the steering mechanism at the front.
 
-Unlike a differential-drive robot, Piolín follows curved trajectories through its steering geometry rather than by independently controlling left and right wheel speeds. Because of this, wheel alignment, steering geometry, motor position, tire behavior, and chassis rigidity all directly influence navigation.
+Unlike a differential-drive robot, Piolín cannot simply rotate by driving the
+left and right sides at different speeds. Its path depends on the steering
+angle of the front wheels and the forward or reverse motion generated by the
+drivetrain.
+
+This makes mechanical geometry part of the control problem. A different
+steering angle, linkage position, wheel alignment, or chassis flex can change
+the path produced by exactly the same software command.
+
+The mechanical documentation therefore focuses not only on what pieces are
+present, but also on how the physical arrangement affects autonomous behavior.
 
 <p align="center">
   <img src="./v-photos/v4/ackermann_front.jpg" width="365" alt="Piolín Ackermann steering">
@@ -411,53 +408,156 @@ Unlike a differential-drive robot, Piolín follows curved trajectories through i
 
 ## Ackermann Steering
 
-During a turn, the inner wheel follows a smaller radius than the outer wheel. The Ackermann mechanism allows the two front wheels to follow different steering angles instead of remaining parallel.
+During a turn, the inner front wheel follows a smaller radius than the outer
+front wheel. The two wheels should therefore not remain perfectly parallel
+throughout the maneuver.
+
+Ackermann steering provides a geometric relationship between the inner and
+outer wheel angles so the wheel paths converge toward a common turning center.
 
 The ideal relationship can be represented by:
 
-\[
+$$
 \cot(\delta_{outer})-\cot(\delta_{inner})=\frac{w}{L}
-\]
+$$
 
-where \(w\) represents track width and \(L\) represents wheelbase.
+where \(w\) represents the track width and \(L\) represents the wheelbase.
 
-This mathematical relationship provides a design reference, but the final steering response is validated physically because LEGO clearances, tire deformation, linkage geometry, wheel alignment, and Motor B limits affect the real trajectory.
+The equation provides a useful geometric model, but the real LEGO mechanism
+still has physical tolerances. Joint clearance, tire deformation, steering
+linkage geometry, Motor B positioning, mechanical stops, and assembly alignment
+influence the actual vehicle trajectory.
+
+For that reason, steering geometry is evaluated through photographs, angle
+observations, repeated runs, and physical calibration rather than assuming that
+the theoretical model alone predicts the complete motion.
 
 <p align="center">
   <img src="./v-photos/v4/ackermann_angles.jpg" width="600" alt="Ackermann steering analysis">
 </p>
 
-## Chassis & Drivetrain
+## Steering Motor
 
-Piolín's chassis evolved through repeated track testing. Mechanical revisions focused on maintaining steering alignment, supporting the EV3 securely, stabilizing sensor mounting, improving cable routing, and making the drivetrain more repeatable.
+The EV3 Medium Motor on Port B is dedicated to steering. Using a separate motor
+for the steering system allows the software to reason about vehicle speed and
+steering angle as different control variables.
 
-The current drivetrain uses an EV3 Large Motor on Port A. Maintaining propulsion inside the EV3 ecosystem simplifies electrical integration and gives the software direct access to motor encoder information.
+The steering motor is centered before autonomous testing so its encoder
+reference corresponds as closely as possible to the straight-wheel position.
+
+A steering command is useful only when the mechanical linkage responds
+consistently. If the linkage is loose, asymmetric, or physically obstructed, a
+correct Motor B target can still produce an incorrect path.
+
+This is why steering calibration always has both a software and mechanical
+component.
+
+<p align="center">
+  <img src="./v-photos/v4/motor_b_medium_steering.jpg" width="360" alt="Motor B steering">
+  <img src="./v-photos/v4/steering_motor_mount.jpg" width="360" alt="Steering motor mount">
+</p>
+
+## Chassis Development
+
+Piolín's chassis has changed repeatedly throughout development. Early versions
+were useful for discovering how much space was required for the EV3, steering
+mechanism, drivetrain, sensors, wiring, and later the vision system.
+
+As the project matured, the chassis became more strongly connected to
+navigation performance. A structural element that moves under load can affect
+steering. A sensor mount that rotates slightly can change distance
+measurements. A cable that interferes with steering can cause a software
+symptom even though the controller is functioning correctly.
+
+The current chassis therefore aims to maintain repeatable positions for the
+main mechanical and sensing components while still remaining practical to
+service and recalibrate.
+
+The repository preserves previous versions because the transition from those
+layouts to V4 provides evidence of the engineering process.
+
+<p align="center">
+  <img src="./v-photos/v4/chassis_top.jpg" width="350" alt="Current chassis top view">
+  <img src="./v-photos/v4/chassis_bottom.jpg" width="350" alt="Current chassis bottom view">
+</p>
+
+## Rear Drivetrain
+
+Motor A is an EV3 Large Motor dedicated to propulsion. Its role is mechanically
+separate from Motor B, which means steering changes do not require differential
+motor-speed control.
+
+Keeping propulsion inside the EV3 ecosystem reduces wiring complexity and gives
+the controller direct access to encoder information from the drive motor.
+
+The drivetrain is evaluated as a complete path from motor output to wheel
+motion. Mechanical losses, wheel grip, structural alignment, and the physical
+load on the robot all influence how the vehicle accelerates and how
+consistently it follows a requested path.
 
 <p align="center">
   <img src="./v-photos/v4/motor_a_large_drive.jpg" width="330" alt="EV3 Large Motor">
-  <img src="./v-photos/v4/drive_motor_mount.jpg" width="330" alt="Piolín drive motor mounting">
+  <img src="./v-photos/v4/drive_motor_mount.jpg" width="330" alt="Drive motor mounting">
 </p>
 
-## Torque Reasoning
+## Torque and Dynamic Reasoning
 
-Piolín currently weighs **0.84 kg**, so drivetrain requirements are evaluated together with vehicle mass, wheel radius, acceleration, rolling resistance, and mechanical losses.
+Piolín currently has a measured mass of 0.84 kg. The drivetrain therefore has
+to move the complete robot mass while overcoming rolling resistance and any
+additional losses caused by wheel contact and drivetrain friction.
 
-The longitudinal force requirement can be represented generally as:
+A simplified longitudinal force requirement can be represented as:
 
-\[
+$$
 F_t = ma + F_{resistance}
-\]
+$$
 
-and the wheel torque as:
+and the corresponding wheel torque as:
 
-\[
+$$
 \tau = F_t r
-\]
+$$
 
-Theoretical calculations provide an engineering reference, while actual drivetrain performance is verified through physical testing.
+where \(m\) is vehicle mass, \(a\) is acceleration, \(F_{resistance}\)
+represents resistive forces, and \(r\) is the effective radius of the driven
+wheel.
+
+These equations are used as engineering references rather than as claims of
+guaranteed performance. Real track behavior depends on friction, tire
+deformation, battery state, wheel alignment, and mechanical losses that are
+difficult to represent perfectly in a simplified model.
 
 <p align="center">
   <img src="./embed/03_TorqueCalc.png" width="650" alt="Piolín torque calculation">
+</p>
+
+## Mechanical Testing Philosophy
+
+Mechanical testing is performed with the same mindset used for software
+testing. We try to isolate the first physical behavior that changes when a run
+becomes unreliable.
+
+If Piolín begins to drift, the first question is not automatically which
+controller value should be changed. The team checks wheel alignment, steering
+centering, sensor position, mechanical interference, and the condition of the
+drivetrain before assuming that the problem originates in code.
+
+This avoids compensating for a mechanical fault with increasingly aggressive
+software corrections.
+
+<p align="center">
+  <a href="./docs/mobility_mechanical/01_mecharchitecture.md">
+    <img src="https://img.shields.io/badge/READ-Mechanical_Architecture-555555?style=for-the-badge">
+  </a>
+  <a href="./docs/mobility_mechanical/04_steering.md">
+    <img src="https://img.shields.io/badge/READ-Ackermann_Steering-666666?style=for-the-badge">
+  </a>
+  <a href="./docs/mobility_mechanical/05_drivetrain.md">
+    <img src="https://img.shields.io/badge/READ-Drivetrain-777777?style=for-the-badge">
+  </a>
+  <a href="./docs/mobility_mechanical/06_testing.md">
+    <img src="https://img.shields.io/badge/READ-Mechanical_Testing-888888?style=for-the-badge">
+  </a>
 </p>
 
 ---
@@ -466,51 +566,201 @@ Theoretical calculations provide an engineering reference, while actual drivetra
 
 # Power & Sensor Architecture
 
+## Electrical and Sensing Overview
+
 <p align="center">
   <img src="https://img.shields.io/badge/WRO_CRITERION_2-Power_%26_Sensor_Architecture-454545?style=for-the-badge">
 </p>
 
-Piolín is powered by the official **LEGO MINDSTORMS EV3 Rechargeable DC Battery 45501**. The EV3 Brick acts as the central controller and provides the interfaces used by the motors and active sensors.
+Piolín is powered by the official LEGO MINDSTORMS EV3 Rechargeable DC Battery
+45501. The EV3 Brick is the central controller and also provides the interfaces
+used by the motors and active sensors.
 
-The current competition configuration avoids unnecessary external electronics. Piolín does not currently use a Raspberry Pi, external propulsion battery, custom H-bridge, or Arduino Nano. Earlier experiments using additional electronics remain preserved in the legacy documentation.
+The current competition architecture intentionally avoids unnecessary external
+power and control layers. There is no Raspberry Pi, external propulsion
+battery, custom H-bridge, or Arduino Nano in the current configuration.
+
+Earlier experiments with additional electronics remain documented in the legacy
+section because they influenced later engineering decisions, especially the
+preference for simpler communication paths and fewer failure points.
 
 <p align="center">
-  <img src="./v-photos/v4/ev3_battery_45501.jpg" width="350" alt="EV3 battery">
+  <img src="./v-photos/v4/ev3_battery_45501.jpg" width="350" alt="EV3 Rechargeable Battery 45501">
   <img src="./v-photos/v4/ev3_installed.jpg" width="350" alt="EV3 installed in Piolín">
 </p>
 
-## Ultrasonic Sensors
+## EV3 Controller
 
-Piolín uses two lateral Ultrasonic Sensors. S2 observes the physical left side of the vehicle and S3 observes the right side.
+The EV3 Brick is the central control unit in every current Piolín
+configuration. It executes the navigation software, reads sensors, commands the
+two motors, and provides the physical port structure that keeps the electrical
+architecture organized.
 
-Their measurements contribute to lateral track geometry, wall safety, course reacquisition, and obstacle recovery. Their mounting geometry is therefore treated as part of the calibrated navigation system.
+The decision to remain centered around EV3 also improves reproducibility. The
+motors, gyro, ultrasonic sensors, Color Sensor, and battery are all directly
+associated with the same platform.
+
+Pixy2.1 is the principal non-LEGO sensing device in the current obstacle
+configuration.
 
 <p align="center">
-  <img src="./v-photos/v4/ultrasonic_left_s2.jpg" width="330" alt="S2 left ultrasonic sensor">
-  <img src="./v-photos/v4/ultrasonic_right_s3.jpg" width="330" alt="S3 right ultrasonic sensor">
+  <img src="./v-photos/v4/ev3_front_controls.jpg" width="350" alt="EV3 front controls">
+  <img src="./v-photos/v4/ev3_motor_ports.jpg" width="350" alt="EV3 motor ports">
+</p>
+
+## Lateral Ultrasonic Sensors
+
+Piolín uses two EV3 Ultrasonic Sensors mounted laterally. S2 is physically
+installed on the left side of the robot and S3 is physically installed on the
+right.
+
+Their role is broader than detecting whether a wall exists. The distances help
+describe the geometry around the vehicle and provide information that can be
+used for lateral positioning, wall safety, corner reacquisition, and obstacle
+recovery.
+
+Because ultrasonic readings depend strongly on the surface being observed and
+the angle between the sensor and that surface, sensor mounting is treated as
+part of calibration.
+
+Changing the orientation of one sensor can alter the apparent course geometry
+without changing the actual robot position.
+
+<p align="center">
+  <img src="./v-photos/v4/ultrasonic_left_s2.jpg" width="330" alt="Left ultrasonic sensor S2">
+  <img src="./v-photos/v4/ultrasonic_right_s3.jpg" width="330" alt="Right ultrasonic sensor S3">
+</p>
+
+## Ultrasonic Geometry
+
+During straight navigation, the two side sensors provide complementary
+information. When the robot is positioned near a wall, one sensor may describe
+the nearer side more directly while the other provides context about the
+surrounding corridor.
+
+During a corner, those measurements change because the sensors begin observing
+different surfaces or different angles of the same boundary.
+
+This is why the software does not treat every sudden distance change as a
+lateral error. Course state and heading context matter.
+
+<p align="center">
+  <img src="./v-photos/v4/ultrasonic_lateral_alignment.jpg" width="520" alt="Ultrasonic lateral alignment">
 </p>
 
 ## Color Sensor
 
-The downward-facing Color Sensor on S4 detects Blue and Orange course markings. A custom 3D-printed casing helps create a more controlled optical environment around the measurement area.
+The EV3 Color Sensor on S4 is mounted facing downward. Its purpose is to detect
+important floor markings and convert them into physical navigation events.
+
+Blue and Orange markings are used to determine initial driving direction and
+contribute to course progression.
+
+A custom 3D-printed casing surrounds the sensor to create a more controlled
+local optical environment. The casing can reduce the effect of uncontrolled
+light entering from the sides, but it does not make the Color Sensor immune to
+environmental variation.
+
+For that reason, the software still uses classification, confirmation, event
+latching, and neutral-floor release.
 
 <p align="center">
-  <img src="./v-photos/v4/color_sensor_blue_mark.jpg" width="300" alt="Blue floor marking">
-  <img src="./v-photos/v4/color_sensor_orange_mark.jpg" width="300" alt="Orange floor marking">
+  <img src="./v-photos/v4/color_sensor_s4_installed.jpg" width="320" alt="S4 Color Sensor installed">
+  <img src="./v-photos/v4/color_sensor_casing.jpg" width="320" alt="Color Sensor casing">
 </p>
 
-## Round-Specific S1
+<p align="center">
+  <img src="./v-photos/v4/color_sensor_blue_mark.jpg" width="280" alt="Blue mark">
+  <img src="./v-photos/v4/color_sensor_orange_mark.jpg" width="280" alt="Orange mark">
+</p>
 
-During Open, S1 contains the EV3 Gyro Sensor and supplies heading and rotational information.
+## Gyro — Open Configuration
+
+During the Open Challenge, an EV3 Gyro Sensor occupies S1. The gyro provides
+heading and rotational information that complements the lateral Ultrasonic
+Sensors.
+
+This becomes especially useful during cornering. The Ultrasonic Sensors change
+what they observe while the robot rotates, so they cannot always be interpreted
+in the same way as during a straight section.
+
+The gyro provides a separate indication of how the chassis is turning, helping
+the software reason about corner progression and heading stabilization.
 
 <p align="center">
   <img src="./v-photos/v4/s1_open_gyro.jpg" width="430" alt="Gyro on S1">
 </p>
 
-During Obstacles, Pixy2.1 replaces the gyro and provides visual color-signature information.
+## Pixy2.1 — Obstacle Configuration
+
+During the Obstacle Challenge, the gyro is removed and Pixy2.1 occupies S1.
+
+Pixy2.1 performs onboard color-signature detection and reports block
+information such as signature, horizontal position, vertical position, width,
+and height to the EV3.
+
+The camera provides perception data, but it does not directly decide the
+steering direction. The EV3 software interprets the camera output according to
+the competition rule and current navigation state.
+
+The current signature convention is Pink for parking, Red for a Red pillar, and
+Green for a Green pillar.
 
 <p align="center">
-  <img src="./v-photos/v4/s1_obstacle_pixy.jpg" width="430" alt="Pixy2.1 on S1">
+  <img src="./v-photos/v4/pixy21_front.jpg" width="300" alt="Pixy2.1 front view">
+  <img src="./v-photos/v4/pixy21_s1_connection.jpg" width="300" alt="Pixy2.1 S1 connection">
+</p>
+
+## Power Distribution
+
+The battery supplies the EV3 Brick, and the EV3 provides the ports used by the
+current motors and sensors.
+
+The power architecture is intentionally simpler than several early experimental
+configurations. Reducing extra converters, controllers, and communication
+layers makes the system easier to reproduce and easier to diagnose.
+
+| Device | Current Connection |
+| --- | --- |
+| EV3 Brick | EV3 Rechargeable Battery 45501 |
+| EV3 Large Motor | Port A |
+| EV3 Medium Motor | Port B |
+| Open Gyro | S1 |
+| Obstacle Pixy2.1 | S1 |
+| Left Ultrasonic | S2 |
+| Right Ultrasonic | S3 |
+| Color Sensor | S4 |
+
+<p align="center">
+  <img src="./v-photos/v4/wiring_open.jpg" width="365" alt="Open wiring">
+  <img src="./v-photos/v4/wiring_obstacle.jpg" width="365" alt="Obstacle wiring">
+</p>
+
+## Sensor Failure Considerations
+
+A sensor can fail in more than one way. It can stop reporting entirely, return
+a temporary noisy value, observe the wrong physical surface, produce an
+ambiguous classification, or remain physically misaligned while still returning
+valid-looking data.
+
+For this reason, Piolín's software increasingly uses validation and context
+rather than trusting every measurement immediately.
+
+The Color Sensor uses confirmation and event logic. Pixy detections are
+validated before being selected. Ultrasonic readings can be filtered or ignored
+when they are outside useful conditions. The gyro is interpreted together with
+course state rather than as an isolated source of truth.
+
+<p align="center">
+  <a href="./docs/power_sensors/01_PowerSensorconfig.md">
+    <img src="https://img.shields.io/badge/READ-Power_%26_Sensors-555555?style=for-the-badge">
+  </a>
+  <a href="./schemes/README.md">
+    <img src="https://img.shields.io/badge/VIEW-Technical_Schemes-666666?style=for-the-badge">
+  </a>
+  <a href="./docs/reproducibility/03_wiring.md">
+    <img src="https://img.shields.io/badge/VIEW-Wiring-777777?style=for-the-badge">
+  </a>
 </p>
 
 ---
@@ -519,86 +769,279 @@ During Obstacles, Pixy2.1 replaces the gyro and provides visual color-signature 
 
 # Software & Obstacle Strategy
 
+## Software Overview
+
 <p align="center">
   <img src="https://img.shields.io/badge/WRO_CRITERION_3-Software_%26_Obstacle_Strategy-454545?style=for-the-badge">
 </p>
 
-Piolín's software evolved from direct sensor reactions toward a layered control architecture. Sensor readings are interpreted in the context of the current physical situation before a steering decision is sent to Motor B.
+Piolín's software architecture evolved from direct sensor reactions toward a
+layered control system.
 
-A raw reading is not automatically a complete navigation event. Losing sight of a pillar does not prove that the obstacle has already been passed, and a sudden Ultrasonic change may happen because the vehicle is rotating through a corner.
+The earliest programs were useful because they made cause and effect simple to
+observe. A color could trigger a steering command, or a wall distance could
+generate a correction.
+
+As more behaviors were added, direct reactions became harder to manage. A
+sensor could be correct locally while the resulting steering command was wrong
+for the larger maneuver.
+
+The current architecture therefore separates raw sensing, validation,
+perception, navigation state, active controller selection, control arbitration,
+and final actuation.
 
 ```mermaid
 flowchart LR
     S[Sensors] --> V[Validation]
     V --> P[Perception]
     P --> ST[Navigation State]
-    ST --> C[Controller]
-    C --> A[Arbitration]
+    ST --> C[Active Controller]
+    C --> A[Control Arbitration]
     A --> M[Motor A + Motor B]
+    M --> S
 ```
 
----
+This structure also improves debugging. When a run fails, the team can ask
+whether the problem began in the sensor data, in the interpretation of that
+data, in state selection, in the selected controller, or in the mechanical
+response of the robot.
 
-## Round 1 — Open Challenge
+## State-Based Thinking
 
-The Open configuration combines lateral geometry from S2 and S3, heading information from the gyro, and physical course events from S4.
+State-based control is important because identical sensor values can mean
+different things at different moments.
 
-A first confirmed **Blue** marking indicates counterclockwise navigation, while a first confirmed **Orange** marking indicates clockwise navigation.
+A short distance reading while driving normally may indicate a wall approach. A
+similar reading while completing an obstacle maneuver may come from the pillar
+or from a temporary vehicle angle.
 
-Straight sections combine lateral information and heading stabilization. Corners are handled separately because the geometry observed by the Ultrasonic Sensors changes as Piolín rotates.
+Likewise, losing visual contact with a pillar can mean the target has been
+passed, the camera has rotated away from it, the lighting changed, or the
+object moved outside the field of view.
+
+The state provides the context needed to interpret those events more safely.
+
+## Open Challenge Strategy
+
+The Open configuration combines the two lateral Ultrasonic Sensors, the Gyro
+Sensor, and the Color Sensor.
+
+S2 and S3 provide lateral geometry. The gyro provides heading and rotational
+information. S4 provides physical floor landmarks.
+
+The first confirmed floor event determines direction. Blue first corresponds to
+counterclockwise navigation, while Orange first corresponds to clockwise
+navigation.
+
+Once direction is known, the software can interpret which physical side is
+inner and which side is outer while still preserving the fixed S2-left and
+S3-right naming.
 
 <p align="center">
   <img src="./schemes/04_OpenConfiguration.png" width="680" alt="Open Challenge configuration">
 </p>
 
-A simplified gyro heading correction can be represented as:
+## Straight Navigation
 
-\[
-u_{gyro}=K_p e_\theta + K_d\frac{\Delta e_\theta}{\Delta t}
-\]
+Straight navigation is not treated as a demand to keep the steering motor
+mathematically at zero.
 
-The gains are tuned through physical testing to balance correction strength and oscillation control.
+The robot may require small corrections because the starting angle is
+imperfect, the wheels are not perfectly aligned, the surface is not identical
+everywhere, or the chassis drifts slightly.
 
----
+Lateral ultrasonic geometry provides position information while the gyro helps
+stabilize orientation.
 
-## Round 2 — Obstacle Challenge
+The balance between these sources is important. A heading controller should not
+ignore useful wall geometry, and a wall controller should not interpret every
+geometry change as an ordinary lateral error.
 
-During Obstacles, Pixy2.1 replaces the gyro and provides signature, position, width, and height information about visible colored objects.
+## Gyro Heading Stabilization
 
-| Pixy Signature | Target | Required Behavior |
+A simplified gyro correction can be represented as:
+
+$$
+u_{gyro}=K_p e_\theta+K_d\frac{\Delta e_\theta}{\Delta t}
+$$
+
+The proportional component responds to the current heading error. The
+derivative component responds to the rate of change of that error and helps
+reduce aggressive oscillation.
+
+The current Open development uses a PD-style gyro correction rather than
+claiming a full PID controller with an integral term that is not part of the
+documented current logic.
+
+Controller gains are tuned through track testing because the same mathematical
+gain can behave differently after mechanical changes.
+
+## Corner Handling
+
+Corners are one of the most important differences between simple wall following
+and complete course navigation.
+
+As Piolín begins to turn, the Ultrasonic Sensors stop observing the same
+geometry that they saw during the straight section.
+
+If the normal lateral controller remains dominant throughout the entire corner,
+it can incorrectly fight the intended steering maneuver.
+
+Corner handling therefore uses course-event information, geometry change, and
+gyro rotation as different pieces of evidence.
+
+The exact transition conditions are calibrated on the physical robot because
+the final corner shape depends on steering geometry, speed, and sensor
+placement.
+
+## Color Events
+
+A physical Blue or Orange marking can remain under S4 for multiple program
+cycles.
+
+If every raw sensor reading were counted independently, Piolín could
+incorrectly count one physical line several times.
+
+The event architecture separates classification from acceptance. A candidate
+must be confirmed, accepted once, latched while the sensor remains over the
+line, and released only after neutral floor has been observed.
+
+```mermaid
+flowchart LR
+    C[Classify] --> F[Confirm]
+    F --> A[Accept]
+    A --> L[Latch]
+    L --> N[Neutral Floor]
+    N --> R[Re-arm]
+```
+
+This allows course progress to be represented by physical events instead of raw
+samples.
+
+## Obstacle Challenge Strategy
+
+The Obstacle Challenge replaces the gyro with Pixy2.1.
+
+The camera sees colored blocks, while the EV3 determines which detection is
+relevant and what maneuver should follow.
+
+The current signature convention is:
+
+| Signature | Target | Rule |
 | :---: | --- | --- |
 | **sig1** | Pink | Parking reference |
 | **sig2** | Red pillar | Pass on the **RIGHT** |
 | **sig3** | Green pillar | Pass on the **LEFT** |
 
+The key design rule is that the signature determines the passing side.
+
+A Red pillar remains a right-side pass even if the pillar appears on the left
+side of the camera image. A Green pillar remains a left-side pass even if its
+image position changes.
+
+This avoids confusing the rule-defined side with the camera's point of view.
+
 <p align="center">
   <img src="./v-photos/v4/pixy21_red_detection.jpg" width="240" alt="Pixy Red detection">
   <img src="./v-photos/v4/pixy21_green_detection.jpg" width="240" alt="Pixy Green detection">
-  <img src="./v-photos/v4/pixy21_parking_detection.jpg" width="240" alt="Pixy Pink detection">
+  <img src="./v-photos/v4/pixy21_parking_detection.jpg" width="240" alt="Pixy Pink parking detection">
 </p>
 
-The pillar signature determines the passing side. Image position may influence how strongly Piolín reacts, but it does not redefine whether Red means right or Green means left.
+## Vision Geometry
 
-Obstacle avoidance is treated as a complete maneuver:
+Pixy2.1 provides more than a color signature.
 
-```mermaid
-flowchart LR
-    D[Detect] --> V[Validate]
-    V --> S[Select]
-    S --> L[Lock]
-    L --> A[Avoid]
-    A --> P[Pass Confirm]
-    P --> R[Recover]
-    R --> N[Normal]
-```
+The horizontal position can describe where the block appears across the field
+of view. The vertical position and apparent size can contribute to an estimate
+of which object is more relevant to the immediate maneuver.
 
----
+These values are image-space observations. They are not automatically equal to
+physical centimeters.
+
+Piolín therefore uses them as relative perception information rather than
+claiming direct metric distance unless a specific calibration supports that
+conversion.
+
+## Target Validation
+
+Not every detected block should immediately control steering.
+
+A weak reflection, distant object, partial color region, or ambiguous block may
+not be the correct target.
+
+The target-selection process therefore considers signature validity, block
+size, image position, apparent relevance, and temporary continuity with the
+previously selected target.
+
+This reduces the chance that an irrelevant block suddenly takes control of the
+robot trajectory.
+
+## Target Commitment
+
+Once Piolín begins to avoid a valid pillar, the software should not reverse its
+rule-defined side simply because the camera view changes during the maneuver.
+
+The active target therefore has a lifecycle rather than being reselected from
+scratch during every control cycle.
+
+This helps preserve Red-right and Green-left behavior while the chassis rotates
+and the target moves through the image.
+
+## Temporary Camera Loss
+
+A camera can temporarily lose the pillar during a correct avoidance maneuver.
+
+The object may leave the field of view, become partially hidden by the robot
+geometry, become difficult to classify for a few frames, or appear differently
+because of lighting.
+
+Immediately abandoning the maneuver in response to one missing frame would make
+the robot unstable.
+
+Target memory and state context therefore allow a short visual loss without
+immediately reversing the intended trajectory.
+
+## Pass Confirmation
+
+A pillar disappearing from the camera image does not prove that the robot has
+physically passed it.
+
+Pass confirmation is a separate problem.
+
+The lateral Ultrasonic Sensors can contribute physical evidence because the
+corresponding side distance may first decrease as the robot approaches the
+obstacle region and then increase after the pillar is cleared.
+
+The exact logic remains an area of testing, but the architectural distinction
+is important: visual loss and physical pass completion are not the same event.
+
+## Recovery
+
+After passing a pillar, Piolín may be displaced from its normal navigation
+corridor or may still be angled toward a wall.
+
+Returning instantly to a strong normal controller can create a sudden steering
+reversal.
+
+Recovery is therefore treated as a dedicated part of the obstacle maneuver.
+
+Its purpose is to help Piolín return toward useful geometry while normal
+lateral control gradually becomes dominant again.
 
 ## Control Arbitration
 
-Several navigation behaviors can request different steering directions at the same time. Piolín therefore resolves these requests before sending the final command to Motor B.
+Multiple controllers can request different steering directions at the same
+time.
 
-Critical safety receives the highest priority, followed by the active maneuver and finally normal navigation.
+Normal navigation may want to move left while a pillar maneuver requires right
+steering. A wall safety condition may request a stronger intervention than
+either one.
+
+Piolín has only one steering actuator, so there must be one final steering
+decision.
+
+The control hierarchy can be summarized as critical safety first, active
+maneuver second, and normal navigation third.
 
 ```mermaid
 flowchart TD
@@ -612,26 +1055,19 @@ flowchart TD
     N --> B
 ```
 
----
+This prevents independent controllers from fighting for Motor B.
 
-## Color Events
+## Parking Strategy
 
-One physical floor marking can remain below S4 for multiple control cycles. Piolín therefore converts repeated sensor samples into one physical course event using confirmation, latching, neutral-floor detection, and rearming.
+Parking is treated as a dedicated navigation sequence rather than a
+fixed-duration final command.
 
-```mermaid
-flowchart LR
-    C[Classify] --> F[Confirm]
-    F --> A[Accept]
-    A --> L[Latch]
-    L --> N[Neutral Floor]
-    N --> R[Re-arm]
-```
+The intended sequence begins only after course progress indicates that parking
+is allowed.
 
----
-
-## Parking
-
-Parking is treated as a dedicated navigation sequence rather than a fixed timed stop.
+During Obstacles, the Pink Pixy signature can help identify the parking
+reference. Encoder movement, steering state, and lateral ultrasonic geometry
+can provide additional physical information.
 
 ```mermaid
 flowchart LR
@@ -644,7 +1080,19 @@ flowchart LR
     F --> S[STOP]
 ```
 
-The detailed parking architecture and calibration process are documented in the dedicated parking folder linked in the project index above.
+The exact entry and stopping parameters remain subject to physical calibration.
+
+<p align="center">
+  <a href="./docs/software_obstacles_strategy/01_SWArchitecture.md">
+    <img src="https://img.shields.io/badge/READ-Software_Architecture-555555?style=for-the-badge">
+  </a>
+  <a href="./docs/software_obstacles_strategy/06_obstaclestrateg.md">
+    <img src="https://img.shields.io/badge/READ-Obstacle_Strategy-666666?style=for-the-badge">
+  </a>
+  <a href="./embed/04_ControlArbitration.md">
+    <img src="https://img.shields.io/badge/FLOWCHART-Control_Arbitration-777777?style=for-the-badge">
+  </a>
+</p>
 
 ---
 
@@ -652,19 +1100,38 @@ The detailed parking architecture and calibration process are documented in the 
 
 # Systems Thinking & Engineering Decisions
 
+## Engineering Approach
+
 <p align="center">
   <img src="https://img.shields.io/badge/WRO_CRITERION_4-Systems_Thinking_%26_Engineering_Decisions-454545?style=for-the-badge">
 </p>
 
-Piolín did not reach V4 through one successful prototype. Several important decisions came directly from failed experiments.
+Piolín did not reach its current architecture through one successful prototype.
 
-When a run fails, we focus on identifying the **first incorrect behavior**, not only the final collision. A visible crash may originate from sensor interpretation, steering geometry, a state transition, controller conflict, poor target selection, or mechanical alignment.
+The project includes hardware failures, non-compliant experimental designs,
+slow but mechanically useful configurations, sensor experiments, multiple
+steering revisions, camera changes, and control strategies that were later
+replaced.
 
-The development process therefore focuses on modifying one relevant variable at a time and comparing the result against previous behavior.
+These unsuccessful stages are preserved because they explain why the current
+robot exists in its present form.
+
+## Engineering Method
+
+When a run fails, we try to identify the first incorrect behavior rather than
+focusing only on the final visible collision.
+
+The final crash may be several seconds after the real failure began.
+
+The first problem may have been a sensor interpretation, a steering command, a
+target-selection error, a state transition, a mechanical alignment issue, or an
+interaction between two controllers.
+
+Our engineering process therefore follows a repeatable cycle.
 
 ```mermaid
 flowchart LR
-    O[Observe] --> F[First Failure]
+    O[Observe] --> F[Find First Failure]
     F --> H[Hypothesis]
     H --> C[One Change]
     C --> T[Test]
@@ -675,44 +1142,192 @@ flowchart LR
     R --> H
 ```
 
-This approach allows successful changes to be identified more clearly and prevents one improvement from silently breaking previously reliable behavior.
+Changing one meaningful variable at a time makes it easier to understand which
+modification actually affected the behavior.
+
+## Why We Preserve Failures
+
+A failed design can still be valuable if it answers an engineering question.
+
+The Yahboom failure changed the way the team thought about hardware reliability
+and complexity.
+
+A mechanically functional but non-compliant prototype reinforced the importance
+of treating WRO rules as design constraints from the beginning.
+
+A stronger but slow configuration showed that mechanical stability and
+competitive movement cannot be separated.
+
+Competition experience demonstrated that one successful run is not the same as
+repeatability.
+
+These lessons are documented so the repository shows the reasoning process
+rather than only the final hardware.
+
+## Design Constraints
+
+The vehicle must satisfy the mechanical and operational constraints of the
+Future Engineers challenge.
+
+At the same time, Piolín has practical internal constraints created by the EV3
+port count, the geometry of the chassis, the available steering range, sensor
+field of view, cable routing, and the need to switch S1 between gyro and
+Pixy2.1.
+
+Good engineering decisions must respect both rule constraints and physical
+constraints.
+
+## Trade-Offs
+
+Many decisions involve a trade-off instead of one universally correct answer.
+
+A stronger steering correction can reduce one type of drift but may create
+oscillation.
+
+A slower speed can increase reaction time but may make the complete run
+inefficient.
+
+A camera position can increase visibility in one region while reducing it
+elsewhere.
+
+More sensors can provide more information but also create more wiring,
+interpretation, and controller-conflict problems.
+
+The trade-off documentation records why particular compromises were selected.
+
+## Risk Management
+
+The team also considers what happens when assumptions fail.
+
+The Color Sensor may see an ambiguous floor value. Pixy2.1 may lose a target
+temporarily. An Ultrasonic Sensor may see an unusual wall angle. Steering may
+reach a mechanical limit. A software state may remain active longer than
+expected.
+
+Risk mitigation therefore includes validation, bounded steering, target memory,
+event latching, safe-stop behavior, calibration checks, and testing under
+multiple starting conditions.
+
+## Regression Testing
+
+A change is not automatically an improvement because one test becomes better.
+
+The change also has to be tested against previously successful situations.
+
+This is particularly important in autonomous navigation because one new
+correction can solve a corner while damaging straight driving, or improve one
+obstacle while causing another pillar to be approached incorrectly.
+
+Regression testing protects previous successful behavior from being lost during
+rapid tuning.
+
+<p align="center">
+  <a href="./docs/systems_engineering/01_engineeringprocess.md">
+    <img src="https://img.shields.io/badge/READ-Engineering_Process-555555?style=for-the-badge">
+  </a>
+  <a href="./docs/systems_engineering/02_decisionlog.md">
+    <img src="https://img.shields.io/badge/READ-Decision_Log-666666?style=for-the-badge">
+  </a>
+  <a href="./docs/systems_engineering/04_tradeoffs.md">
+    <img src="https://img.shields.io/badge/READ-Trade--offs-777777?style=for-the-badge">
+  </a>
+  <a href="./docs/systems_engineering/06_whatdidntwork.md">
+    <img src="https://img.shields.io/badge/READ-What_Didn't_Work-888888?style=for-the-badge">
+  </a>
+</p>
 
 ---
 
 # Engineering Achievements
 
-The most important improvements in Piolín are architectural rather than based on unsupported performance numbers.
+## Key Engineering Outcomes
+
+The strongest improvements in Piolín are documented architectural changes
+rather than unsupported claims about perfect accuracy, zero latency, or maximum
+speed.
+
+The current robot has a clear separation between propulsion and steering, fixed
+physical identities for the lateral sensors, a round-specific S1 architecture,
+event-based floor detection, structured obstacle target handling, control
+arbitration, and dedicated recovery and parking concepts.
 
 | Engineering Development | Why It Matters |
 | --- | --- |
-| **Ackermann steering refinement** | Provides car-like steering using one actuator |
+| **Ackermann steering refinement** | Provides car-like steering with one dedicated steering actuator |
 | **Separated propulsion and steering** | Motor A drives while Motor B steers |
-| **Round-specific S1** | Uses the most appropriate sensor for each challenge |
-| **Fixed S2/S3 identity** | Prevents ambiguity in lateral sensing |
-| **Color event processing** | Prevents duplicate course-event counts |
-| **Target validation** | Reduces reactions to weak or irrelevant visual detections |
-| **Target memory** | Allows short camera losses without instantly abandoning a maneuver |
-| **Pass confirmation** | Separates visual loss from real obstacle clearance |
-| **Recovery behavior** | Helps Piolín return to useful track geometry |
-| **Control arbitration** | Prevents competing behaviors from fighting for steering |
+| **Round-specific S1** | Uses the information source needed by each challenge |
+| **Fixed S2/S3 convention** | Keeps left and right sensor identities unambiguous |
+| **Color event lifecycle** | Prevents one physical marking from being counted repeatedly |
+| **Pixy target validation** | Reduces reactions to weak or irrelevant visual detections |
+| **Target memory** | Allows short camera losses without immediately abandoning a maneuver |
+| **Pass confirmation concept** | Separates visual disappearance from real obstacle clearance |
+| **Recovery behavior** | Helps return the vehicle toward useful geometry |
+| **Control arbitration** | Prevents competing controllers from fighting for Motor B |
+| **3D-printed sensor integration** | Improves repeatability of physical sensor installation |
+| **Testing methodology** | Makes changes easier to compare, keep, or revert |
 
 ---
 
 # Evolution of Piolín
 
-PiolínTech began developing the project in **June 2025**. The robot has passed through several mechanical, sensing, and software configurations.
+## Evolution Overview
 
-Early prototypes focused on understanding vehicle behavior. Later versions increasingly addressed steering geometry, sensor placement, structural organization, perception, course navigation, and repeatability.
+PiolínTech began developing the project in June 2025.
 
-V4 represents the current competition architecture.
+The current robot is the result of many mechanical and sensing configurations
+rather than one uninterrupted build.
 
-| Generation | Main Development Focus |
-| --- | --- |
-| **Early Prototypes** | Basic autonomous vehicle behavior |
-| **V2 / Partially LEGO** | Packaging and mechanical organization |
-| **Complete LEGO** | Structural experimentation |
-| **V3** | Ackermann, sensing, and vision development |
-| **V4** | Current competition architecture |
+Early stages focused on understanding basic motion and vehicle construction.
+Later stages increasingly focused on steering geometry, sensor placement, track
+navigation, perception, repeatability, and software architecture.
+
+The evolution documents are intended to show how engineering decisions
+accumulated over time.
+
+## Phase 1 — Initial EV3 Prototype
+
+Phase 1 represents early EV3-based experimentation with basic vehicle movement,
+sensor placement, and structural concepts.
+
+The goal was not to present a competition-ready system. It was to understand
+what the vehicle needed mechanically before more advanced control could be
+trusted.
+
+The first phase created the baseline from which later mechanical and sensing
+questions could be asked.
+
+## Phase 2 — Mechanical and Navigation Development
+
+Phase 2 focused more strongly on vehicle geometry, steering development,
+lateral sensing, and the organization of the chassis.
+
+This phase helped connect mechanical layout with navigation behavior.
+
+It also reinforced the idea that sensor placement is not independent from
+control logic.
+
+## Phase 3 — Sensor, Vision, and Control Experimentation
+
+Phase 3 included extensive experimentation with sensing and vision.
+
+HuskyLens and Arduino Nano were investigated as one possible obstacle
+architecture. Pixy2.1 was later evaluated as a more direct vision option.
+
+The phase also exposed controller-conflict problems and the need to separate
+perception, active maneuvers, and normal navigation.
+
+## Phase 4 — Current Competition Architecture
+
+Phase 4 represents the current competition architecture.
+
+The EV3 remains the central controller. Motor A provides rear propulsion. Motor
+B provides Ackermann steering. S2 remains left ultrasonic, S3 remains right
+ultrasonic, and S4 remains the downward Color Sensor.
+
+S1 is round-specific: Gyro for Open and Pixy2.1 for Obstacles.
+
+Phase 4 is current, but individual navigation parameters and maneuvers continue
+to be tuned through physical testing.
 
 <p align="center">
   <a href="./models/evolution/Phase1.md">
@@ -733,23 +1348,35 @@ V4 represents the current competition architecture.
 
 # V4 — Current Competition Architecture
 
+## Current Physical Reference
+
 <p align="center">
   <img src="https://img.shields.io/badge/CURRENT-V4_COMPETITION_ARCHITECTURE-454545?style=for-the-badge">
 </p>
 
-V4 consolidates the current drivetrain, Ackermann steering, EV3 controller, two lateral Ultrasonic Sensors, downward Color Sensor, and round-specific S1 configuration.
+V4 consolidates the present drivetrain, Ackermann steering, EV3 controller, two
+lateral Ultrasonic Sensors, downward Color Sensor, and round-specific S1
+configuration.
 
-The six views below provide the primary physical record of the current robot.
+The images below provide the principal six-view physical record of the current
+vehicle.
 
 | Front | Rear | Left |
 | :---: | :---: | :---: |
-| <img src="./v-photos/v4/Piolin_open_front.jpeg" width="280"> | <img src="./v-photos/v4/piolin_open_rear.jpg" width="280"> | <img src="./v-photos/v4/piolin_open_left.jpg" width="280"> |
+| <img src="./v-photos/v4/Piolin_open_front.jpeg" width="280" alt="Piolín front"> | <img src="./v-photos/v4/piolin_open_rear.jpg" width="280" alt="Piolín rear"> | <img src="./v-photos/v4/piolin_open_left.jpg" width="280" alt="Piolín left"> |
 | **Right** | **Top** | **Bottom** |
-| <img src="./v-photos/v4/piolin_open_right.jpg" width="280"> | <img src="./v-photos/v4/piolin_open_top.jpg" width="280"> | <img src="./v-photos/v4/piolin_bottom.jpg" width="280"> |
+| <img src="./v-photos/v4/piolin_open_right.jpg" width="280" alt="Piolín right"> | <img src="./v-photos/v4/piolin_open_top.jpg" width="280" alt="Piolín top"> | <img src="./v-photos/v4/piolin_bottom.jpg" width="280" alt="Piolín bottom"> |
+
+These photographs are complemented by close-up evidence of the chassis,
+steering system, drivetrain, motors, sensors, battery, EV3 ports, Pixy
+detections, wiring, and track tests.
 
 <p align="center">
   <a href="./v-photos/README.md">
     <img src="https://img.shields.io/badge/PHOTOS-Complete_Gallery-555555?style=for-the-badge">
+  </a>
+  <a href="./t-gtku/timeline.md">
+    <img src="https://img.shields.io/badge/HISTORY-Full_Project_Timeline-777777?style=for-the-badge">
   </a>
 </p>
 
@@ -757,16 +1384,46 @@ The six views below provide the primary physical record of the current robot.
 
 # 3D-Printed Components
 
-Piolín uses custom 3D-printed components where repeatable sensor installation provides an advantage.
+## Manufacturing and Sensor Integration
 
-The Color Sensor casing helps maintain a more controlled optical environment around S4. The two-part Pixy2.1 case provides physical protection and helps maintain repeatable camera positioning.
+Piolín uses custom 3D-printed parts where a repeatable sensor installation
+provides a practical advantage.
 
-The parts were manufactured using an **Anet ET4X** and **OVERTURE High Speed PLA 1.75 mm**, with a documented nozzle temperature of **200 °C**, bed temperature of **80 °C**, and the printer's **100% speed setting**.
+The Color Sensor casing helps maintain a more controlled optical environment
+around S4 and helps preserve a repeatable physical relationship between the
+sensor and the floor.
+
+The two-part Pixy2.1 casing provides mechanical support and protection while
+helping maintain a consistent camera position.
+
+These parts are treated as part of the calibrated sensing system rather than
+decorative accessories.
+
+A different camera angle changes the x and y positions of detected blocks. A
+different Color Sensor height can change reflection and RGB values.
+
+Mechanical sensor installation and software calibration therefore have to be
+considered together.
+
+The current printed parts were manufactured using an Anet ET4X printer and
+OVERTURE High Speed PLA 1.75 mm filament.
+
+The documented print setup uses a nozzle temperature of 200 °C, a bed
+temperature of 80 °C, and the printer's 100% speed setting.
+
+The repository does not claim unrecorded layer height, infill, supports, or
+print times when those values were not documented.
 
 <p align="center">
-  <img width="300" src="https://github.com/user-attachments/assets/07d5d86e-c8d5-4aa6-9109-42227dfe5aa5">
-  <img width="285" src="https://github.com/user-attachments/assets/47db2b68-44a2-4477-9929-342703d8487d">
+  <img width="300" alt="Anet ET4X" src="https://github.com/user-attachments/assets/07d5d86e-c8d5-4aa6-9109-42227dfe5aa5">
+  <img width="285" alt="OVERTURE PLA" src="https://github.com/user-attachments/assets/47db2b68-44a2-4477-9929-342703d8487d">
 </p>
+
+### Printable Files
+
+- [ColorSensorCasing.stl](./models/3dprint/ColorSensorCasing.stl)
+- [PIXY_Case1.stl](./models/3dprint/PIXY_Case1.stl)
+- [PIXY_Case2.stl](./models/3dprint/PIXY_Case2.stl)
 
 <p align="center">
   <a href="./models/3dprint/01_PrintingProcess.md">
@@ -786,44 +1443,181 @@ The parts were manufactured using an **Anet ET4X** and **OVERTURE High Speed PLA
 
 # Reproducibility & GitHub Quality
 
+## Reproducibility Overview
+
 <p align="center">
   <img src="https://img.shields.io/badge/WRO_CRITERION_5-Reproducibility_%26_GitHub_Quality-454545?style=for-the-badge">
 </p>
 
-Our documentation is designed so another reader can understand how Piolín is assembled, connected, programmed, calibrated, and tested.
+The repository is designed so another reader can understand how Piolín is
+assembled, connected, programmed, calibrated, tested, and diagnosed.
 
-Reproducibility requires more than a list of components. Sensor orientation, port assignments, steering center, software dependencies, physical configuration, and calibration all influence the resulting robot behavior.
+Reproducibility requires more than a list of parts.
 
-For this reason, the repository includes a BOM, wiring documentation, electrical diagrams, software setup, calibration instructions, testing protocols, troubleshooting, source code, STL files, photographs, and autonomous-driving videos.
+Sensor orientation, motor port assignment, steering center, software
+dependencies, physical configuration, and calibration can all change the
+resulting robot behavior.
 
----
+For this reason, the repository contains a Bill of Materials, wiring
+documentation, electrical schemes, software setup instructions, calibration
+procedures, testing protocols, troubleshooting information, source code, STL
+files, photographs, and videos.
 
-## Software Preparation & Upload
+## Software Preparation and Upload
 
-Before either challenge program is executed, the physical steering is centered and all motor and sensor connections are verified.
+Before either competition program is executed, the physical robot is checked
+first.
 
-Open requires the Gyro Sensor on S1. Obstacles requires Pixy2.1 on S1. S2 remains the left Ultrasonic Sensor, S3 remains the right Ultrasonic Sensor, and S4 remains the downward Color Sensor.
+Motor A and Motor B must be connected correctly. The steering mechanism must be
+physically centered. S2 and S3 must correspond to the left and right Ultrasonic
+Sensors. S4 must be installed correctly above the floor.
 
-The appropriate Python program is then transferred to the EV3, the required sensors are calibrated, and a controlled test is performed before attempting a full course run.
+The correct round-specific sensor is then installed on S1.
 
-The complete setup procedure is available in [**Software Setup**](./docs/reproducibility/05_softwaresetup.md).
+Open requires the EV3 Gyro Sensor. Obstacles requires Pixy2.1.
 
----
+The corresponding Python program is transferred to the EV3 and the necessary
+sensors are calibrated before a full course attempt.
 
-# Testing & Reliability
+A controlled test is performed first so debug output and physical behavior can
+be inspected without immediately risking a full-speed collision.
 
-A single successful run is not enough for us to consider a solution reliable.
+The complete setup process is documented in the software-setup guide.
 
-During testing, we compare repeated starts, different valid starting positions, corner behavior, lateral geometry, Color Sensor events, visual detection, pillar passing, recovery, and parking.
+## Calibration
 
-When a failure occurs, the goal is to determine where the run first became incorrect. This makes it easier to distinguish between mechanical, sensing, perception, state, and controller problems.
+Calibration is treated as a system process rather than only a
+software-threshold adjustment.
+
+Steering centering, Ultrasonic Sensor orientation, Color Sensor height, gyro
+reset conditions, Pixy2.1 position, and camera signature training can all
+influence the autonomous result.
+
+If a mechanical sensor installation changes, the team does not assume that old
+software values remain valid.
+
+The corresponding subsystem is tested again before its previous calibration is
+trusted.
+
+## Testing
+
+A single successful run is not sufficient evidence that a change is reliable.
+
+Tests are repeated from different valid starting positions and under comparable
+conditions.
+
+The team observes start acquisition, straight driving, corner entry, corner
+exit, lateral geometry, color events, target selection, obstacle side, pass
+completion, recovery, parking, and stopping behavior.
+
+A modification is evaluated both against the original problem and against
+previously successful situations.
+
+## Troubleshooting
+
+Troubleshooting begins with the physical system.
+
+If Piolín behaves incorrectly, the team checks sensor connections, steering
+center, mechanical interference, wheel alignment, battery state, sensor
+position, and visible damage before assuming that the software is responsible.
+
+The software is then inspected through debug information, state behavior,
+sensor values, and the first unexpected transition.
+
+This order helps prevent software from compensating for a physical fault that
+should be repaired directly.
 
 <p align="center">
-  <a href="./docs/reproducibility/07_TestingProtocol.md">
-    <img src="https://img.shields.io/badge/READ-Testing_Protocol-555555?style=for-the-badge">
+  <a href="./docs/reproducibility/02_BOM.pdf">
+    <img src="https://img.shields.io/badge/BOM-Parts_List-555555?style=for-the-badge">
   </a>
-  <a href="./docs/reproducibility/08_Troubleshooting.md">
-    <img src="https://img.shields.io/badge/READ-Troubleshooting-777777?style=for-the-badge">
+  <a href="./docs/reproducibility/03_wiring.md">
+    <img src="https://img.shields.io/badge/BUILD-Wiring-666666?style=for-the-badge">
+  </a>
+  <a href="./docs/reproducibility/05_softwaresetup.md">
+    <img src="https://img.shields.io/badge/SOFTWARE-Setup-777777?style=for-the-badge">
+  </a>
+  <a href="./docs/reproducibility/06_HowToCalibrate.md">
+    <img src="https://img.shields.io/badge/ROBOT-Calibration-888888?style=for-the-badge">
+  </a>
+</p>
+
+---
+
+# Source Code
+
+## Published Competition Programs
+
+<p align="center">
+  <img src="https://img.shields.io/badge/SOURCE_CODE-Python_on_EV3-333333?style=for-the-badge&logo=python&logoColor=white">
+</p>
+
+The published code is separated by competition round.
+
+Each round includes a Python program and a dedicated explanation so a reader
+can understand the purpose of the program, the hardware assumptions, the main
+variables, the control flow, and the limitations of that version.
+
+| Challenge | Source Code | Explanation |
+| --- | --- | --- |
+| **Round 1 — Open** | [ev3v1.py](./code/round1/ev3v1.py) | [r1_exp.md](./code/round1/r1_exp.md) |
+| **Round 2 — Obstacles** | [ev3v1.py](./code/round2/ev3v1.py) | [r2_exp.md](./code/round2/r2_exp.md) |
+
+The source-code folders are intended to show the software evolution clearly
+rather than hiding older development concepts after more advanced versions were
+created.
+
+---
+
+---
+
+# Technical Schemes and Flowcharts
+
+## Diagram Organization
+
+Hardware and software diagrams are stored separately so a reader can
+distinguish the physical architecture from the control logic immediately. The
+`schemes/` directory contains electrical, port, and configuration diagrams,
+while `embed/` contains software, perception, parking, and engineering-process
+flowcharts.
+
+This separation keeps the repository readable and prevents a hardware wiring
+diagram from being confused with a software-state diagram. Both groups are
+linked directly from the README so judges can move from the overview to the
+detailed evidence without manually searching the folder tree.
+
+<p align="center">
+  <img src="./schemes/03_OverallScheme.png" width="680" alt="Piolín overall technical scheme">
+</p>
+
+## Hardware Schemes
+
+- [**01 — EV3 KiCad Reference**](./schemes/01_EV3Kicad.png) — Technical EV3 electrical reference used alongside the robot documentation.
+- [**02 — EV3 Port Map**](./schemes/02_EV3PortMap.png) — Current motor and sensor assignments for Piolín.
+- [**03 — Overall Scheme**](./schemes/03_OverallScheme.png) — High-level electromechanical representation of the robot.
+- [**04 — Open Configuration**](./schemes/04_OpenConfiguration.png) — Current Open Challenge sensor and motor configuration.
+- [**Schemes README**](./schemes/README.md) — Explanation of the purpose and scope of each hardware scheme.
+
+## Software and Engineering Flowcharts
+
+- [**01 — Navigation State Flow**](./embed/01_NVStateFC.md) — State-based navigation logic.
+- [**02 — Vision Processing**](./embed/02_VProcessing.md) — Processing path from Pixy detections to useful perception information.
+- [**03 — Torque Calculation**](./embed/03_TorqueCalc.png) — Mechanical torque reference.
+- [**04 — Control Arbitration**](./embed/04_ControlArbitration.md) — Priority between safety, active maneuvers, and normal navigation.
+- [**05 — Obstacle Strategy**](./embed/05_ObstacleStrategyFC.md) — Full pillar-detection and avoidance flow.
+- [**06 — Color Event Logic**](./embed/06_ColorEventFC.md) — Confirmation, latching, release, and rearming of physical floor events.
+- [**07 — Parking State Flow**](./embed/07_ParkingStateFC.md) — Parking-state progression.
+- [**08 — Parking Calibration**](./embed/08_ParkingCalibrationFC.md) — Structured parking-calibration process.
+- [**09 — Engineering Process**](./embed/09_EngineeringProcessFC.md) — Observe, hypothesize, test, compare, and document cycle.
+- [**10 — System Architecture**](./embed/10_SystemArchitectureFC.md) — High-level relationship between sensing, control, and actuation.
+- [**Flowchart Index**](./embed/README.md) — Complete index of software and engineering diagrams.
+
+<p align="center">
+  <a href="./schemes/README.md">
+    <img src="https://img.shields.io/badge/VIEW-Hardware_Schemes-555555?style=for-the-badge">
+  </a>
+  <a href="./embed/README.md">
+    <img src="https://img.shields.io/badge/VIEW-Software_Flowcharts-777777?style=for-the-badge">
   </a>
 </p>
 
@@ -831,9 +1625,26 @@ When a failure occurs, the goal is to determine where the run first became incor
 
 # Legacy Development
 
-Not every system tested became part of V4.
+## Historical Scope
 
-Earlier development included different sensor arrangements and a HuskyLens + Arduino Nano vision bridge. These systems are preserved because they influenced later engineering decisions, but they are not part of the current competition architecture.
+Not every experiment became part of the current robot. Earlier development
+included different sensor arrangements and a HuskyLens plus Arduino Nano vision
+bridge. These configurations provided useful information about communication
+complexity, target detection, sensor reliability, and the difficulty of
+coordinating multiple control layers.
+
+The current competition robot does not use HuskyLens or Arduino Nano. Legacy
+material is intentionally separated from current documentation so historical
+experiments can still demonstrate the engineering process without creating
+ambiguity about the hardware that is installed today.
+
+## Legacy Files
+
+- [**Legacy Notice**](./docs/legacy/00_LEGACY_NOTICE.md) — Defines what is historical and what is current.
+- [**HuskyLens Development**](./docs/legacy/01_HuskyLens.md) — Previous vision-system experimentation.
+- [**Previous Testing & Analysis**](./docs/legacy/02_PTesting%26Analysis.md) — Historical test material and observations.
+- [**Previous Testing Scheme**](./docs/legacy/PTScheme.png) — Visual evidence from earlier development.
+- [**Previous Circuit Image**](./docs/legacy/PTechcircuit_image.png) — Previous electrical-development reference.
 
 <p align="center">
   <a href="./docs/legacy/00_LEGACY_NOTICE.md">
@@ -843,17 +1654,104 @@ Earlier development included different sensor arrangements and a HuskyLens + Ard
 
 ---
 
+# Project History
+
+## Development Timeline
+
+PiolínTech began this project in June 2025. Since then, the vehicle has passed
+through early prototypes, a major hardware failure, mechanically useful but
+non-compliant experiments, stronger but slower designs, WRO competition
+experience, steering development, several sensing configurations, vision
+experiments, and the current V4 architecture.
+
+The timeline is preserved because the current robot is easier to understand
+when the decisions that preceded it remain visible. Some prototypes taught us
+about competition constraints, some exposed hardware reliability problems, and
+others revealed how closely mechanical geometry and autonomous control are
+connected.
+
+## From Early Prototypes to V4
+
+The current architecture did not replace every earlier idea. Instead, the team
+kept the parts that remained useful, modified the parts that created
+repeatability problems, and removed systems that added more complexity than
+value.
+
+That process produced the present EV3-centered architecture, the dedicated
+Motor A / Motor B responsibilities, the fixed S2-left and S3-right convention,
+the S4 floor-sensing role, and the round-specific S1 design.
+
+<p align="center">
+  <a href="./t-gtku/timeline.md">
+    <img src="https://img.shields.io/badge/EXPLORE-Full_Project_Timeline-555555?style=for-the-badge">
+  </a>
+</p>
+
+---
+
+# Engineering Roadmap
+
+## Current Development Priorities
+
+The current roadmap focuses on reliability and calibration rather than adding
+unnecessary new hardware. The main engineering question is no longer how many
+features can be added to Piolín, but how consistently the existing architecture
+can perform under different valid starting conditions and track situations.
+
+## Open Challenge Priorities
+
+Open development focuses on start acquisition, straight-line stability, corner
+entry, rotation, corner exit, geometric reacquisition, course-event counting,
+and final parking behavior. Improvements are tested against multiple starting
+positions so one successful case does not hide a weakness somewhere else on the
+course.
+
+## Obstacle Challenge Priorities
+
+Obstacle development focuses on stable Red and Green target selection,
+preserving the correct WRO passing side, preventing temporary camera loss from
+cancelling a valid maneuver, confirming that a pillar has physically been
+cleared, and recovering toward useful lateral geometry afterward.
+
+## Regression Testing Priority
+
+Regression testing remains important in both rounds. A new adjustment is not
+accepted simply because one failure disappears. Previously successful cases are
+tested again so the team can identify whether the modification solved the
+original problem without creating a new one elsewhere.
+
+| Area | Current Focus |
+| --- | --- |
+| **Open Start** | Reliable acquisition from valid starting positions |
+| **Open Straight Driving** | Stable lateral geometry with controlled steering response |
+| **Open Corners** | Repeatable entry, rotation, exit, and reacquisition |
+| **Course Events** | One accepted software event for each physical marking |
+| **Obstacle Detection** | Select the most relevant valid Pixy target |
+| **Passing Side** | Preserve Red-right and Green-left behavior |
+| **Pass Confirmation** | Distinguish temporary visual loss from physical clearance |
+| **Recovery** | Return toward useful track geometry after a pillar |
+| **Parking** | Improve approach, entry, alignment, and stopping |
+| **Regression Testing** | Protect previously successful behavior |
+
+---
+
 # Repository Structure
 
-The project is organized so each engineering area has a clear place. The detailed individual links are available in the **General Project Index** at the top of this README.
+## Directory Map
+
+The repository is organized by engineering purpose so current hardware,
+software, evidence, manufacturing files, and historical development remain easy
+to distinguish.
 
 ```text
 WRO2026-FE-PiolinTech/
-│
 ├── code/
 │   ├── round1/
+│   │   ├── ev3v1.py
+│   │   └── r1_exp.md
 │   └── round2/
-│
+│       ├── ev3v1.py
+│       └── r2_exp.md
 ├── docs/
 │   ├── components/
 │   ├── legacy/
@@ -862,42 +1760,215 @@ WRO2026-FE-PiolinTech/
 │   ├── project_overview/
 │   ├── reproducibility/
 │   ├── software_obstacles_strategy/
+│   │   └── parking/
 │   └── systems_engineering/
-│
 ├── embed/
-│
 ├── models/
 │   ├── 3dprint/
 │   └── evolution/
-│
 ├── schemes/
-│
 ├── t-gtku/
-│
 ├── v-photos/
 │   ├── v1/
 │   ├── v2/
 │   ├── v3/
 │   └── v4/
-│
 ├── videos/
-│
 └── README.md
 ```
 
-`code/` contains the executable programs and their explanations. `docs/` contains the main engineering documentation. `embed/` contains software and engineering flowcharts. `models/` stores 3D-printing files and robot evolution. `schemes/` contains technical hardware diagrams. `v-photos/` provides photographic evidence, and `videos/` contains autonomous-driving demonstrations.
+## Folder Roles
+
+`code/` contains the published programs and their explanations. `docs/`
+contains the detailed engineering documentation. `embed/` contains software and
+engineering flowcharts. `models/` contains 3D-printing files and the documented
+evolution of the robot. `schemes/` contains hardware-oriented technical
+diagrams. `t-gtku/` contains team and timeline material. `v-photos/` provides
+physical evidence across robot generations, and `videos/` contains autonomous
+demonstrations.
+
+---
+
+# Detailed Repository Navigation
+
+## Components
+
+The component files document the individual hardware elements before they are
+combined into the complete system.
+
+- [**Hardware Overview**](./docs/components/01_Hardwareoverview.md) — Current hardware architecture at a glance.
+- [**EV3 Controller**](./docs/components/02_EV3.md) — Main onboard controller and port structure.
+- [**Motors**](./docs/components/03_Motors.md) — Drive and steering motors.
+- [**Steering Motor**](./docs/components/04_SteeringMotor.md) — Motor B and the steering mechanism.
+- [**Ultrasonic Sensors**](./docs/components/05_UltrasonicSensors.md) — Lateral S2 and S3 sensing.
+- [**Color Sensor**](./docs/components/06_ColorSensor.md) — Downward S4 floor sensing.
+- [**Pixy Vision**](./docs/components/07_PixyVision.md) — Pixy2.1 obstacle perception.
+- [**Battery**](./docs/components/08_Battery.md) — EV3 Rechargeable Battery 45501.
+- [**Power Distribution**](./docs/components/09_PowerDistribution.md) — Current power path through the EV3 architecture.
+- [**Other Components**](./docs/components/10_OtherComponents.md) — Additional physical components used by Piolín.
+
+## Source Code
+
+The source-code directory is intentionally separated by round because Open and
+Obstacles use different S1 devices and different perception requirements.
+
+- [**Round 1 EV3 V1**](./code/round1/ev3v1.py) — Open Challenge source code.
+- [**Round 1 Explanation**](./code/round1/r1_exp.md) — Technical explanation of the Round 1 version.
+- [**Round 2 EV3 V1**](./code/round2/ev3v1.py) — Obstacle Challenge source code.
+- [**Round 2 Explanation**](./code/round2/r2_exp.md) — Technical explanation of the Round 2 version.
+
+## 3D Models and Manufacturing
+
+The manufacturing files make the custom sensor components reproducible and
+connect the STL geometry with installation and recalibration.
+
+- [**Printing Process**](./models/3dprint/01_PrintingProcess.md) — Printer, filament, manufacturing workflow, inspection, and installation.
+- [**Color Sensor Casing Print**](./models/3dprint/02_ColorSensorCasing_Print.md) — S4 casing manufacturing and validation.
+- [**Pixy2.1 Case Print**](./models/3dprint/03_PixyCase_Print.md) — Camera-case manufacturing and validation.
+- [**ColorSensorCasing.stl**](./models/3dprint/ColorSensorCasing.stl) — Printable Color Sensor casing.
+- [**PIXY_Case1.stl**](./models/3dprint/PIXY_Case1.stl) — First component of the Pixy2.1 case.
+- [**PIXY_Case2.stl**](./models/3dprint/PIXY_Case2.stl) — Second component of the Pixy2.1 case.
+
+## Evolution Files
+
+The evolution files show how Piolín changed from early EV3 prototypes to the
+current architecture.
+
+- [**Phase 1**](./models/evolution/Phase1.md) — Initial EV3 prototype and foundational lessons.
+- [**Phase 2**](./models/evolution/Phase2.md) — Mechanical and navigation development.
+- [**Phase 3**](./models/evolution/Phase3.md) — Sensor, vision, and control experimentation.
+- [**Phase 4**](./models/evolution/phase4.md) — Current competition architecture.
+
+## Team and Timeline
+
+- [**Official Team Picture**](./t-gtku/officialpictureptech.md) — Formal PiolínTech team image.
+- [**Funny Team Picture**](./t-gtku/funnypicture.md) — Informal team photograph.
+- [**Project Timeline**](./t-gtku/timeline.md) — Chronological development history.
+
+## Videos
+
+- [**Video Index**](./videos/links.md) — Central list of autonomous demonstrations and test videos.
+- [**Open Challenge Video**](https://www.youtube.com/watch?v=JROB39Az-Ys) — Open-round autonomous demonstration.
+- [**Obstacle Challenge Video**](https://youtu.be/Tlw_LM0b6WE) — Obstacle-round autonomous demonstration.
+
+---
+
+# V4 Photographic Evidence
+
+## Current Vehicle Views
+
+The V4 photo directory is the main photographic reference for the current
+robot. It contains overall vehicle views as well as close-ups of the chassis,
+steering, drivetrain, sensors, controller, battery, wiring, and Pixy
+detections.
+
+- [**Front View**](./v-photos/v4/Piolin_open_front.jpeg)
+- [**Rear View**](./v-photos/v4/piolin_open_rear.jpg)
+- [**Left View**](./v-photos/v4/piolin_open_left.jpg)
+- [**Right View**](./v-photos/v4/piolin_open_right.jpg)
+- [**Top View**](./v-photos/v4/piolin_open_top.jpg)
+- [**Bottom View**](./v-photos/v4/piolin_bottom.jpg)
+- [**Open Isometric View**](./v-photos/v4/piolin_open_isometric.jpg)
+- [**Obstacle Isometric View**](./v-photos/v4/piolin_obstacle_isometric.jpg)
+
+## Mechanical Evidence
+
+- [**Ackermann Front View**](./v-photos/v4/ackermann_front.jpg)
+- [**Ackermann Angles**](./v-photos/v4/ackermann_angles.jpg)
+- [**Ackermann Center**](./v-photos/v4/ackermann_center.jpg)
+- [**Left Steering Lock**](./v-photos/v4/ackermann_left_lock.jpg)
+- [**Right Steering Lock**](./v-photos/v4/ackermann_right_lock.jpg)
+- [**Rear Drivetrain Top**](./v-photos/v4/rear_drivetrain_top.jpg)
+- [**Rear Drivetrain Bottom**](./v-photos/v4/rear_drivetrain_bottom.jpg)
+- [**Steering Motion**](./v-photos/v4/steering_motion.gif)
+
+## Sensor Evidence
+
+- [**S2 Left Ultrasonic**](./v-photos/v4/ultrasonic_left_s2.jpg)
+- [**S3 Right Ultrasonic**](./v-photos/v4/ultrasonic_right_s3.jpg)
+- [**Ultrasonic Pair**](./v-photos/v4/ultrasonic_pair_top.jpg)
+- [**S4 Installed**](./v-photos/v4/color_sensor_s4_installed.jpg)
+- [**Color Sensor Casing**](./v-photos/v4/color_sensor_casing.jpg)
+- [**Blue Mark**](./v-photos/v4/color_sensor_blue_mark.jpg)
+- [**Orange Mark**](./v-photos/v4/color_sensor_orange_mark.jpg)
+- [**Open Gyro**](./v-photos/v4/s1_open_gyro.jpg)
+- [**Obstacle Pixy2.1**](./v-photos/v4/s1_obstacle_pixy.jpg)
+
+## Vision Evidence
+
+- [**Pixy2.1 Front**](./v-photos/v4/pixy21_front.jpg)
+- [**Pixy2.1 Side**](./v-photos/v4/pixy21_side.jpg)
+- [**Pixy2.1 Top**](./v-photos/v4/pixy21_top.jpg)
+- [**Pixy2.1 S1 Connection**](./v-photos/v4/pixy21_s1_connection.jpg)
+- [**Red Detection**](./v-photos/v4/pixy21_red_detection.jpg)
+- [**Green Detection**](./v-photos/v4/pixy21_green_detection.jpg)
+- [**Pink Parking Detection**](./v-photos/v4/pixy21_parking_detection.jpg)
+
+## Wiring Evidence
+
+- [**Open Wiring**](./v-photos/v4/wiring_open.jpg)
+- [**Obstacle Wiring**](./v-photos/v4/wiring_obstacle.jpg)
+- [**EV3 Motor Ports**](./v-photos/v4/ev3_motor_ports.jpg)
+- [**EV3 Sensor Ports**](./v-photos/v4/ev3_sensor_ports.jpg)
+- [**EV3 Battery 45501**](./v-photos/v4/ev3_battery_45501.jpg)
+
+---
+
+# Documentation Coverage
+
+## WRO Engineering Documentation Map
+
+The repository is organized so each major engineering area has both a
+high-level explanation and direct technical evidence.
+
+| Engineering Area | Main Evidence |
+| --- | --- |
+| **Mobility & Mechanical Design** | Mobility documentation, Ackermann analysis, drivetrain documentation, torque reasoning, and V4 mechanical photographs |
+| **Power & Sensor Architecture** | Power and sensor documentation, component files, wiring, port mapping, current schemes, and sensor photographs |
+| **Software Architecture & Obstacle Strategy** | Software documentation, Round 1 and Round 2 source code, vision flow, state logic, control arbitration, and obstacle strategy |
+| **Systems Thinking & Engineering Decisions** | Engineering process, decision log, trade-offs, risks, rejected ideas, evolution documents, and project timeline |
+| **Reproducibility & GitHub Quality** | BOM, wiring, software setup, calibration, testing, troubleshooting, STL files, photographs, videos, and clickable navigation |
+
+## Evidence Philosophy
+
+The README provides the project story and quick navigation, while the linked
+files provide the deeper engineering detail. This prevents the main page from
+becoming a disconnected collection of every calculation and experiment while
+still allowing a judge to reach the supporting evidence directly.
+
+The repository also separates current architecture from legacy development.
+This is important because historical experimentation is valuable evidence only
+when it is clearly identified as historical rather than presented as part of
+the current competition robot.
 
 ---
 
 # Final Engineering Perspective
 
-Piolín is not defined by one sensor, one controller, or one successful run. Its autonomous behavior comes from the interaction between mechanical geometry, sensor placement, perception, software state, and motor control.
+## What Piolín Represents
 
-The current architecture gives every major component a clear responsibility. Motor A provides rear propulsion. Motor B operates the Ackermann steering mechanism. S2 and S3 observe lateral geometry. S4 detects physical course landmarks. S1 provides either heading information through the Gyro Sensor or visual perception through Pixy2.1 depending on the challenge.
+Piolín is not defined by one sensor, one controller, or one successful run. Its
+autonomous behavior comes from the interaction between mechanical geometry,
+sensor placement, perception, navigation states, control logic, and motor
+actuation.
 
-The most important change throughout PiolínTech's development has been the way we evaluate success. Instead of only asking whether the robot completed a maneuver, we now ask **why it worked, whether it can repeat that behavior, what changes when initial conditions are different, and which subsystem fails first when something goes wrong**.
+The current architecture gives every major component a clear responsibility.
+Motor A provides rear propulsion. Motor B operates the Ackermann steering
+mechanism. S2 and S3 observe lateral geometry. S4 detects physical course
+landmarks. S1 provides either heading information through the Gyro Sensor or
+visual perception through Pixy2.1 depending on the challenge.
 
-That engineering process is what transformed the early prototypes into the current Piolín.
+## How We Evaluate Success
+
+The most important change throughout PiolínTech's development has been the way
+the team evaluates a successful result. Instead of only asking whether the
+robot completed a maneuver, we ask why it worked, whether the behavior can be
+repeated, what changes when the initial conditions are different, and which
+subsystem fails first when something goes wrong.
+
+That process is what transformed the early prototypes into the current Piolín
+and continues to guide the remaining calibration work for WRO Future Engineers
+2026.
 
 <p align="center">
   <img src="https://img.shields.io/badge/PIOLÍNTECH-WRO_FUTURE_ENGINEERS_2026-454545?style=for-the-badge">
@@ -906,3 +1977,22 @@ That engineering process is what transformed the early prototypes into the curre
 <p align="center">
   <b>Designed · Built · Programmed · Tested · Documented by PiolínTech</b>
 </p>
+
+
+---
+
+# Quick Evidence Checklist
+
+## Mechanical & Sensor Evidence
+
+Current V4 photographs, Ackermann documentation, drivetrain evidence, S2-left / S3-right sensing, S4 floor sensing, and the round-specific S1 configuration are all directly linked in this README.
+
+## Software & Reproducibility Evidence
+
+Round-specific source code, code explanations, flowcharts, BOM, wiring, setup, calibration, testing, troubleshooting, STL files, photographs, and videos are directly accessible.
+
+## Engineering Evidence
+
+Decision logs, trade-offs, risks, rejected approaches, project history, and evolution files document how the current architecture was reached.
+
+<p align="center"><b>PiolínTech · WRO Future Engineers 2026</b></p>
